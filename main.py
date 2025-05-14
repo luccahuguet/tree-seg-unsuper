@@ -1,6 +1,3 @@
-def main():
-    print("Hello from final-paper!")
-
-
-if __name__ == "__main__":
-    main()
+import sys
+sys.path.append('src')
+import kmeans_segmentation  # This will execute the code in src/kmeans_segmentation.py
