@@ -1,0 +1,17 @@
+# Python cache and virtual environments
+__pycache__/
+.venv/
+env/
+.uv/
+
+# Output files
+output/
+
+# Input images (keep the folder, ignore images)
+input/*.jpg
+input/*.jpeg
+input/*.png
+
+# OS files
+.DS_Store
+.aider*

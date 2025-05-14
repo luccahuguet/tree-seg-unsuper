@@ -14,7 +14,7 @@ output_dir = "output"
 os.makedirs(output_dir, exist_ok=True)
 
 # Set your input image filename here
-input_image_filename = "drone_image.jpg"
+input_image_filename = "input/aerial.jpg" 
 image_path = os.path.join(input_dir, input_image_filename)
 
 # Load DINOv2 model
