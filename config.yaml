@@ -1,0 +1,4 @@
+input_dir: input
+output_dir: output
+n_clusters: 5
+overlay_ratio: 2  # 1=100% input, 10=100% segmentation, 5=50/50
