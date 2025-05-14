@@ -6,10 +6,10 @@ import torch.nn.functional as F
 
 from timm import create_model
 
-from .patch import Patch
+from src.patch import Patch
 
 from types import MethodType
-from .transform import iden_partial
+from src.transform import iden_partial
 
 from functools import partial
 import math
@@ -155,7 +155,9 @@ class HighResDV2(nn.Module):
         # use the memeory efficienty attn like in dinov2
         attn_block.forward = MethodType(Patch._fix_mem_eff_attn(), attn_block)
         if "dinov2" in dino_name:
-            final_block.forward = MethodType(Patch._fix_block_forward_dv2(), final_block)  # type: ignore
+            final_block.forward = MethodType(
+                Patch._fix_block_forward_dv2(), final_block
+            )  # type: ignore
             dino_model.forward_feats_attn = MethodType(  # type: ignore
                 Patch._add_new_forward_features_dv2(), dino_model
             )
@@ -164,7 +166,9 @@ class HighResDV2(nn.Module):
                 blk.forward = MethodType(Patch._fix_block_forward_dino(), blk)
                 attn_block = blk.attn
                 attn_block.forward = MethodType(Patch._fix_mem_eff_attn(), attn_block)
-            final_block.forward = MethodType(Patch._fix_block_forward_dino(), final_block)  # type: ignore
+            final_block.forward = MethodType(
+                Patch._fix_block_forward_dino(), final_block
+            )  # type: ignore
             dino_model.forward_feats_attn = MethodType(  # type: ignore
                 Patch._add_new_forward_features_dino(), dino_model
             )
@@ -173,7 +177,9 @@ class HighResDV2(nn.Module):
                 blk.forward = MethodType(Patch._fix_block_forward_dino(), blk)
                 attn_block = blk.attn
                 attn_block.forward = MethodType(Patch._fix_mem_eff_attn(), attn_block)
-            final_block.forward = MethodType(Patch._fix_block_forward_dino(), final_block)  # type: ignore
+            final_block.forward = MethodType(
+                Patch._fix_block_forward_dino(), final_block
+            )  # type: ignore
             dino_model.forward_feats_attn = MethodType(  # type: ignore
                 Patch._add_new_forward_features_vit(), dino_model
             )
@@ -187,9 +193,9 @@ class HighResDV2(nn.Module):
     def set_transforms(
         self, transforms: List[partial], inv_transforms: List[partial]
     ) -> None:
-        assert len(transforms) == len(
-            inv_transforms
-        ), "Each transform must have an inverse!"
+        assert len(transforms) == len(inv_transforms), (
+            "Each transform must have an inverse!"
+        )
         self.transforms = transforms
         self.inverse_transforms = inv_transforms
 
@@ -354,7 +360,9 @@ class HighResDV2(nn.Module):
         N_transforms = len(self.transforms)
         for i in range(N_transforms):
             transformed_img = img_batch[i].unsqueeze(0)
-            out_dict = self.dinov2.forward_feats_attn(transformed_img, None, attn_choice)  # type: ignore
+            out_dict = self.dinov2.forward_feats_attn(
+                transformed_img, None, attn_choice
+            )  # type: ignore
             if attn_choice != "none":
                 feats, attn = out_dict["x_norm_patchtokens"], out_dict["x_patchattn"]
                 features = torch.concat((feats, attn), dim=-1)
@@ -380,7 +388,6 @@ class HighResDV2(nn.Module):
 
 # from FeatUp: https://github.com/mhamilton723/FeatUp/blob/main/featup/util.py
 class TorchPCA(object):
-
     def __init__(self, n_components):
         self.n_components = n_components
 

@@ -1,4 +1,6 @@
 input_dir: input
 output_dir: output
 n_clusters: 5
-overlay_ratio: 4  # 1=100% input, 10=100% segmentation, 5=50/50
+overlay_ratio: 4
+stride: 4  
+model_name: dinov2_vits14  # Use smaller model for RTX 3050
