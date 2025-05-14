@@ -8,7 +8,6 @@ import cv2
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from matplotlib import colors
-import torch
 import subprocess
 
 
@@ -19,14 +18,6 @@ def print_gpu_info():
         total_mem = torch.cuda.get_device_properties(gpu_idx).total_memory / (1024**3)
         print(f"GPU: {gpu_name}")
         print(f"Total VRAM: {total_mem:.2f} GB")
-        # Optional: print nvidia-smi output
-        try:
-            result = subprocess.run(
-                ["nvidia-smi"], capture_output=True, text=True, check=True
-            )
-            print(result.stdout)
-        except Exception as e:
-            print("Could not run nvidia-smi:", e)
     else:
         print("No CUDA-compatible GPU found.")
 
@@ -34,6 +25,7 @@ def print_gpu_info():
 def run_kmeans_segmentation(
     input_dir="input", output_dir="output", n_clusters=5, overlay_ratio=5
 ):
+    print_gpu_info()
     os.makedirs(output_dir, exist_ok=True)
 
     # Convert overlay_ratio (1-10) to alpha (0.9 to 0.0)
