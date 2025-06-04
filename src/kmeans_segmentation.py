@@ -196,8 +196,16 @@ def run_kmeans_segmentation(
             traceback.print_exc()
 
     for filename in os.listdir(input_dir):
-        if filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
-            image_path = os.path.join(input_dir, filename)
-            output_prefix = os.path.splitext(filename)[0]
-            print(f"Processing {filename} ...")
-            process_image_with_legend(image_path, output_prefix)
+        if filename is None:
+            print("No filename specified in config. Please provide a filename in config.yaml.")
+            return
+        if not filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
+            print(f"Invalid file format: {filename}. Supported formats: .jpg, .jpeg, .png, .tif, .tiff")
+            return
+        image_path = os.path.join(input_dir, filename)
+        if not os.path.exists(image_path):
+            print(f"File not found: {image_path}")
+            return
+        output_prefix = os.path.splitext(filename)[0]
+        print(f"Processing {filename} ...")
+        process_image_with_legend(image_path, output_prefix)
