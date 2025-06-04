@@ -1,6 +1,6 @@
-input_dir: input
-output_dir: output
+input_dir: /kaggle/input/drone-10-best
+output_dir: /kaggle/working/output
 n_clusters: 5
 overlay_ratio: 4
-stride: 4  
-model_name: dinov2_vits14  # Use smaller model for RTX 3050
+stride: 4
+model_name: dinov2_vits14
