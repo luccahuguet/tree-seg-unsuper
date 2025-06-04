@@ -1,6 +1,12 @@
+# Dirs
 input_dir: /kaggle/input/drone-10-best
 output_dir: /kaggle/working/output
+
+# Model settings
 n_clusters: 5
 overlay_ratio: 4
 stride: 4
 model_name: dinov2_vits14
+
+# Others
+filename: DJI_20250127150117_0029_D.JPG
