@@ -63,7 +63,7 @@ Developed in a WSL2 Ubuntu 24.04 environment using Nushell, Python 3.10.17 (mana
    ```bash
    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
    uv pip install timm scikit-learn numpy opencv-python matplotlib pyyaml
-   uv add --dev black ruff git+https://github.com/astral-sh/ty
+   uv add --dev ruff git+https://github.com/astral-sh/ty
    uv sync
    uv lock
    ```
@@ -71,9 +71,8 @@ Developed in a WSL2 Ubuntu 24.04 environment using Nushell, Python 3.10.17 (mana
 5. **Copy HR-Dv2 Files**
    - Clone HR-Dv2 and copy required files:
      ```bash
-     cd ~
-     git clone https://github.com/tldr-group/HR-Dv2
-     cd ~/final-paper
+     git clone https://github.com/tldr-group/HR-Dv2 ~/pjs/HR-Dv2
+     cd ~/pjs/final-paper
      cp ../HR-Dv2/hr_dv2/high_res.py ./upsampler.py
      cp ../HR-Dv2/hr_dv2/patch.py ./patch.py
      cp ../HR-Dv2/hr_dv2/transform.py ./transform.py
