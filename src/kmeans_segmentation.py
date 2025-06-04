@@ -29,6 +29,7 @@ def run_kmeans_segmentation(
     overlay_ratio=5,
     stride=4,
     model_name="dinov2_vits14",
+    filename=None,  # New parameter for hardcoded filename
 ):
     print_gpu_info()
     os.makedirs(output_dir, exist_ok=True)
@@ -195,17 +196,17 @@ def run_kmeans_segmentation(
             print(f"Error processing {image_path}: {e}")
             traceback.print_exc()
 
-    for filename in os.listdir(input_dir):
-        if filename is None:
-            print("No filename specified in config. Please provide a filename in config.yaml.")
-            return
-        if not filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
-            print(f"Invalid file format: {filename}. Supported formats: .jpg, .jpeg, .png, .tif, .tiff")
-            return
-        image_path = os.path.join(input_dir, filename)
-        if not os.path.exists(image_path):
-            print(f"File not found: {image_path}")
-            return
-        output_prefix = os.path.splitext(filename)[0]
-        print(f"Processing {filename} ...")
-        process_image_with_legend(image_path, output_prefix)
+    # --- Modified section: Process only the specified filename ---
+    if filename is None:
+        print("No filename specified in config. Please provide a filename in config.yaml.")
+        return
+    if not filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
+        print(f"Invalid file format: {filename}. Supported formats: .jpg, .jpeg, .png, .tif, .tiff")
+        return
+    image_path = os.path.join(input_dir, filename)
+    if not os.path.exists(image_path):
+        print(f"File not found: {image_path}")
+        return
+    output_prefix = os.path.splitext(filename)[0]
+    print(f"Processing {filename} ...")
+    process_image_with_legend(image_path, output_prefix)
