@@ -1,4 +1,3 @@
-
 # %% [code] {"execution":{"iopub.status.busy":"2025-06-11T00:23:01.048990Z","iopub.execute_input":"2025-06-11T00:23:01.049146Z","iopub.status.idle":"2025-06-11T00:23:01.801474Z","shell.execute_reply.started":"2025-06-11T00:23:01.049132Z","shell.execute_reply":"2025-06-11T00:23:01.800634Z"},"jupyter":{"outputs_hidden":false}}
 # Change to a safe directory first
 %cd /kaggle/working
@@ -73,8 +72,8 @@ def init_model_and_preprocess(model_name, stride, device):
     )
     return model, preprocess
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-06-11T01:22:06.198820Z","iopub.execute_input":"2025-06-11T01:22:06.199115Z","iopub.status.idle":"2025-06-11T01:22:06.224152Z","shell.execute_reply.started":"2025-06-11T01:22:06.199096Z","shell.execute_reply":"2025-06-11T01:22:06.223497Z"},"jupyter":{"source_hidden":true}}
-# run kmeans
+# %% [code] {"execution":{"iopub.status.busy":"2025-06-11T01:22:06.198820Z","iopub.execute_input":"2025-06-11T01:22:06.199115Z","iopub.status.idle":"2025-06-11T01:22:06.224152Z","shell.execute_reply.started":"2025-06-11T01:22:06.199096Z","shell.execute_reply":"2025-06-11T01:22:06.223497Z"}}
+# run tree seg
 import os
 import torch
 import numpy as np
@@ -109,7 +108,7 @@ def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, ver
     ]
     return "\n".join(config_lines)
 
-def run_kmeans_segmentation(
+def run_tree_seg(
     input_dir="input",
     output_dir="output",
     n_clusters=5,
@@ -329,9 +328,9 @@ import sys
 sys.path.append("/kaggle/working/project/src")
 
 # Run the segmentation
-run_kmeans_segmentation(**config)
+run_tree_seg(**config)
 
-# %% [code] {"execution":{"iopub.status.busy":"2025-06-11T01:22:26.422709Z","iopub.execute_input":"2025-06-11T01:22:26.423191Z","iopub.status.idle":"2025-06-11T01:22:26.543218Z","shell.execute_reply.started":"2025-06-11T01:22:26.423168Z","shell.execute_reply":"2025-06-11T01:22:26.542505Z"},"jupyter":{"outputs_hidden":false}}
+# %% [code] {"execution":{"iopub.status.busy":"2025-06-11T01:24:59.774624Z","iopub.execute_input":"2025-06-11T01:24:59.774889Z","iopub.status.idle":"2025-06-11T01:24:59.895486Z","shell.execute_reply.started":"2025-06-11T01:24:59.774871Z","shell.execute_reply":"2025-06-11T01:24:59.894203Z"},"jupyter":{"outputs_hidden":false}}
 from IPython.display import Image, display
 
 # Paths to the output files
