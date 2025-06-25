@@ -3,7 +3,6 @@
 # It contains special cell markers (e.g., # %%) to preserve notebook cell boundaries.
 # You can open and edit it as a notebook in Jupyter or Kaggle.
 # When editing as a .py file, be careful to preserve these cell markers and cell order.
-# Avoid removing or reordering cells unless you know what you are doing.
 #
 # To convert back to a notebook, use Jupyter or VSCode's 'Python: Import Notebook' feature.
 #
