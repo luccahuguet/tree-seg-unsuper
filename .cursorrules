@@ -1,11 +1,21 @@
 # Cursor Rules for final-paper project
 
 ## Environment Setup
-This project requires proper PATH environment configuration for command execution.
+This project uses nushell as the default shell environment.
+
+### Shell Environment  
+- User shell: nushell (nu)
+- Use nushell syntax for terminal commands
+- PATH issues may occur due to mise/nix environment
 
 ### Command Execution Fix
-When running terminal commands, prefix with PATH export to ensure system commands are available:
-```bash
+When running terminal commands, use nushell syntax or prefix with PATH export:
+```nu
+# Nushell syntax
+ls | where type == file
+mv src/ tree_seg/
+
+# Or bash compatibility when needed  
 export PATH="/bin:/usr/bin:$PATH" && your_command_here
 ```
 
@@ -13,12 +23,50 @@ export PATH="/bin:/usr/bin:$PATH" && your_command_here
 - Shell may not find basic commands like `bash`, `sed`, `id` without proper PATH
 - Mise tool version manager warnings can be ignored
 - Shell integration script warnings are cosmetic and don't affect functionality
+- Use nushell commands when possible, fallback to bash with PATH export
 
 ### Project Structure
 - Main project files in root directory
 - Deployment configuration in `deployment/` folder
 - Source code in `src/` directory
 - Python 3.10.17 environment
+
+## Code Quality Tools
+
+### Type Checking with ty
+This project uses `ty` (from Astral) for fast type checking.
+
+**Running ty:**
+```bash
+# Check a specific file
+uv run ty check <file_path>
+
+# Check the entire project
+uv run ty check .
+
+# Examples
+uv run ty check tree_seg/analysis/k_selection.py
+uv run ty check tree_seg/
+```
+
+**Important Notes:**
+- ty is pre-release software - expect warnings about this
+- Always use `uv run ty check` (not just `ty`)
+- The command structure is `ty check <target>`, not `ty <target>`
+- ty is installed as a dev dependency via uv
+- All project dependencies must be properly declared in pyproject.toml for ty to resolve imports
+
+### Linting with ruff
+```bash
+# Check a specific file
+ruff check <file_path>
+
+# Check entire project
+ruff check .
+
+# Auto-fix issues
+ruff check --fix .
+```
 
 ### Jupyter Notebook Linting
 - Linter errors about undefined functions/variables across notebook cells are normal
@@ -30,6 +78,8 @@ export PATH="/bin:/usr/bin:$PATH" && your_command_here
 - Always export PATH before running commands
 - Use absolute paths for critical system commands if needed
 - Check Python version with: `export PATH="/bin:/usr/bin:$PATH" && python --version` 
+- Run both `ruff check` and `uv run ty check` before committing code
+- Ensure all imports have corresponding dependencies in pyproject.toml
 
 # Jupyter Notebooks as Python Files
 Some Jupyter notebooks in this project are tracked as `.py` files (exported with cell markers, e.g., `# %%`).

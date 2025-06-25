@@ -185,6 +185,7 @@ class Patch:
             x: torch.Tensor,
             attn_bias=None,
             attn_choice: AttentionOptions = "none",
+            return_attn: bool = False,
         ) -> torch.Tensor:
             if not XFORMERS_AVAILABLE:
                 if attn_bias is not None:

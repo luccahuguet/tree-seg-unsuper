@@ -6,7 +6,7 @@ from functools import partial
 from itertools import product
 from PIL import Image
 import numpy as np
-from typing import List, Literal, TypeAlias, Tuple, Callable
+from typing import List, Literal, TypeAlias, Tuple
 
 PartialTrs: TypeAlias = List[partial]
 
@@ -266,7 +266,7 @@ def to_numpy(x: torch.Tensor, batched: bool = True) -> np.ndarray:
 def flatten(
     x: torch.Tensor | np.ndarray, h: int, w: int, c: int, convert: bool = False
 ) -> np.ndarray:
-    if type(x) == torch.Tensor:
+    if isinstance(x, torch.Tensor):
         x = to_numpy(x)
     x = x.reshape((c, h * w))
     x = x.T

@@ -12,8 +12,7 @@ from types import MethodType
 from src.transform import iden_partial
 
 from functools import partial
-import math
-from typing import List, Tuple, Callable, TypeAlias, Literal
+from typing import List, Tuple, TypeAlias, Literal
 
 Interpolation: TypeAlias = Literal[
     "nearest", "linear", "bilinear", "bicubic", "trilinear", "area", "nearest-exact"
@@ -64,13 +63,13 @@ class HighResDV2(nn.Module):
             self.dinov2.num_register_tokens = 0  # type: ignore
 
         # Get params of Dv2 model and store references to original settings & methods
-        feat, patch = self.get_model_params(dino_name)
+        feat, patch, n_heads = self.get_model_params(dino_name)
         self.original_patch_size: int = patch
         self.original_stride = _pair(patch)
         # may need to deepcopy this instead of just referencing
         # self.original_pos_enc = self.dinov2.interpolate_pos_encoding
         self.feat_dim: int = feat
-        self.n_heads: int = 6
+        self.n_heads: int = n_heads
         self.n_register_tokens = 4
 
         self.stride = _pair(stride)
@@ -86,7 +85,7 @@ class HighResDV2(nn.Module):
         self.do_pca = pca_dim > 3
 
         # If we want to save memory, change to float16
-        if type(dtype) == int:
+        if isinstance(dtype, int):
             dtype = torch.float16 if dtype == 16 else torch.float32
 
         self.dtype = dtype
@@ -96,20 +95,22 @@ class HighResDV2(nn.Module):
 
         self.patch_last_block(self.dinov2, dino_name)
 
-    def get_model_params(self, dino_name: str) -> Tuple[int, int]:
-        """Match a name like dinov2_vits14 / dinov2_vitg16_lc etc. to feature dim and patch size.
+    def get_model_params(self, dino_name: str) -> Tuple[int, int, int]:
+        """Match a name like dinov2_vits14 / dinov2_vitg16_lc etc. to feature dim, patch size, and n_heads.
 
         :param dino_name: string of dino model name on torch hub
         :type dino_name: str
-        :return: tuple of original patch size and hidden feature dimension
-        :rtype: Tuple[int, int]
+        :return: tuple of (feature_dim, patch_size, n_heads)
+        :rtype: Tuple[int, int, int]
         """
         split_name = dino_name.split("_")
         model = split_name[1]
         arch, patch_size = model[3], int(model[4:])
         feat_dim_lookup = {"s": 384, "b": 768, "l": 1024, "g": 1536}
+        n_heads_lookup = {"s": 6, "b": 12, "l": 16, "g": 24}
         feat_dim: int = feat_dim_lookup[arch]
-        return feat_dim, patch_size
+        n_heads: int = n_heads_lookup[arch]
+        return feat_dim, patch_size, n_heads
 
     def set_model_stride(
         self, dino_model: nn.Module, stride_l: int, verbose: bool = False
@@ -338,14 +339,23 @@ class HighResDV2(nn.Module):
 
         _, img_h, img_w = x.shape
 
-        if attn_choice != "none":
-            c = self.n_heads + self.feat_dim
-        else:
-            c = self.feat_dim
-
         stride_l = temp_stride[0]
         n_patch_w: int = 1 + (img_w - self.original_patch_size) // stride_l
         n_patch_h: int = 1 + (img_h - self.original_patch_size) // stride_l
+
+        # Get the actual feature dimensions from the first transform to avoid hardcoding
+        transformed_img = img_batch[0].unsqueeze(0)
+        out_dict = self.dinov2.forward_feats_attn(
+            transformed_img, None, attn_choice
+        )  # type: ignore
+        if attn_choice != "none":
+            feats, attn = out_dict["x_norm_patchtokens"], out_dict["x_patchattn"]
+            sample_features = torch.concat((feats, attn), dim=-1)
+        else:
+            sample_features = out_dict["x_norm_patchtokens"]
+        
+        # Get actual feature dimension from the concatenated features
+        c = sample_features.shape[-1]
 
         out_feature_img: torch.Tensor = torch.zeros(
             1,
@@ -357,8 +367,22 @@ class HighResDV2(nn.Module):
             requires_grad=self.track_grad,
         )
 
+        # Process the first transform (already computed above)
+        features = sample_features.squeeze(0)
+        feat_patch = features.view((n_patch_h, n_patch_w, c))
+        permuted = feat_patch.permute((2, 0, 1)).unsqueeze(0)
+        full_size = F.interpolate(
+            permuted,
+            (img_h, img_w),
+            mode=self.interpolation_mode,
+        )
+        inv_transform = self.inverse_transforms[0]
+        inverted: torch.Tensor = inv_transform(full_size)
+        out_feature_img += inverted
+
+        # Process the remaining transforms
         N_transforms = len(self.transforms)
-        for i in range(N_transforms):
+        for i in range(1, N_transforms):
             transformed_img = img_batch[i].unsqueeze(0)
             out_dict = self.dinov2.forward_feats_attn(
                 transformed_img, None, attn_choice
@@ -413,7 +437,6 @@ def torch_pca(
     fit_pca=None,
     max_samples: int = 20000,
 ):
-    device = feature_img[0].device
     C, H, W = feature_img.shape
     N = H * W
     flat = feature_img.reshape(C, N).permute(1, 0)
