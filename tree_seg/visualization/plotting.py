@@ -11,7 +11,7 @@ from scipy import ndimage
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges(labels, edge_width=2):
+def detect_segmentation_edges(labels, edge_width=8):
     """
     Detect edges between different segmentation regions.
 
@@ -46,7 +46,7 @@ def generate_outputs(
     model_name,
     image_path,
     version,
-    edge_width=2,
+    edge_width=8,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -84,8 +84,9 @@ def generate_outputs(
     # Generate segmentation legend visualization
     fig, ax = plt.subplots(figsize=(10, 10))
     im = ax.imshow(labels_resized, cmap=cmap, vmin=0, vmax=n_clusters - 1)
-    cbar = plt.colorbar(im, ax=ax, ticks=range(n_clusters))
+    cbar = plt.colorbar(im, ax=ax, ticks=range(n_clusters), shrink=0.3, aspect=15)
     cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
+    cbar.ax.tick_params(labelsize=6)
     ax.axis("off")
     ax.text(
         0.02, 0.98, config_text,
@@ -148,8 +149,9 @@ def generate_outputs(
     im = axes[1].imshow(labels_resized, cmap=cmap, vmin=0, vmax=n_clusters - 1)
     axes[1].set_title("Segmentation Map", fontsize=12)
     axes[1].axis("off")
-    cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters))
+    cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters), shrink=0.3, aspect=15)
     cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
+    cbar.ax.tick_params(labelsize=6)
     axes[1].text(
         0.02, 0.98, config_text,
         transform=axes[1].transAxes, fontsize=8,
