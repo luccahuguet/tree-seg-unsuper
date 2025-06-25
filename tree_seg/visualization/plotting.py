@@ -202,7 +202,7 @@ def generate_outputs(
                   linewidths=edge_width, alpha=0.8)
 
         # Add hatch pattern using contourf with matching cluster color and reduced alpha to prevent darkening
-        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors=['none'],
+        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], facecolors='none',
                    hatches=[hatch_pattern], edgecolors=[cluster_color], alpha=1.0)
 
     ax.axis("off")
