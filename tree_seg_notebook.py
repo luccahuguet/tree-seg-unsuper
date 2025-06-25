@@ -87,16 +87,6 @@ from src.upsampler import HighResDV2
 from src.transform import get_shift_transforms, get_flip_transforms, get_rotation_transforms, combine_transforms, iden_partial
 import traceback
 
-def print_gpu_info():
-    if torch.cuda.is_available():
-        gpu_idx = torch.cuda.current_device()
-        gpu_name = torch.cuda.get_device_name(gpu_idx)
-        total_mem = torch.cuda.get_device_properties(gpu_idx).total_memory / (1024**3)
-        print(f"GPU: {gpu_name}")
-        print(f"Total VRAM: {total_mem:.2f} GB")
-    else:
-        print("No CUDA-compatible GPU found.")
-
 def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version):
     """Generate a formatted string of configuration parameters."""
     config_lines = [
@@ -212,7 +202,7 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.0):
         'method': 'elbow'
     }
 
-def plot_elbow_analysis(scores, output_dir, output_prefix):
+def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0):
     """
     Create enhanced elbow plot with additional analysis information.
     """
@@ -245,7 +235,7 @@ def plot_elbow_analysis(scores, output_dir, output_prefix):
     # Percentage decrease plot
     if pct_decrease:
         ax2.plot(k_values[1:], pct_decrease, 'go-', linewidth=2, markersize=8)
-        ax2.axhline(y=5, color='r', linestyle='--', alpha=0.7, label='5% Threshold')
+        ax2.axhline(y=elbow_threshold, color='r', linestyle='--', alpha=0.7, label=f'{elbow_threshold}% Threshold')
         ax2.set_xlabel('Number of Clusters (K)', fontsize=12)
         ax2.set_ylabel('WCSS Improvement (%)', fontsize=12)
         ax2.set_title('Diminishing Returns Analysis', fontsize=12)
@@ -347,7 +337,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             # Save K selection analysis plot
             output_dir = "/kaggle/working/output"
             output_prefix = os.path.splitext(os.path.basename(image_path))[0]
-            plot_elbow_analysis(k_scores, output_dir, output_prefix)
+            plot_elbow_analysis(k_scores, output_dir, output_prefix, elbow_threshold)
 
             n_clusters = optimal_k
         else:
@@ -626,122 +616,6 @@ else:
     print(f"🔢 Fixed K: {config['n_clusters']}")
 
 tree_seg_with_auto_k(**config)
-
-
-# %%
-# RUN SEGMENTATION - Uses config from above
-
-def tree_seg_elbow(
-    input_dir="input",
-    output_dir="output",
-    n_clusters=5,
-    overlay_ratio=5,
-    stride=4,
-    model_name="dinov2_vits14",
-    filename=None,
-    version="v1.5",
-    auto_k=False,
-    k_range=(3, 10),
-    elbow_threshold=3.0
-):
-    """Tree segmentation with automatic K selection using elbow method."""
-    print_gpu_info()
-    os.makedirs(output_dir, exist_ok=True)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-
-    model = initialize_model(stride, model_name, device)
-    preprocess = get_preprocess()
-
-    if filename:
-        image_path = os.path.join(input_dir, filename)
-        if os.path.exists(image_path) and filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
-            output_prefix = os.path.splitext(filename)[0]
-            print(f"Processing {filename} ...")
-
-            # Process with automatic K selection
-            result = process_image(
-                image_path, model, preprocess, n_clusters, stride, version, device,
-                auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold
-            )
-
-            if result[0] is not None:
-                image_np, labels_resized = result
-                actual_n_clusters = len(np.unique(labels_resized))
-
-                generate_outputs(
-                    image_np, labels_resized, output_prefix, output_dir,
-                    actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version
-                )
-
-                print(f"✅ Processing completed! Used K = {actual_n_clusters}")
-                if auto_k:
-                    print(f"📊 Elbow method analysis saved")
-            else:
-                print("❌ Processing failed")
-        else:
-            print(f"File {filename} not found or is not a supported image format.")
-
-# %%
-# Additional utility functions
-def run_visualization(
-    input_dir="input",
-    output_dir="output",
-    n_clusters=5,
-    overlay_ratio=5,
-    stride=4,
-    model_name="dinov2_vits14",
-    filename=None,
-    version="v1.5"
-):
-    results = run_processing(
-        input_dir, output_dir, n_clusters, overlay_ratio, stride, model_name, filename, version
-    )
-    if filename:
-        if results[0][0] is not None:
-            (image_np, labels_resized), output_prefix = results
-            generate_outputs(
-                image_np, labels_resized, output_prefix, output_dir,
-                n_clusters, overlay_ratio, stride, model_name,
-                os.path.join(input_dir, filename), version
-            )
-    else:
-        for (image_np, labels_resized), output_prefix in results:
-            if image_np is not None:
-                generate_outputs(
-                    image_np, labels_resized, output_prefix, output_dir,
-                    n_clusters, overlay_ratio, stride, model_name,
-                    os.path.join(input_dir, output_prefix + ".jpg"), version
-                )
-
-def tree_seg(
-    input_dir="input",
-    output_dir="output",
-    n_clusters=5,
-    overlay_ratio=5,
-    stride=2, # using 2 instead of 4 to increase resolution
-    model_name="dinov2_vits14",
-    filename=None,
-    version="v1.5"
-):
-    run_visualization(input_dir, output_dir, n_clusters, overlay_ratio, stride, model_name, filename, version)
-
-# %%
-# RUN THE SEGMENTATION
-print("🌳 Tree Segmentation Starting...")
-print(f"📁 Input: {config['input_dir']}")
-print(f"📁 Output: {config['output_dir']}")
-print(f"🤖 Model: {config['model_name']}")
-print(f"🔧 Auto K: {config['auto_k']}")
-if config['auto_k']:
-    print(f"📈 K Range: {config['k_range']}")
-else:
-    print(f"🔢 Fixed K: {config['n_clusters']}")
-
-tree_seg_elbow(**config)
-
 
 
 # %%
