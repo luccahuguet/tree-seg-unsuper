@@ -236,12 +236,12 @@ def generate_outputs(
                                 # Flip coordinates (find_contours returns row, col)
                                 contour_flipped = np.fliplr(contour)
 
-                                # Create polygon patch with hatch pattern
+                                                                # Create polygon patch with hatch pattern
                                 hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
                                 polygon = Polygon(contour_flipped, closed=True,
                                                 fill=False,
                                                 edgecolor=cluster_color,
-                                                linewidth=3,  # Thicker edges
+                                                linewidth=edge_width,  # Use configurable edge width
                                                 hatch=hatch_pattern,
                                                 alpha=0.6)  # Lower alpha to reduce visual clash
                                 ax.add_patch(polygon)
@@ -281,8 +281,8 @@ def generate_outputs(
     for cluster_id in range(n_clusters):
         cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
         hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
-        legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=3,
-                                        label=f'Cluster {cluster_id} {hatch_pattern}'))
+        legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=edge_width,
+                                         label=f'Cluster {cluster_id} {hatch_pattern}'))
 
     legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6,
                       framealpha=0.7, fancybox=True, shadow=True, ncol=1 if n_clusters <= 6 else 2)
