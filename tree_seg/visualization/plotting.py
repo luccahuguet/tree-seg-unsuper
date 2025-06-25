@@ -6,12 +6,19 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from matplotlib.patches import Polygon
 from scipy import ndimage
+
+try:
+    from skimage import measure
+    HAS_SKIMAGE = True
+except ImportError:
+    HAS_SKIMAGE = False
 
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges(labels, edge_width=8):
+def detect_segmentation_edges(labels, edge_width=6):
     """
     Detect edges between different segmentation regions.
 
@@ -46,7 +53,7 @@ def generate_outputs(
     model_name,
     image_path,
     version,
-    edge_width=8,
+    edge_width=6,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -123,44 +130,57 @@ def generate_outputs(
     # Generate NEW edge overlay visualization with colored borders and hatch patterns
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(image_np)
-    
+
+    # Define hatch patterns for different clusters
+    hatch_patterns = ['///', '\\\\\\', '|||', '---', '+++', '...', 'ooo', 'OOO', '***', 'xxx']
+
     # Create colored borders and hatch patterns for each cluster
     for cluster_id in range(n_clusters):
         # Create mask for this cluster
         cluster_mask = (labels_resized == cluster_id)
-        
+
         if not cluster_mask.any():
             continue
-            
+
         # Get cluster color from colormap
         cluster_color = cmap(cluster_id / (n_clusters - 1))[:3]  # RGB only
-        
-        # Find edges for this specific cluster
-        cluster_edges = detect_segmentation_edges(cluster_mask.astype(int), edge_width=edge_width)
-        
-        # Create hatch pattern within the region (but not too dense)
-        # Sample points for hatching to avoid filling everything
-        y_coords, x_coords = np.where(cluster_mask)
-        if len(y_coords) > 100:  # Only add hatching if region is large enough
-            # Create sparse grid for hatching
-            step = max(1, len(y_coords) // 50)  # Limit to ~50 hatch marks per region
-            hatch_y = y_coords[::step]
-            hatch_x = x_coords[::step]
-            
-            # Add hatch marks every few pixels
-            for i in range(0, len(hatch_y), 8):  # Every 8th point
-                if i < len(hatch_y):
-                    y, x = hatch_y[i], hatch_x[i]
-                    # Draw small diagonal lines for hatching
-                    ax.plot([x-2, x+2], [y-2, y+2], color=cluster_color, linewidth=1, alpha=0.6)
-        
-        # Draw colored borders
-        border_y, border_x = np.where(cluster_edges)
-        if len(border_y) > 0:
-            ax.scatter(border_x, border_y, c=[cluster_color], s=4, alpha=0.8)
-    
+
+        # Create contour for this cluster with hatch pattern
+        if HAS_SKIMAGE:
+            try:
+                # Find contours for this cluster
+                contours = measure.find_contours(cluster_mask.astype(float), 0.5)
+
+                # Draw each contour as a polygon with hatch pattern
+                for contour in contours:
+                    if len(contour) > 10:  # Only draw substantial contours
+                        # Flip coordinates (find_contours returns row, col)
+                        contour_flipped = np.fliplr(contour)
+
+                        # Create polygon patch with hatch pattern
+                        hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
+                        polygon = Polygon(contour_flipped, closed=True,
+                                        fill=False,
+                                        edgecolor=cluster_color,
+                                        linewidth=2,
+                                        hatch=hatch_pattern,
+                                        alpha=0.7)
+                        ax.add_patch(polygon)
+            except:
+                # Fallback to simple edge detection if contours fail
+                cluster_edges = detect_segmentation_edges(cluster_mask.astype(int), edge_width=edge_width)
+                border_y, border_x = np.where(cluster_edges)
+                if len(border_y) > 0:
+                    ax.scatter(border_x, border_y, c=[cluster_color], s=4, alpha=0.8)
+        else:
+            # Fallback to simple edge detection if scikit-image not available
+            cluster_edges = detect_segmentation_edges(cluster_mask.astype(int), edge_width=edge_width)
+            border_y, border_x = np.where(cluster_edges)
+            if len(border_y) > 0:
+                ax.scatter(border_x, border_y, c=[cluster_color], s=4, alpha=0.8)
+
     ax.axis("off")
-    
+
     # Add config text
     ax.text(
         0.02, 0.98, config_text,
@@ -168,17 +188,19 @@ def generate_outputs(
         verticalalignment='top', horizontalalignment='left',
         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
     )
-    
+
     # Add small legend
     legend_elements = []
     for cluster_id in range(n_clusters):
         cluster_color = cmap(cluster_id / (n_clusters - 1))[:3]
-        legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=2, label=f'Cluster {cluster_id}'))
-    
-    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6, 
+        hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
+        legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=2,
+                                        label=f'Cluster {cluster_id} {hatch_pattern}'))
+
+    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6,
                       framealpha=0.7, fancybox=True, shadow=True, ncol=1 if n_clusters <= 6 else 2)
     legend.get_frame().set_facecolor('white')
-    
+
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
