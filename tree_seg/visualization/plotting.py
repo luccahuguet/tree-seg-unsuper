@@ -108,10 +108,8 @@ def generate_outputs(
 
     # Generate overlay visualization
     norm = colors.Normalize(vmin=0, vmax=n_clusters - 1)
-    segmentation_rgba = cmap(norm(labels_resized))  # This returns RGBA values
-    segmentation_rgba = np.array(segmentation_rgba)  # Convert to numpy array
-    segmentation_rgb = segmentation_rgba[:, :, :3]  # Extract RGB channels
-    segmentation_rgb = (segmentation_rgb * 255).astype(np.uint8)
+    segmentation_rgba = cmap(norm(labels_resized))
+    segmentation_rgb = (np.array(segmentation_rgba)[:, :, :3] * 255).astype(np.uint8)
     overlay = (alpha * image_np + (1 - alpha) * segmentation_rgb).astype(np.uint8)
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(overlay)
@@ -201,9 +199,16 @@ def generate_outputs(
         ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color],
                   linewidths=edge_width, alpha=0.8)
 
-        # Add hatch pattern using contourf with matching cluster color and reduced alpha to prevent darkening
-        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], facecolors='none',
-                   hatches=[hatch_pattern], edgecolors=[cluster_color], alpha=1.0)
+        # Add hatch pattern using contourf with hatch
+        cs = ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors='none',
+                   hatches=[hatch_pattern])
+
+        # Set the hatch color and alpha to match the contour
+        for collection in cs.collections: # type: ignore
+            collection.set_edgecolor(cluster_color)
+            collection.set_alpha(0.8)
+            # Do not draw the patch border, only the hatch
+            collection.set_linewidth(0.)
 
     ax.axis("off")
 
