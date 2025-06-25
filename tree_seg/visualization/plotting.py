@@ -129,11 +129,11 @@ def generate_outputs(
     # Generate NEW edge overlay visualization with colored borders and hatch patterns
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(image_np)
-    
+
     # Define even more spaced hatch patterns - single characters for maximum spacing
-    # Removed '-' and 'o' as they don't work properly as hatch patterns
-    hatch_patterns = ['/', '\\', '|', '.', '~', '*', 'x']
-    
+    # Removed 'o' as they don't work properly as hatch patterns
+    hatch_patterns = ['/', '\\', '|', '.', '*', 'x', '-']
+
     # Create a custom color function to prioritize bright colors
     def get_cluster_color(cluster_id, n_clusters, cmap):
         """Get a bright color for cluster, prioritizing high contrast colors."""
@@ -182,29 +182,29 @@ def generate_outputs(
                         b = 1.0
 
             return (r, g, b)
-    
+
     # Create colored borders and hatch patterns for each cluster
     for cluster_id in range(n_clusters):
         # Create mask for this cluster (same as colored overlay)
         cluster_mask = (labels_resized == cluster_id)
-        
+
         if not cluster_mask.any():
             continue
-            
+
         # Get cluster color, prioritizing bright colors
         cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
         hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
-        
+
         # Use matplotlib contour to draw clean boundaries - no overlap by definition
-        ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color], 
+        ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color],
                   linewidths=edge_width, alpha=0.8)
-        
+
         # Add hatch pattern using contourf with hatch
-        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors=['none'], 
+        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors=['none'],
                    hatches=[hatch_pattern], alpha=0.5)
-    
+
     ax.axis("off")
-    
+
     # Add config text
     ax.text(
         0.02, 0.98, config_text,
@@ -212,7 +212,7 @@ def generate_outputs(
         verticalalignment='top', horizontalalignment='left',
         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
     )
-    
+
     # Add small legend
     legend_elements = []
     for cluster_id in range(n_clusters):
@@ -220,11 +220,11 @@ def generate_outputs(
         hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
         legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=edge_width,
                                          label=f'Cluster {cluster_id} {hatch_pattern}'))
-    
-    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6, 
+
+    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6,
                       framealpha=0.7, fancybox=True, shadow=True, ncol=1 if n_clusters <= 6 else 2)
     legend.get_frame().set_facecolor('white')
-    
+
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
