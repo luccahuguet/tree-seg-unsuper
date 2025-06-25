@@ -84,6 +84,7 @@ def generate_outputs(
     image_path,
     version,
     edge_width=4,
+    min_region_size=100,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -116,7 +117,7 @@ def generate_outputs(
     else:
         cmap = plt.get_cmap("gist_ncar", n_clusters)
 
-    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width)
+    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width, min_region_size)
 
     # Generate segmentation legend visualization
     fig, ax = plt.subplots(figsize=(10, 10))

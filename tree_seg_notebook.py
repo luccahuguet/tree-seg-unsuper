@@ -92,6 +92,7 @@ config = {
     "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
     "stride": 4,                            # Lower=higher resolution, slower
     "edge_width": 4,                        # Width of edge lines in edge overlay visualization
+    "min_region_size": 100,                 # Remove regions smaller than this many pixels (0 to disable)
 }
 
 def tree_seg_with_auto_k(
@@ -106,7 +107,8 @@ def tree_seg_with_auto_k(
     auto_k=False,
     k_range=(3, 10),
     elbow_threshold=3.0,
-    edge_width=4
+    edge_width=4,
+    min_region_size=100
 ):
     """Enhanced tree segmentation with automatic K selection."""
     print_gpu_info()
