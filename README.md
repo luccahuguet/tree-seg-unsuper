@@ -45,7 +45,21 @@ final-paper/
 
 ## 🚀 Quick Start
 
-### Local Execution
+### ⚠️ Important: Local Execution Limitations
+
+**Currently, the main pipeline is designed to run on cloud GPU platforms (Kaggle/Colab) rather than local machines.**
+
+**Local Execution Issues:**
+- The script starts but may hang or fail to complete on Linux systems
+- This appears to be related to environment differences, dependency versions, or resource management
+- **Note:** The same code runs successfully on Windows 11 on the same laptop (different SSD), suggesting it's a Linux-specific environment issue
+
+**Recommended Workflow:**
+1. **Edit and test** your notebook locally in Jupyter/VS Code
+2. **Run the full pipeline** on Kaggle or Colab for reliable execution
+3. **Use the cloud notebooks** in `notebooks/` directory for production runs
+
+### Local Execution (Experimental)
 
 1. **Install dependencies:**
    ```bash
@@ -62,6 +76,8 @@ final-paper/
    ```bash
    python tree_seg_local.py
    ```
+
+**Note:** Local execution may fail or hang. For reliable results, use cloud platforms.
 
 ### Cloud GPU Execution
 

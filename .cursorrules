@@ -20,6 +20,12 @@ export PATH="/bin:/usr/bin:$PATH" && your_command_here
 - Source code in `src/` directory
 - Python 3.10.17 environment
 
+### Jupyter Notebook Linting
+- Linter errors about undefined functions/variables across notebook cells are normal
+- Jupyter notebooks execute cells in sequence, so functions defined in earlier cells are available to later cells
+- The linter can't see across cells, but the notebook execution environment can
+- These cross-cell reference errors can be safely ignored during development
+
 ### Best Practices
 - Always export PATH before running commands
 - Use absolute paths for critical system commands if needed
