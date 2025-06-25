@@ -38,12 +38,12 @@ def detect_segmentation_edges(labels, edge_width=2):
 def detect_segmentation_edges_with_colors(labels, edge_width=6, n_clusters=None):
     """
     Detect edges between different segmentation regions and assign colors.
-    
+
     Args:
         labels: 2D array of segmentation labels
         edge_width: Width of the edge lines in pixels
         n_clusters: Number of clusters for colormap selection
-        
+
     Returns:
         edge_colors: RGB array where edges have colors and non-edges are transparent
         edges: Binary mask where edges are True
@@ -52,27 +52,27 @@ def detect_segmentation_edges_with_colors(labels, edge_width=6, n_clusters=None)
     edges_x = ndimage.sobel(labels.astype(float), axis=0)
     edges_y = ndimage.sobel(labels.astype(float), axis=1)
     edges = np.sqrt(edges_x**2 + edges_y**2) > 0
-    
+
     # Dilate edges to make them more visible
     if edge_width > 1:
         structure = ndimage.generate_binary_structure(2, 2)
         edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
-    
+
     # Create colored edges based on adjacent regions
     h, w = labels.shape
     edge_colors = np.zeros((h, w, 3), dtype=np.uint8)
-    
+
     # Choose colormap based on number of clusters
     if n_clusters is None:
         n_clusters = len(np.unique(labels))
-    
+
     if n_clusters <= 10:
         cmap = plt.get_cmap("tab10", n_clusters)
     elif n_clusters <= 20:
         cmap = plt.get_cmap("tab20", n_clusters)
     else:
         cmap = plt.get_cmap("gist_ncar", n_clusters)
-    
+
     # Color edges based on the dominant neighboring cluster
     edge_positions = np.where(edges)
     for i, j in zip(edge_positions[0], edge_positions[1]):
@@ -80,15 +80,15 @@ def detect_segmentation_edges_with_colors(labels, edge_width=6, n_clusters=None)
         window_size = max(1, edge_width // 2)
         i_min, i_max = max(0, i-window_size), min(h, i+window_size+1)
         j_min, j_max = max(0, j-window_size), min(w, j+window_size+1)
-        
+
         neighbors = labels[i_min:i_max, j_min:j_max]
         # Use the most common cluster in the neighborhood
         cluster_id = np.bincount(neighbors.flatten()).argmax()
-        
+
         # Convert cluster to color
         color = cmap(cluster_id)[:3]  # RGB only
         edge_colors[i, j] = (np.array(color) * 255).astype(np.uint8)
-    
+
     return edge_colors, edges
 
 
@@ -177,17 +177,20 @@ def generate_outputs(
     print(f"Saved overlay: {overlay_path}")
 
     # Generate NEW enhanced colored edge overlay visualization
-    edge_colors, edges = detect_segmentation_edges_with_colors(labels_resized, edge_width=edge_width, n_clusters=n_clusters)
-    
-    # Create the edge overlay with colored borders
+    edges = detect_segmentation_edges(labels_resized, edge_width=edge_width)
+
+    # Create the colored overlay by painting the segmentation colors onto the original image at the edges
     edge_overlay = image_np.copy()
-    # Apply colored edges where edges exist
-    edge_mask = edges
-    edge_overlay[edge_mask] = edge_colors[edge_mask]
-    
+    norm = colors.Normalize(vmin=0, vmax=n_clusters - 1)
+    segmentation_rgb = cmap(norm(labels_resized))[:, :, :3]
+    segmentation_rgb_uint8 = (segmentation_rgb * 255).astype(np.uint8)
+
+    # Apply the colors of the segmentation map only at the edges
+    edge_overlay[edges] = segmentation_rgb_uint8[edges]
+
     # Create figure with subplot for legend
     fig = plt.figure(figsize=(15, 10))
-    
+
     # Main image subplot
     ax_main = plt.subplot(1, 2, 1)
     ax_main.imshow(edge_overlay)
@@ -199,7 +202,7 @@ def generate_outputs(
         verticalalignment='top', horizontalalignment='left',
         bbox=dict(facecolor='white', alpha=0.8, edgecolor='none')
     )
-    
+
     # Legend subplot
     ax_legend = plt.subplot(1, 2, 2)
     legend_data = np.arange(n_clusters).reshape(-1, 1)
@@ -209,12 +212,12 @@ def generate_outputs(
     ax_legend.set_xticks([])
     ax_legend.set_yticks(range(n_clusters))
     ax_legend.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
-    
+
     # Add colorbar
-    cbar = plt.colorbar(im_legend, ax=ax_legend, orientation='horizontal', 
+    cbar = plt.colorbar(im_legend, ax=ax_legend, orientation='horizontal',
                        ticks=range(n_clusters), shrink=0.8, pad=0.1)
     cbar.ax.set_xticklabels([f"C{i}" for i in range(n_clusters)])
-    
+
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
