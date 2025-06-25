@@ -20,7 +20,7 @@ from ..utils.config import get_config_text
 def detect_segmentation_edges_enhanced(labels, edge_width=4):
     """
     Detect and enhance edges between different segmentation regions.
-    Creates smooth, colored edges with better visual appeal.
+    Creates smooth, continuous colored edges with better visual appeal.
     
     Args:
         labels: 2D array of segmentation labels
@@ -30,46 +30,76 @@ def detect_segmentation_edges_enhanced(labels, edge_width=4):
         edge_map: 2D array where each pixel contains the edge color index (0=no edge)
         n_edge_types: Number of different edge types found
     """
-    # Use Sobel filter to detect edges between different regions
-    edges_x = ndimage.sobel(labels.astype(float), axis=0)
-    edges_y = ndimage.sobel(labels.astype(float), axis=1)
-    edge_magnitude = np.sqrt(edges_x**2 + edges_y**2)
-    edges = edge_magnitude > 0
-    
-    # Apply morphological operations to smooth the edges (if available)
-    # Remove small holes and smooth the boundaries
-    if morphology is not None:
-        edges = morphology.binary_closing(edges, morphology.disk(2))
-        edges = morphology.binary_opening(edges, morphology.disk(1))
-    
-    # Dilate edges to make them thicker and more visible
-    if edge_width > 1:
-        structure = ndimage.generate_binary_structure(2, 2)
-        edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
-    
-    # Create colored edge map based on adjacent segments
+    # Create edge map by finding boundaries between different labels
     edge_map = np.zeros_like(labels, dtype=np.uint8)
-    n_clusters = len(np.unique(labels))
     
-    # For each edge pixel, determine which segments it borders
-    edge_coords = np.where(edges)
-    for y, x in zip(edge_coords[0], edge_coords[1]):
-        # Sample a small neighborhood to see which segments this edge separates
-        y_min, y_max = max(0, y-2), min(labels.shape[0], y+3)
-        x_min, x_max = max(0, x-2), min(labels.shape[1], x+3)
-        local_labels = labels[y_min:y_max, x_min:x_max]
-        unique_labels = np.unique(local_labels)
-        
-        # Assign edge color based on the primary segments it separates
-        if len(unique_labels) >= 2:
-            # Use a hash of the two primary segments to get consistent colors
-            primary_segments = np.sort(unique_labels)[:2]
-            edge_color = (primary_segments[0] * 7 + primary_segments[1] * 3) % 8 + 1
-            edge_map[y, x] = edge_color
-        else:
-            edge_map[y, x] = 1  # Default edge color
+    # Get unique labels for color assignment
+    unique_labels = np.unique(labels)
+    n_clusters = len(unique_labels)
     
-    return edge_map, min(8, n_clusters)
+    print(f"🎨 Creating continuous colored edges between {n_clusters} regions...")
+    
+    # For each unique pair of adjacent labels, create boundaries
+    edge_color = 1
+    
+    # Method 1: Scan horizontally for label changes
+    for y in range(labels.shape[0]):
+        for x in range(labels.shape[1] - 1):
+            if labels[y, x] != labels[y, x + 1]:
+                # Found vertical boundary - paint edge pixels around it
+                for dy in range(-edge_width//2, edge_width//2 + 1):
+                    for dx in range(-edge_width//2, edge_width//2 + 1):
+                        ny, nx = y + dy, x + dx
+                        if 0 <= ny < labels.shape[0] and 0 <= nx < labels.shape[1]:
+                            if edge_map[ny, nx] == 0:  # Don't overwrite existing edges
+                                # Assign color based on the adjacent labels
+                                label1, label2 = sorted([labels[y, x], labels[y, x + 1]])
+                                color_idx = ((label1 * 7 + label2 * 3) % 8) + 1
+                                edge_map[ny, nx] = color_idx
+    
+    # Method 2: Scan vertically for label changes
+    for x in range(labels.shape[1]):
+        for y in range(labels.shape[0] - 1):
+            if labels[y, x] != labels[y + 1, x]:
+                # Found horizontal boundary - paint edge pixels around it
+                for dy in range(-edge_width//2, edge_width//2 + 1):
+                    for dx in range(-edge_width//2, edge_width//2 + 1):
+                        ny, nx = y + dy, x + dx
+                        if 0 <= ny < labels.shape[0] and 0 <= nx < labels.shape[1]:
+                            if edge_map[ny, nx] == 0:  # Don't overwrite existing edges
+                                # Assign color based on the adjacent labels
+                                label1, label2 = sorted([labels[y, x], labels[y + 1, x]])
+                                color_idx = ((label1 * 7 + label2 * 3) % 8) + 1
+                                edge_map[ny, nx] = color_idx
+    
+    # Apply morphological operations to smooth and connect edges (if available)
+    if morphology is not None:
+        # Fill small gaps and smooth the edges
+        for color_idx in range(1, 9):
+            color_mask = (edge_map == color_idx)
+            if np.any(color_mask):
+                # Connect nearby edge pixels of the same color
+                color_mask = morphology.binary_closing(color_mask, morphology.disk(1))
+                # Smooth the boundaries
+                color_mask = morphology.binary_opening(color_mask, morphology.disk(1))
+                # Update the edge map
+                edge_map[color_mask] = color_idx
+    
+    # Ensure edges are thick enough by dilating
+    final_edge_map = np.zeros_like(edge_map)
+    for color_idx in range(1, 9):
+        color_mask = (edge_map == color_idx)
+        if np.any(color_mask):
+            # Dilate to make thicker
+            if edge_width > 2:
+                structure = ndimage.generate_binary_structure(2, 2)
+                color_mask = ndimage.binary_dilation(color_mask, structure=structure, iterations=edge_width//3)
+            final_edge_map[color_mask] = color_idx
+    
+    num_colors_used = len(np.unique(final_edge_map[final_edge_map > 0]))
+    print(f"✅ Created edges using {num_colors_used} different colors")
+    
+    return final_edge_map, min(8, n_clusters)
 
 
 def generate_outputs(
@@ -83,7 +113,7 @@ def generate_outputs(
     model_name,
     image_path,
     version,
-    edge_width=4,
+    edge_width=6,
     min_region_size=100,
 ):
     """
