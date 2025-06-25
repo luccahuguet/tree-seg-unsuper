@@ -6,6 +6,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from matplotlib import patches
 from scipy import ndimage
 
 from ..utils.config import get_config_text
@@ -33,6 +34,44 @@ def detect_segmentation_edges(labels, edge_width=8):
         edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
 
     return edges
+
+
+def add_hatch_patterns(ax, labels, n_clusters, alpha=0.3):
+    """
+    Add hatched patterns to segmentation regions.
+
+    Args:
+        ax: matplotlib axis to add hatching to
+        labels: 2D array of segmentation labels
+        n_clusters: number of clusters
+        alpha: transparency of hatch patterns
+    """
+    # Define different hatch patterns for each cluster
+    hatch_patterns = ['///', '\\\\\\', '|||', '---', '+++', '...', 'xxx', 'ooo', '***', '///\\\\\\']
+    
+    # Extend patterns if we have more clusters
+    while len(hatch_patterns) < n_clusters:
+        hatch_patterns.extend(hatch_patterns)
+    
+    # Create contours and add hatching for each cluster
+    for cluster_id in range(n_clusters):
+        # Create mask for this cluster
+        mask = (labels == cluster_id).astype(float)
+        
+        # Create contours for this cluster
+        contours = ax.contour(mask, levels=[0.5], colors=['black'], linewidths=0.5, alpha=0)
+        
+        # Fill the contours with hatch pattern
+        for collection in contours.collections:
+            for path in collection.get_paths():
+                # Create patch from contour path
+                patch = patches.PathPatch(path, 
+                                        facecolor='none', 
+                                        hatch=hatch_patterns[cluster_id], 
+                                        alpha=alpha,
+                                        edgecolor='black',
+                                        linewidth=0.5)
+                ax.add_patch(patch)
 
 
 def generate_outputs(
@@ -81,9 +120,13 @@ def generate_outputs(
 
     config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width)
 
-    # Generate segmentation legend visualization
+    # Generate segmentation legend visualization WITH HATCHING
     fig, ax = plt.subplots(figsize=(10, 10))
     im = ax.imshow(labels_resized, cmap=cmap, vmin=0, vmax=n_clusters - 1)
+    
+    # Add hatch patterns
+    add_hatch_patterns(ax, labels_resized, n_clusters, alpha=0.4)
+    
     cbar = plt.colorbar(im, ax=ax, ticks=range(n_clusters), shrink=0.3, aspect=15)
     cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
     cbar.ax.tick_params(labelsize=6)
@@ -141,12 +184,16 @@ def generate_outputs(
     plt.close()
     print(f"Saved edge overlay: {edge_overlay_path}")
 
-    # Generate side-by-side comparison
+    # Generate side-by-side comparison WITH HATCHING
     fig, axes = plt.subplots(1, 2, figsize=(20, 10))
     axes[0].imshow(image_np)
     axes[0].set_title("Original Image", fontsize=12)
     axes[0].axis("off")
     im = axes[1].imshow(labels_resized, cmap=cmap, vmin=0, vmax=n_clusters - 1)
+    
+    # Add hatch patterns to segmentation map
+    add_hatch_patterns(axes[1], labels_resized, n_clusters, alpha=0.4)
+    
     axes[1].set_title("Segmentation Map", fontsize=12)
     axes[1].axis("off")
     cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters), shrink=0.3, aspect=15)
