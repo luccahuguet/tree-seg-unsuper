@@ -5,91 +5,67 @@ Visualization and plotting utilities for tree segmentation.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 from matplotlib import colors
 from scipy import ndimage
+from skimage import segmentation
 
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges(labels, edge_width=2):
+def detect_segmentation_edges(labels, edge_width=6):
     """
-    Detect edges between different segmentation regions.
-
+    Detect clean edges between different segmentation regions.
+    
     Args:
         labels: 2D array of segmentation labels
         edge_width: Width of the edge lines in pixels
-
+        
     Returns:
         edges: Binary mask where edges are True
     """
-    # Use Sobel filter to detect edges between different regions
-    edges_x = ndimage.sobel(labels.astype(float), axis=0)
-    edges_y = ndimage.sobel(labels.astype(float), axis=1)
-    edges = np.sqrt(edges_x**2 + edges_y**2) > 0
-
-    # Dilate edges to make them more visible
-    if edge_width > 1:
-        structure = ndimage.generate_binary_structure(2, 2)
-        edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
-
-    return edges
-
-
-def detect_segmentation_edges_with_colors(labels, edge_width=6, n_clusters=None):
-    """
-    Detect edges between different segmentation regions and assign colors.
-
-    Args:
-        labels: 2D array of segmentation labels
-        edge_width: Width of the edge lines in pixels
-        n_clusters: Number of clusters for colormap selection
-
-    Returns:
-        edge_colors: RGB array where edges have colors and non-edges are transparent
-        edges: Binary mask where edges are True
-    """
-    # Use Sobel filter to detect edges between different regions
-    edges_x = ndimage.sobel(labels.astype(float), axis=0)
-    edges_y = ndimage.sobel(labels.astype(float), axis=1)
-    edges = np.sqrt(edges_x**2 + edges_y**2) > 0
-
-    # Dilate edges to make them more visible
-    if edge_width > 1:
-        structure = ndimage.generate_binary_structure(2, 2)
-        edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
-
-    # Create colored edges based on adjacent regions
-    h, w = labels.shape
-    edge_colors = np.zeros((h, w, 3), dtype=np.uint8)
-
-    # Choose colormap based on number of clusters
-    if n_clusters is None:
-        n_clusters = len(np.unique(labels))
-
-    if n_clusters <= 10:
-        cmap = plt.get_cmap("tab10", n_clusters)
-    elif n_clusters <= 20:
-        cmap = plt.get_cmap("tab20", n_clusters)
-    else:
-        cmap = plt.get_cmap("gist_ncar", n_clusters)
-
-    # Color edges based on the dominant neighboring cluster
-    edge_positions = np.where(edges)
-    for i, j in zip(edge_positions[0], edge_positions[1]):
-        # Get neighboring pixels in a small window
-        window_size = max(1, edge_width // 2)
-        i_min, i_max = max(0, i-window_size), min(h, i+window_size+1)
-        j_min, j_max = max(0, j-window_size), min(w, j+window_size+1)
-
-        neighbors = labels[i_min:i_max, j_min:j_max]
-        # Use the most common cluster in the neighborhood
-        cluster_id = np.bincount(neighbors.flatten()).argmax()
-
-        # Convert cluster to color
-        color = cmap(cluster_id)[:3]  # RGB only
-        edge_colors[i, j] = (np.array(color) * 255).astype(np.uint8)
-
-    return edge_colors, edges
+    try:
+        # Try the advanced method with cv2 and skimage
+        # Convert labels to proper format
+        labels = labels.astype(np.int32)
+        
+        # Use skimage's find_boundaries for clean region boundaries
+        boundaries = segmentation.find_boundaries(labels, mode='thick')
+        
+        # Make edges thicker using morphological dilation
+        if edge_width > 1:
+            # Create a disk-shaped structuring element for round edges
+            kernel_size = max(3, edge_width)
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+            # Convert to uint8 for OpenCV
+            boundaries_uint8 = (boundaries * 255).astype(np.uint8)
+            # Dilate to make edges thicker
+            thick_boundaries = cv2.dilate(boundaries_uint8, kernel, iterations=1)
+            boundaries = thick_boundaries > 0
+        
+        return boundaries
+    
+    except (ImportError, AttributeError):
+        # Fallback method using only scipy and numpy
+        print("Using fallback edge detection method (cv2/skimage not available)")
+        
+        # Create edge detection using gradient approach
+        labels = labels.astype(float)
+        
+        # Use gradient magnitude to find edges between regions
+        grad_x = np.abs(np.gradient(labels, axis=1))
+        grad_y = np.abs(np.gradient(labels, axis=0))
+        edges = (grad_x + grad_y) > 0.1
+        
+        # Make edges thicker using binary dilation
+        if edge_width > 1:
+            from scipy import ndimage
+            # Create circular structuring element
+            y, x = np.ogrid[-edge_width:edge_width+1, -edge_width:edge_width+1]
+            mask = x*x + y*y <= edge_width*edge_width
+            edges = ndimage.binary_dilation(edges, structure=mask)
+        
+        return edges
 
 
 def generate_outputs(
@@ -176,53 +152,29 @@ def generate_outputs(
     plt.close()
     print(f"Saved overlay: {overlay_path}")
 
-    # Generate NEW enhanced colored edge overlay visualization
+    # Generate NEW edge overlay visualization
     edges = detect_segmentation_edges(labels_resized, edge_width=edge_width)
-
-    # Create the colored overlay by painting the segmentation colors onto the original image at the edges
     edge_overlay = image_np.copy()
-    norm = colors.Normalize(vmin=0, vmax=n_clusters - 1)
-    segmentation_rgb = cmap(norm(labels_resized))[:, :, :3]
-    segmentation_rgb_uint8 = (segmentation_rgb * 255).astype(np.uint8)
-
-    # Apply the colors of the segmentation map only at the edges
-    edge_overlay[edges] = segmentation_rgb_uint8[edges]
-
-    # Create figure with subplot for legend
-    fig = plt.figure(figsize=(15, 10))
-
-    # Main image subplot
-    ax_main = plt.subplot(1, 2, 1)
-    ax_main.imshow(edge_overlay)
-    ax_main.axis("off")
-    ax_main.set_title("Edge Overlay - Original + Colored Boundaries", fontsize=14, fontweight='bold')
-    ax_main.text(
+    
+    # Use bright yellow for high contrast against both light and dark backgrounds
+    # Yellow (255, 255, 0) is more visible than white on many natural images
+    edge_overlay[edges] = [255, 255, 0]  # Bright yellow edges
+    
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.imshow(edge_overlay)
+    ax.axis("off")
+    ax.set_title("Edge Overlay - Segmentation Boundaries", fontsize=14, pad=20)
+    ax.text(
         0.02, 0.98, config_text,
-        transform=ax_main.transAxes, fontsize=8,
+        transform=ax.transAxes, fontsize=8,
         verticalalignment='top', horizontalalignment='left',
-        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none')
+        bbox=dict(facecolor='black', alpha=0.7, edgecolor='none', pad=3)
     )
-
-    # Legend subplot
-    ax_legend = plt.subplot(1, 2, 2)
-    legend_data = np.arange(n_clusters).reshape(-1, 1)
-    im_legend = ax_legend.imshow(legend_data, cmap=cmap, aspect='auto', vmin=0, vmax=n_clusters-1)
-    ax_legend.set_title("Edge Color Legend", fontsize=14, fontweight='bold')
-    ax_legend.set_xlabel("Cluster Colors", fontsize=12)
-    ax_legend.set_xticks([])
-    ax_legend.set_yticks(range(n_clusters))
-    ax_legend.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
-
-    # Add colorbar
-    cbar = plt.colorbar(im_legend, ax=ax_legend, orientation='horizontal',
-                       ticks=range(n_clusters), shrink=0.8, pad=0.1)
-    cbar.ax.set_xticklabels([f"C{i}" for i in range(n_clusters)])
-
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
-    print(f"Saved enhanced colored edge overlay: {edge_overlay_path}")
+    print(f"Saved edge overlay: {edge_overlay_path}")
 
     # Generate side-by-side comparison
     fig, axes = plt.subplots(1, 2, figsize=(20, 10))
