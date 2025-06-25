@@ -11,8 +11,5 @@ model_name: dinov2_vits14
 # Visualization settings
 edge_width: 6
 
-# Post-processing settings
-min_region_size: 100  # Remove regions smaller than this many pixels (0 to disable)
-
 # Others
 filename: DJI_20250127150117_0029_D.JPG

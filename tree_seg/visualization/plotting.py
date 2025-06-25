@@ -7,75 +7,89 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
 from scipy import ndimage
-# scikit-image import for morphological operations
-try:
-    from skimage import morphology  # type: ignore
-except ImportError:
-    # Fallback if scikit-image is not available
-    morphology = None
 
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges_enhanced(labels, edge_width=6):
+def detect_segmentation_edges(labels, edge_width=2):
     """
-    Detect and enhance edges between different segmentation regions.
-    Creates thick, visible square boundaries - simple and reliable approach.
+    Detect edges between different segmentation regions.
+
+    Args:
+        labels: 2D array of segmentation labels
+        edge_width: Width of the edge lines in pixels
+
+    Returns:
+        edges: Binary mask where edges are True
+    """
+    # Use Sobel filter to detect edges between different regions
+    edges_x = ndimage.sobel(labels.astype(float), axis=0)
+    edges_y = ndimage.sobel(labels.astype(float), axis=1)
+    edges = np.sqrt(edges_x**2 + edges_y**2) > 0
+
+    # Dilate edges to make them more visible
+    if edge_width > 1:
+        structure = ndimage.generate_binary_structure(2, 2)
+        edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
+
+    return edges
+
+
+def detect_segmentation_edges_with_colors(labels, edge_width=6, n_clusters=None):
+    """
+    Detect edges between different segmentation regions and assign colors.
     
     Args:
         labels: 2D array of segmentation labels
         edge_width: Width of the edge lines in pixels
+        n_clusters: Number of clusters for colormap selection
         
     Returns:
-        edge_map: 2D array where each pixel contains the edge color index (0=no edge)
-        n_edge_types: Number of different edge types found
+        edge_colors: RGB array where edges have colors and non-edges are transparent
+        edges: Binary mask where edges are True
     """
-    print(f"🎨 Creating thick square boundaries (width: {edge_width})...")
+    # Use Sobel filter to detect edges between different regions
+    edges_x = ndimage.sobel(labels.astype(float), axis=0)
+    edges_y = ndimage.sobel(labels.astype(float), axis=1)
+    edges = np.sqrt(edges_x**2 + edges_y**2) > 0
     
-    # Simple approach: find all boundaries using morphological gradient
-    # This creates thick, reliable boundaries
-    structure = ndimage.generate_binary_structure(2, 1)  # 4-connectivity
+    # Dilate edges to make them more visible
+    if edge_width > 1:
+        structure = ndimage.generate_binary_structure(2, 2)
+        edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
     
-    # Find edges for each unique label
-    unique_labels = np.unique(labels)
-    n_clusters = len(unique_labels)
+    # Create colored edges based on adjacent regions
+    h, w = labels.shape
+    edge_colors = np.zeros((h, w, 3), dtype=np.uint8)
     
-    # Create the final edge map
-    edge_map = np.zeros_like(labels, dtype=np.uint8)
+    # Choose colormap based on number of clusters
+    if n_clusters is None:
+        n_clusters = len(np.unique(labels))
     
-    # For each label, find its boundaries and assign colors
-    for i, label_val in enumerate(unique_labels):
-        # Create binary mask for this label
-        mask = (labels == label_val)
+    if n_clusters <= 10:
+        cmap = plt.get_cmap("tab10", n_clusters)
+    elif n_clusters <= 20:
+        cmap = plt.get_cmap("tab20", n_clusters)
+    else:
+        cmap = plt.get_cmap("gist_ncar", n_clusters)
+    
+    # Color edges based on the dominant neighboring cluster
+    edge_positions = np.where(edges)
+    for i, j in zip(edge_positions[0], edge_positions[1]):
+        # Get neighboring pixels in a small window
+        window_size = max(1, edge_width // 2)
+        i_min, i_max = max(0, i-window_size), min(h, i+window_size+1)
+        j_min, j_max = max(0, j-window_size), min(w, j+window_size+1)
         
-        # Find boundaries using morphological gradient (dilation - erosion)
-        dilated = ndimage.binary_dilation(mask, structure=structure, iterations=edge_width//2 + 1)
-        eroded = ndimage.binary_erosion(mask, structure=structure, iterations=1)
-        boundary = dilated & ~eroded
+        neighbors = labels[i_min:i_max, j_min:j_max]
+        # Use the most common cluster in the neighborhood
+        cluster_id = np.bincount(neighbors.flatten()).argmax()
         
-        # Assign a color to this boundary
-        color_idx = (i % 8) + 1  # Cycle through colors 1-8
-        edge_map[boundary] = color_idx
+        # Convert cluster to color
+        color = cmap(cluster_id)[:3]  # RGB only
+        edge_colors[i, j] = (np.array(color) * 255).astype(np.uint8)
     
-    # Make edges even thicker if requested
-    if edge_width > 4:
-        # Dilate all edges together to make them extra thick
-        all_edges = edge_map > 0
-        thick_structure = ndimage.generate_binary_structure(2, 2)  # 8-connectivity  
-        thick_edges = ndimage.binary_dilation(all_edges, structure=thick_structure, iterations=edge_width//4)
-        
-        # Apply the thickness to all colored edges
-        for color_idx in range(1, 9):
-            color_mask = (edge_map == color_idx)
-            if np.any(color_mask):
-                # Dilate this color's edges
-                thick_color = ndimage.binary_dilation(color_mask, structure=thick_structure, iterations=edge_width//4)
-                edge_map[thick_color] = color_idx
-    
-    num_colors_used = len(np.unique(edge_map[edge_map > 0]))
-    print(f"✅ Created thick square boundaries using {num_colors_used} colors")
-    
-    return edge_map, min(8, n_clusters)
+    return edge_colors, edges
 
 
 def generate_outputs(
@@ -89,8 +103,7 @@ def generate_outputs(
     model_name,
     image_path,
     version,
-    edge_width=6,
-    min_region_size=100,
+    edge_width=2,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -123,7 +136,7 @@ def generate_outputs(
     else:
         cmap = plt.get_cmap("gist_ncar", n_clusters)
 
-    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width, min_region_size)
+    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width)
 
     # Generate segmentation legend visualization
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -163,62 +176,50 @@ def generate_outputs(
     plt.close()
     print(f"Saved overlay: {overlay_path}")
 
-    # Generate ENHANCED edge overlay visualization with colors and legend
-    edge_map, n_edge_types = detect_segmentation_edges_enhanced(labels_resized, edge_width=edge_width)
+    # Generate NEW enhanced colored edge overlay visualization
+    edge_colors, edges = detect_segmentation_edges_with_colors(labels_resized, edge_width=edge_width, n_clusters=n_clusters)
+    
+    # Create the edge overlay with colored borders
     edge_overlay = image_np.copy()
+    # Apply colored edges where edges exist
+    edge_mask = edges
+    edge_overlay[edge_mask] = edge_colors[edge_mask]
     
-    # Define vibrant edge colors
-    edge_colors = [
-        [255, 255, 255],  # 0: No edge (white background)
-        [255, 0, 0],      # 1: Red
-        [0, 255, 0],      # 2: Green  
-        [0, 0, 255],      # 3: Blue
-        [255, 255, 0],    # 4: Yellow
-        [255, 0, 255],    # 5: Magenta
-        [0, 255, 255],    # 6: Cyan
-        [255, 128, 0],    # 7: Orange
-        [128, 0, 255],    # 8: Purple
-    ]
+    # Create figure with subplot for legend
+    fig = plt.figure(figsize=(15, 10))
     
-    # Apply colored edges to the image
-    for edge_type in range(1, min(len(edge_colors), n_edge_types + 1)):
-        mask = edge_map == edge_type
-        if np.any(mask):
-            edge_overlay[mask] = edge_colors[edge_type]
-    
-    # Create figure with legend
-    fig, ax = plt.subplots(figsize=(12, 10))
-    ax.imshow(edge_overlay)
-    ax.axis("off")
-    
-    # Add configuration text
-    ax.text(
+    # Main image subplot
+    ax_main = plt.subplot(1, 2, 1)
+    ax_main.imshow(edge_overlay)
+    ax_main.axis("off")
+    ax_main.set_title("Edge Overlay - Original + Colored Boundaries", fontsize=14, fontweight='bold')
+    ax_main.text(
         0.02, 0.98, config_text,
-        transform=ax.transAxes, fontsize=8,
+        transform=ax_main.transAxes, fontsize=8,
         verticalalignment='top', horizontalalignment='left',
         bbox=dict(facecolor='white', alpha=0.8, edgecolor='none')
     )
     
-    # Add edge legend
-    legend_elements = []
-    used_edge_types = np.unique(edge_map[edge_map > 0])
-    for i, edge_type in enumerate(used_edge_types[:8]):  # Limit to 8 colors
-        color = np.array(edge_colors[edge_type]) / 255.0
-        legend_elements.append(plt.Line2D([0], [0], color=color, lw=4, label=f'Boundary Type {edge_type}'))
+    # Legend subplot
+    ax_legend = plt.subplot(1, 2, 2)
+    legend_data = np.arange(n_clusters).reshape(-1, 1)
+    im_legend = ax_legend.imshow(legend_data, cmap=cmap, aspect='auto', vmin=0, vmax=n_clusters-1)
+    ax_legend.set_title("Edge Color Legend", fontsize=14, fontweight='bold')
+    ax_legend.set_xlabel("Cluster Colors", fontsize=12)
+    ax_legend.set_xticks([])
+    ax_legend.set_yticks(range(n_clusters))
+    ax_legend.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
     
-    if legend_elements:
-        legend = ax.legend(handles=legend_elements, loc='upper right', 
-                          bbox_to_anchor=(0.98, 0.98), fontsize=8,
-                          facecolor='white', framealpha=0.8)
-        legend.set_title('Edge Types')
-        legend.get_title().set_fontsize(9)
-        legend.get_title().set_fontweight('bold')
+    # Add colorbar
+    cbar = plt.colorbar(im_legend, ax=ax_legend, orientation='horizontal', 
+                       ticks=range(n_clusters), shrink=0.8, pad=0.1)
+    cbar.ax.set_xticklabels([f"C{i}" for i in range(n_clusters)])
     
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
-    print(f"Saved enhanced edge overlay: {edge_overlay_path}")
+    print(f"Saved enhanced colored edge overlay: {edge_overlay_path}")
 
     # Generate side-by-side comparison
     fig, axes = plt.subplots(1, 2, figsize=(20, 10))

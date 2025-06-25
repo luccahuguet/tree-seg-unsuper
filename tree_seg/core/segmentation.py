@@ -6,114 +6,32 @@ import os
 import traceback
 import numpy as np
 import torch
-# cv2 removed - not needed for current functionality
+import cv2
 from PIL import Image
 from sklearn.cluster import KMeans
-from scipy import ndimage
-from scipy.ndimage import label
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
-from ..utils.transform import to_tensor, load_image
-from ..analysis.k_selection import find_optimal_k
 
 
-def remove_small_regions(labels, min_size=100):
+def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
+                 auto_k=False, k_range=(3, 10), elbow_threshold=3.0):
     """
-    Remove small regions from segmentation labels by merging them with adjacent larger regions.
+    Process a single image for tree segmentation.
     
     Args:
-        labels: 2D array of segmentation labels
-        min_size: Minimum size in pixels for a region to be kept (0 to disable)
-        
-    Returns:
-        cleaned_labels: 2D array with small regions removed
-    """
-    if min_size <= 0:
-        return labels
-        
-    cleaned_labels = labels.copy()
-    unique_labels = np.unique(labels)
-    
-    print(f"🧹 Cleaning small regions (min size: {min_size} pixels)...")
-    regions_removed = 0
-    
-    for label_val in unique_labels:
-        # Get all connected components for this label
-        label_mask = (labels == label_val)
-        labeled_regions, num_regions = label(label_mask)
-        
-        for region_id in range(1, num_regions + 1):
-            region_mask = (labeled_regions == region_id)
-            region_size = np.sum(region_mask)
-            
-            if region_size < min_size:
-                # Find the most common neighboring label
-                # Dilate the region to find neighbors
-                dilated = ndimage.binary_dilation(region_mask, iterations=3)
-                border = dilated & ~region_mask
-                
-                if np.any(border):
-                    # Get neighboring labels
-                    neighbor_labels = labels[border]
-                    neighbor_labels = neighbor_labels[neighbor_labels != label_val]
-                    
-                    if len(neighbor_labels) > 0:
-                        # Find most common neighbor
-                        unique_neighbors, counts = np.unique(neighbor_labels, return_counts=True)
-                        most_common_neighbor = unique_neighbors[np.argmax(counts)]
-                        
-                        # Merge small region with most common neighbor
-                        cleaned_labels[region_mask] = most_common_neighbor
-                        regions_removed += 1
-    
-    if regions_removed > 0:
-        print(f"✅ Removed {regions_removed} small regions")
-        
-        # Relabel to ensure consecutive numbering
-        unique_labels = np.unique(cleaned_labels)
-        relabel_map = {old_label: new_label for new_label, old_label in enumerate(unique_labels)}
-        
-        relabeled = np.zeros_like(cleaned_labels)
-        for old_label, new_label in relabel_map.items():
-            relabeled[cleaned_labels == old_label] = new_label
-            
-        return relabeled
-    else:
-        print("✅ No small regions found to remove")
-        return cleaned_labels
-
-
-def process_image(
-    image_path, 
-    model, 
-    preprocess, 
-    n_clusters, 
-    stride, 
-    version, 
-    device,
-    auto_k=False,
-    k_range=(3, 10),
-    elbow_threshold=3.0,
-    min_region_size=100
-):
-    """
-    Process a single image with segmentation and optional K selection.
-    
-    Args:
-        image_path: Path to the image file
-        model: Initialized HighResDV2 model
-        preprocess: Preprocessing function
+        image_path: Path to the input image
+        model: Initialized model
+        preprocess: Preprocessing pipeline
         n_clusters: Number of clusters (if auto_k=False)
         stride: Model stride
         version: Model version ("v1" or "v1.5")
         device: PyTorch device
         auto_k: Whether to use automatic K selection
         k_range: Range for K selection (min_k, max_k)
-        elbow_threshold: Sensitivity for elbow detection
-        min_region_size: Minimum size in pixels for regions (0 to disable)
+        elbow_threshold: Threshold for elbow method
         
     Returns:
-        Tuple of (image_np, labels_resized) or (None, None) if failed
+        Tuple of (image_np, labels_resized) or (None, None) on error
     """
     try:
         print(f"\n--- Processing {image_path} ---")
@@ -210,14 +128,10 @@ def process_image(
         labels = labels.reshape(H, W)
         print(f"Labels shape after reshape: {labels.shape}")
 
-        labels_resized = np.array(Image.fromarray(labels.astype(np.uint8)).resize(
-            (w, h), Image.Resampling.NEAREST
-        ))
+        labels_resized = cv2.resize(
+            labels.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST
+        )
         print(f"labels_resized shape: {labels_resized.shape}")
-
-        # Remove small regions if requested
-        if min_region_size > 0:
-            labels_resized = remove_small_regions(labels_resized, min_region_size)
 
         return image_np, labels_resized
 
