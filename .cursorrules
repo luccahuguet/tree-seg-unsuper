@@ -30,3 +30,10 @@ export PATH="/bin:/usr/bin:$PATH" && your_command_here
 - Always export PATH before running commands
 - Use absolute paths for critical system commands if needed
 - Check Python version with: `export PATH="/bin:/usr/bin:$PATH" && python --version` 
+
+# Jupyter Notebooks as Python Files
+Some Jupyter notebooks in this project are tracked as `.py` files (exported with cell markers, e.g., `# %%`).
+- These files can be opened as notebooks in Jupyter, VSCode, or Kaggle.
+- When editing as plain Python, always preserve the `# %%` cell markers and cell order.
+- Avoid removing or reordering cells unless you are sure of the impact.
+- This approach is used for easier version control and editing. 

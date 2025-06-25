@@ -1,4 +1,16 @@
 # %%
+# NOTE: This file is a Jupyter notebook exported as a Python file.
+# It contains special cell markers (e.g., # %%) to preserve notebook cell boundaries.
+# You can open and edit it as a notebook in Jupyter or Kaggle.
+# When editing as a .py file, be careful to preserve these cell markers and cell order.
+# Avoid removing or reordering cells unless you know what you are doing.
+#
+# To convert back to a notebook, use Jupyter or VSCode's 'Python: Import Notebook' feature.
+#
+# This approach is used for easier version control and editing.
+#
+
+# %%
 # Change to a safe directory first
 %cd /kaggle/working
 
@@ -6,7 +18,7 @@
 !rm -rf /kaggle/working/project
 
 # Clone the repository again
-!git clone https://github.com/luccahuguet/tree-seg-unsuper /kaggle/working/projecti
+!git clone https://github.com/luccahuguet/tree-seg-unsuper /kaggle/working/project
 
 # Change into the new project directory
 %cd /kaggle/working/project
@@ -118,19 +130,18 @@ def get_preprocess():
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-# %%
-
 
 # %%
 # Processing cell with automatic K selection (Elbow Method Only)
 
-def find_optimal_k_elbow(features_flat, k_range=(3, 10)):
+def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.0):
     """
     Find optimal K using enhanced elbow method optimized for tree segmentation.
 
     Args:
         features_flat: Flattened feature array
         k_range: Tuple of (min_k, max_k) - default (3,10) optimized for tree species
+        elbow_threshold: Percentage threshold for diminishing returns (lower = more sensitive)
 
     Returns:
         optimal_k: Best number of clusters
@@ -169,7 +180,7 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10)):
     # Find where percentage decrease drops below threshold (diminishing returns)
     threshold_idx = 0
     for i, pct in enumerate(pct_decrease):
-        if pct < 5:  # Less than 5% improvement
+        if pct < elbow_threshold:  # Less than threshold% improvement
             threshold_idx = i
             break
 
@@ -220,7 +231,7 @@ def plot_elbow_analysis(scores, output_dir, output_prefix):
              label=f'Optimal K = {optimal_k}', zorder=5)
     ax1.set_xlabel('Number of Clusters (K)', fontsize=12)
     ax1.set_ylabel('Within-Cluster Sum of Squares (WCSS)', fontsize=12)
-    ax1.set_title('🌳 Elbow Method for Tree Species Clustering', fontsize=14, fontweight='bold')
+    ax1.set_title('Tree Species Clustering - Elbow Method', fontsize=14, fontweight='bold')
     ax1.grid(True, alpha=0.3)
     ax1.legend(fontsize=12)
 
@@ -252,7 +263,7 @@ def plot_elbow_analysis(scores, output_dir, output_prefix):
     return plot_path
 
 def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                 auto_k=False, k_range=(3, 10)):
+                 auto_k=False, k_range=(3, 10), elbow_threshold=3.0):
     try:
         print(f"\n--- Processing {image_path} ---")
         image = Image.open(image_path).convert("RGB")
@@ -329,7 +340,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         # Automatic K selection using elbow method
         if auto_k:
             print(f"\n--- Automatic K Selection using elbow method ---")
-            optimal_k, k_scores = find_optimal_k_elbow(features_flat, k_range)
+            optimal_k, k_scores = find_optimal_k_elbow(features_flat, k_range, elbow_threshold)
 
             print(f"Selected optimal K = {optimal_k}")
 
@@ -406,211 +417,7 @@ def run_processing(
         return results
 
 # %%
-# Updated Entry point cell with automatic K selection
-import sys
-sys.path.append("/kaggle/working/project/src")
-
-# Configuration with automatic K selection options
-config = {
-    "input_dir": "/kaggle/input/drone-10-best",
-    "output_dir": "/kaggle/working/output",
-    "n_clusters": 6,  # This will be ignored if auto_k=True
-    "overlay_ratio": 4,
-    "stride": 4,
-    "model_name": "dinov2_vits14",
-    "filename": "DJI_20250127150117_0029_D.JPG",
-    "version": "v1.5",
-
-    # NEW: Automatic K selection parameters
-    "auto_k": True,  # Set to True to enable automatic K selection
-    "k_range": (3, 10),  # Range of K values to test (optimized for tree species)
-}
-
-def tree_seg_with_auto_k(
-    input_dir="input",
-    output_dir="output",
-    n_clusters=5,
-    overlay_ratio=5,
-    stride=2,
-    model_name="dinov2_vits14",
-    filename=None,
-    version="v1.5",
-    auto_k=False,
-    k_range=(3, 10)
-):
-    """Enhanced tree segmentation with automatic K selection."""
-    print_gpu_info()
-    os.makedirs(output_dir, exist_ok=True)
-    overlay_ratio = float(overlay_ratio)
-    if overlay_ratio < 1 or overlay_ratio > 10:
-        print("overlay_ratio must be between 1 and 10. Using default value 5.")
-        overlay_ratio = 5
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-
-    model = initialize_model(stride, model_name, device)
-    preprocess = get_preprocess()
-
-    if filename:
-        image_path = os.path.join(input_dir, filename)
-        if os.path.exists(image_path) and filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
-            output_prefix = os.path.splitext(filename)[0]
-            print(f"Processing {filename} ...")
-
-            # Process with automatic K selection parameters
-            result = process_image(
-                image_path, model, preprocess, n_clusters, stride, version, device,
-                auto_k=auto_k, k_range=k_range, k_method=k_method
-            )
-
-            if result[0] is not None:
-                image_np, labels_resized = result
-                # Get the actual number of clusters used (may be different if auto_k=True)
-                actual_n_clusters = len(np.unique(labels_resized))
-
-                generate_outputs(
-                    image_np, labels_resized, output_prefix, output_dir,
-                    actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version
-                )
-
-                print(f"✅ Processing completed! Used K = {actual_n_clusters}")
-                if auto_k:
-                    print(f"📊 K selection method: {k_method}")
-                    print(f"📈 K selection analysis saved as: {output_prefix}_{k_method}_analysis.png")
-            else:
-                print("❌ Processing failed")
-        else:
-            print(f"File {filename} not found or is not a supported image format.")
-    else:
-        print("Processing all images in directory...")
-        # Process all images with auto K selection
-        for fname in os.listdir(input_dir):
-            if fname.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
-                image_path = os.path.join(input_dir, fname)
-                output_prefix = os.path.splitext(fname)[0]
-                print(f"\nProcessing {fname} ...")
-
-                result = process_image(
-                    image_path, model, preprocess, n_clusters, stride, version, device,
-                    auto_k=auto_k, k_range=k_range, k_method=k_method
-                )
-
-                if result[0] is not None:
-                    image_np, labels_resized = result
-                    actual_n_clusters = len(np.unique(labels_resized))
-
-                    generate_outputs(
-                        image_np, labels_resized, output_prefix, output_dir,
-                        actual_n_clusters, overlay_ratio, stride, model_name,
-                        image_path, version
-                    )
-
-                    print(f"✅ {fname} completed! Used K = {actual_n_clusters}")
-
-# Run the enhanced segmentation
-print("🌳 Starting Enhanced Tree Segmentation with Automatic K Selection...")
-print(f"📁 Input: {config['input_dir']}")
-print(f"📁 Output: {config['output_dir']}")
-print(f"🔧 Auto K: {config['auto_k']}")
-if config['auto_k']:
-    print(f"📊 K Method: {config['k_method']}")
-    print(f"📈 K Range: {config['k_range']}")
-else:
-    print(f"🔢 Fixed K: {config['n_clusters']}")
-
-tree_seg_with_auto_k(**config)
-
-
-# %%
-# Clean Entry Point with Elbow-Only Auto K Selection
-import sys
-sys.path.append("/kaggle/working/project/src")
-
-# Simplified configuration - Elbow Method Only
-config = {
-    "input_dir": "/kaggle/input/drone-10-best",
-    "output_dir": "/kaggle/working/output",
-    "n_clusters": 6,  # Used only if auto_k=False
-    "overlay_ratio": 4,
-    "stride": 4,
-    "model_name": "dinov2_vits14",
-    "filename": "DJI_20250127150117_0029_D.JPG",
-    "version": "v1.5",
-
-    # Automatic K selection (Elbow Method)
-    "auto_k": True,           # Enable automatic K selection
-    "k_range": (3, 10),       # Optimal range for tree species
-}
-
-def tree_seg_elbow(
-    input_dir="input",
-    output_dir="output",
-    n_clusters=5,
-    overlay_ratio=5,
-    stride=4,
-    model_name="dinov2_vits14",
-    filename=None,
-    version="v1.5",
-    auto_k=False,
-    k_range=(3, 10)
-):
-    """Tree segmentation with automatic K selection using elbow method."""
-    print_gpu_info()
-    os.makedirs(output_dir, exist_ok=True)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-
-    model = initialize_model(stride, model_name, device)
-    preprocess = get_preprocess()
-
-    if filename:
-        image_path = os.path.join(input_dir, filename)
-        if os.path.exists(image_path) and filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
-            output_prefix = os.path.splitext(filename)[0]
-            print(f"Processing {filename} ...")
-
-            # Process with automatic K selection
-            result = process_image(
-                image_path, model, preprocess, n_clusters, stride, version, device,
-                auto_k=auto_k, k_range=k_range
-            )
-
-            if result[0] is not None:
-                image_np, labels_resized = result
-                actual_n_clusters = len(np.unique(labels_resized))
-
-                generate_outputs(
-                    image_np, labels_resized, output_prefix, output_dir,
-                    actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version
-                )
-
-                print(f"✅ Processing completed! Used K = {actual_n_clusters}")
-                if auto_k:
-                    print(f"📊 Elbow method analysis saved")
-            else:
-                print("❌ Processing failed")
-        else:
-            print(f"File {filename} not found or is not a supported image format.")
-
-# Run the segmentation
-print("🌳 Enhanced Tree Segmentation with Automatic K Selection (Elbow Method)")
-print(f"📁 Input: {config['input_dir']}")
-print(f"📁 Output: {config['output_dir']}")
-print(f"🔧 Auto K: {config['auto_k']}")
-if config['auto_k']:
-    print(f"📈 K Range: {config['k_range']} (optimized for tree species)")
-else:
-    print(f"🔢 Fixed K: {config['n_clusters']}")
-
-tree_seg_elbow(**config)
-
-
-# %%
-# Visualization cell
+# Visualization functions (needed before tree_seg_with_auto_k)
 def generate_outputs(
     image_np,
     labels_resized,
@@ -695,6 +502,190 @@ def generate_outputs(
     plt.close()
     print(f"Saved side-by-side image: {side_by_side_path}")
 
+# %%
+# MAIN CONFIG - Edit this to change settings
+import sys
+sys.path.append("/kaggle/working/project/src")
+
+# Available models
+MODELS = {
+    "small": "dinov2_vits14",   # 21M params - Fast, saves credits
+    "base": "dinov2_vitb14",    # 86M params - Good balance (recommended)
+    "large": "dinov2_vitl14",   # 307M params - Better quality, more credits
+    "giant": "dinov2_vitg14"    # 1.1B params - May not fit on T4
+}
+
+# SINGLE CONFIG - Change these settings as needed
+config = {
+    "input_dir": "/kaggle/input/drone-10-best",
+    "output_dir": "/kaggle/working/output",
+    "model_name": MODELS["base"],           # Choose: "small", "base", "large", "giant"
+    "filename": "DJI_20250127150117_0029_D.JPG",
+    "version": "v1.5",
+    "auto_k": True,                         # Automatic K selection (recommended)
+    "k_range": (3, 10),                     # K range for auto selection
+    "elbow_threshold": 3.0,                 # Sensitivity for elbow detection (lower = more sensitive)
+    "n_clusters": 6,                        # Only used if auto_k=False
+    "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
+    "stride": 4,                            # Lower=higher resolution, slower
+}
+
+def tree_seg_with_auto_k(
+    input_dir="input",
+    output_dir="output",
+    n_clusters=5,
+    overlay_ratio=5,
+    stride=2,
+    model_name="dinov2_vits14",
+    filename=None,
+    version="v1.5",
+    auto_k=False,
+    k_range=(3, 10),
+    elbow_threshold=3.0
+):
+    """Enhanced tree segmentation with automatic K selection."""
+    print_gpu_info()
+    os.makedirs(output_dir, exist_ok=True)
+    overlay_ratio = float(overlay_ratio)
+    if overlay_ratio < 1 or overlay_ratio > 10:
+        print("overlay_ratio must be between 1 and 10. Using default value 5.")
+        overlay_ratio = 5
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    model = initialize_model(stride, model_name, device)
+    preprocess = get_preprocess()
+
+    if filename:
+        image_path = os.path.join(input_dir, filename)
+        if os.path.exists(image_path) and filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
+            output_prefix = os.path.splitext(filename)[0]
+            print(f"Processing {filename} ...")
+
+            # Process with automatic K selection parameters
+            result = process_image(
+                image_path, model, preprocess, n_clusters, stride, version, device,
+                auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold
+            )
+
+            if result[0] is not None:
+                image_np, labels_resized = result
+                # Get the actual number of clusters used (may be different if auto_k=True)
+                actual_n_clusters = len(np.unique(labels_resized))
+
+                generate_outputs(
+                    image_np, labels_resized, output_prefix, output_dir,
+                    actual_n_clusters, overlay_ratio, stride, model_name,
+                    image_path, version
+                )
+
+                print(f"✅ Processing completed! Used K = {actual_n_clusters}")
+                if auto_k:
+                    print(f"📊 K selection method: elbow")
+                    print(f"📈 K selection analysis saved as: {output_prefix}_elbow_analysis.png")
+            else:
+                print("❌ Processing failed")
+        else:
+            print(f"File {filename} not found or is not a supported image format.")
+    else:
+        print("Processing all images in directory...")
+        # Process all images with auto K selection
+        for fname in os.listdir(input_dir):
+            if fname.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
+                image_path = os.path.join(input_dir, fname)
+                output_prefix = os.path.splitext(fname)[0]
+                print(f"\nProcessing {fname} ...")
+
+                result = process_image(
+                    image_path, model, preprocess, n_clusters, stride, version, device,
+                    auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold
+                )
+
+                if result[0] is not None:
+                    image_np, labels_resized = result
+                    actual_n_clusters = len(np.unique(labels_resized))
+
+                    generate_outputs(
+                        image_np, labels_resized, output_prefix, output_dir,
+                        actual_n_clusters, overlay_ratio, stride, model_name,
+                        image_path, version
+                    )
+
+                    print(f"✅ {fname} completed! Used K = {actual_n_clusters}")
+
+# Run the enhanced segmentation
+print("🌳 Starting Enhanced Tree Segmentation with Automatic K Selection...")
+print(f"📁 Input: {config['input_dir']}")
+print(f"📁 Output: {config['output_dir']}")
+print(f"🔧 Auto K: {config['auto_k']}")
+if config['auto_k']:
+    print(f"📊 Method: Elbow (optimized for trees)")
+    print(f"📈 K Range: {config['k_range']}")
+else:
+    print(f"🔢 Fixed K: {config['n_clusters']}")
+
+tree_seg_with_auto_k(**config)
+
+
+# %%
+# RUN SEGMENTATION - Uses config from above
+
+def tree_seg_elbow(
+    input_dir="input",
+    output_dir="output",
+    n_clusters=5,
+    overlay_ratio=5,
+    stride=4,
+    model_name="dinov2_vits14",
+    filename=None,
+    version="v1.5",
+    auto_k=False,
+    k_range=(3, 10),
+    elbow_threshold=3.0
+):
+    """Tree segmentation with automatic K selection using elbow method."""
+    print_gpu_info()
+    os.makedirs(output_dir, exist_ok=True)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    model = initialize_model(stride, model_name, device)
+    preprocess = get_preprocess()
+
+    if filename:
+        image_path = os.path.join(input_dir, filename)
+        if os.path.exists(image_path) and filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
+            output_prefix = os.path.splitext(filename)[0]
+            print(f"Processing {filename} ...")
+
+            # Process with automatic K selection
+            result = process_image(
+                image_path, model, preprocess, n_clusters, stride, version, device,
+                auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold
+            )
+
+            if result[0] is not None:
+                image_np, labels_resized = result
+                actual_n_clusters = len(np.unique(labels_resized))
+
+                generate_outputs(
+                    image_np, labels_resized, output_prefix, output_dir,
+                    actual_n_clusters, overlay_ratio, stride, model_name,
+                    image_path, version
+                )
+
+                print(f"✅ Processing completed! Used K = {actual_n_clusters}")
+                if auto_k:
+                    print(f"📊 Elbow method analysis saved")
+            else:
+                print("❌ Processing failed")
+        else:
+            print(f"File {filename} not found or is not a supported image format.")
+
+# %%
+# Additional utility functions
 def run_visualization(
     input_dir="input",
     output_dir="output",
@@ -725,22 +716,6 @@ def run_visualization(
                     os.path.join(input_dir, output_prefix + ".jpg"), version
                 )
 
-# %%
-# Entry point cell
-import sys
-sys.path.append("/kaggle/working/project/src")
-
-config = {
-    "input_dir": "/kaggle/input/drone-10-best",
-    "output_dir": "/kaggle/working/output",
-    "n_clusters": 6,
-    "overlay_ratio": 4,
-    "stride": 4,
-    "model_name": "dinov2_vits14",
-    "filename": "DJI_20250127150117_0029_D.JPG",
-    "version": "v1.5"  # Options: "v1" (patch features only) or "v1.5" (patch + attention features)
-}
-
 def tree_seg(
     input_dir="input",
     output_dir="output",
@@ -753,33 +728,48 @@ def tree_seg(
 ):
     run_visualization(input_dir, output_dir, n_clusters, overlay_ratio, stride, model_name, filename, version)
 
-# Run the segmentation
-tree_seg(**config)
+# %%
+# RUN THE SEGMENTATION
+print("🌳 Tree Segmentation Starting...")
+print(f"📁 Input: {config['input_dir']}")
+print(f"📁 Output: {config['output_dir']}")
+print(f"🤖 Model: {config['model_name']}")
+print(f"🔧 Auto K: {config['auto_k']}")
+if config['auto_k']:
+    print(f"📈 K Range: {config['k_range']}")
+else:
+    print(f"🔢 Fixed K: {config['n_clusters']}")
+
+tree_seg_elbow(**config)
+
+
 
 # %%
+# Display results
 from IPython.display import Image, display
 
-# Paths to the output files
 filename = config["filename"]
 output_prefix = os.path.splitext(filename)[0]
-legend_path = os.path.join(config["output_dir"], f"{output_prefix}_segmentation_legend.png")
-overlay_path = os.path.join(config["output_dir"], f"{output_prefix}_overlay.png")
-side_by_side_path = os.path.join(config["output_dir"], f"{output_prefix}_side_by_side.png")
+output_dir = config["output_dir"]
 
-# # Display the segmentation map with legend
-# if os.path.exists(legend_path):
-#     print("Segmentation Map with Legend:")
-#     display(Image(filename=legend_path))
+legend_path = os.path.join(output_dir, f"{output_prefix}_segmentation_legend.png")
+overlay_path = os.path.join(output_dir, f"{output_prefix}_overlay.png")
+side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
+elbow_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
 
 # Display the overlay
 if os.path.exists(overlay_path):
-    print("Overlay Image:")
+    print("🖼️ Overlay Image:")
     display(Image(filename=overlay_path))
 
-# %%
-# Display the side-by-side image
+# Display the side-by-side comparison
 if os.path.exists(side_by_side_path):
-    print("Original and Segmentation Side by Side:")
+    print("📊 Original and Segmentation Side by Side:")
     display(Image(filename=side_by_side_path))
+
+# Display the K selection analysis
+if os.path.exists(elbow_path):
+    print("📈 K Selection Analysis (Elbow Method):")
+    display(Image(filename=elbow_path))
 
 
