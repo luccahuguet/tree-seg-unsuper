@@ -186,8 +186,8 @@ def generate_outputs(
                         
             return (r, g, b)
     
-    # Keep track of drawn regions to avoid overlap
-    drawn_regions = set()
+    # Keep track of successfully drawn clusters for fallback
+    successfully_drawn = set()
     
     # Create colored borders and hatch patterns for each cluster
     for cluster_id in range(n_clusters):
@@ -197,7 +197,7 @@ def generate_outputs(
         if not cluster_mask.any():
             continue
             
-        # Get cluster color, avoiding green
+        # Get cluster color, prioritizing bright colors
         cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
         
         # Create contour for this cluster with hatch pattern
@@ -206,14 +206,12 @@ def generate_outputs(
                 # Find contours for this cluster
                 contours = measure.find_contours(cluster_mask.astype(float), 0.5)
                 
-                # Draw only the largest contour to avoid overlap
-                if contours:
-                    # Sort by length and take the largest
-                    largest_contour = max(contours, key=len)
-                    
-                    if len(largest_contour) > 20:  # Only draw substantial contours
+                # Draw ALL contours for this cluster (not just the largest!)
+                contours_drawn = 0
+                for contour in contours:
+                    if len(contour) > 15:  # Only draw substantial contours (reduced threshold)
                         # Flip coordinates (find_contours returns row, col)
-                        contour_flipped = np.fliplr(largest_contour)
+                        contour_flipped = np.fliplr(contour)
                         
                         # Create polygon patch with hatch pattern
                         hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
@@ -222,14 +220,19 @@ def generate_outputs(
                                         edgecolor=cluster_color, 
                                         linewidth=3,  # Thicker edges
                                         hatch=hatch_pattern,
-                                        alpha=0.8)
+                                        alpha=0.7)  # Slightly lower alpha to reduce visual clash
                         ax.add_patch(polygon)
-                        drawn_regions.add(cluster_id)
+                        contours_drawn += 1
+                
+                # Mark as successfully drawn if we drew any contours
+                if contours_drawn > 0:
+                    successfully_drawn.add(cluster_id)
+                    
             except:
                 pass
         
-        # Fallback for regions not drawn with contours
-        if cluster_id not in drawn_regions:
+        # Fallback for clusters that couldn't be drawn with contours
+        if cluster_id not in successfully_drawn:
             cluster_edges = detect_segmentation_edges(cluster_mask.astype(int), edge_width=edge_width)
             border_y, border_x = np.where(cluster_edges)
             if len(border_y) > 0:
