@@ -34,6 +34,9 @@
 # %%
 # Import the modular tree segmentation package
 import sys
+import os
+import numpy as np
+import torch
 sys.path.append("/kaggle/working/project")
 
 from tree_seg import tree_seg_with_auto_k, MODELS, print_gpu_info
@@ -57,7 +60,15 @@ print("🏃 Core processing: tree_seg.core")
 # %%
 # MAIN CONFIG - Edit this to change settings
 import sys
+import os
+import numpy as np
+import torch
 sys.path.append("/kaggle/working/project/src")
+
+# Import additional functions needed by the local function
+from tree_seg.models import initialize_model, get_preprocess
+from tree_seg.core.segmentation import process_image
+from tree_seg.visualization import generate_outputs
 
 # Available models
 MODELS = {
