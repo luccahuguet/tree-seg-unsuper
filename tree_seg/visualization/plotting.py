@@ -205,6 +205,7 @@ def generate_outputs(
 
         # Set the hatch color and alpha to match the contour
         for collection in cs.collections: # type: ignore
+            collection.set_facecolor('none')
             collection.set_edgecolor(cluster_color)
             collection.set_alpha(0.8)
             # Do not draw the patch border, only the hatch
