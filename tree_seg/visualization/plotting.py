@@ -135,7 +135,8 @@ def generate_outputs(
     ax.imshow(image_np)
     
     # Define even more spaced hatch patterns - single characters for maximum spacing
-    hatch_patterns = ['/', '\\', '|', '-', '.', 'o', 'O', '*', 'x']
+    # Removed '-' and 'o' as they don't work properly as hatch patterns
+    hatch_patterns = ['/', '\\', '|', '.', 'O', '*', 'x']
     
     # Create a custom color function to prioritize bright colors
     def get_cluster_color(cluster_id, n_clusters, cmap):
