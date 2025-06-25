@@ -18,7 +18,7 @@ except ImportError:
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges(labels, edge_width=6):
+def detect_segmentation_edges(labels, edge_width=4):
     """
     Detect edges between different segmentation regions.
 
@@ -53,7 +53,7 @@ def generate_outputs(
     model_name,
     image_path,
     version,
-    edge_width=6,
+    edge_width=4,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -78,13 +78,16 @@ def generate_outputs(
     alpha = (10 - overlay_ratio) / 10.0
     filename = os.path.basename(image_path)
 
-    # Choose colormap based on number of clusters
+    # Choose colormap based on number of clusters - avoid green-heavy colormaps
     if n_clusters <= 10:
-        cmap = plt.get_cmap("tab10", n_clusters)
+        # Use Set1 colormap which has good contrast and less green
+        cmap = plt.get_cmap("Set1", n_clusters)
     elif n_clusters <= 20:
-        cmap = plt.get_cmap("tab20", n_clusters)
+        # Use Dark2 which has better contrast than tab20
+        cmap = plt.get_cmap("Dark2", n_clusters)
     else:
-        cmap = plt.get_cmap("gist_ncar", n_clusters)
+        # Use viridis but we'll filter out green colors below
+        cmap = plt.get_cmap("viridis", n_clusters)
 
     config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width)
 
@@ -130,57 +133,76 @@ def generate_outputs(
     # Generate NEW edge overlay visualization with colored borders and hatch patterns
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(image_np)
-
-    # Define hatch patterns for different clusters
-    hatch_patterns = ['///', '\\\\\\', '|||', '---', '+++', '...', 'ooo', 'OOO', '***', 'xxx']
-
+    
+    # Define more spaced hatch patterns - avoid plus, make them thicker
+    hatch_patterns = ['//', '\\\\', '||', '--', '..', 'oo', 'OO', '**', 'xx']
+    
+    # Create a custom color function to avoid green
+    def get_cluster_color(cluster_id, n_clusters, cmap):
+        """Get a color for cluster, avoiding green tones."""
+        base_color = cmap(cluster_id / (n_clusters - 1))[:3]
+        
+        # If color is too green (high G, low R+B), shift it
+        r, g, b = base_color
+        if g > 0.6 and (r + b) < 0.8:  # Greenish color
+            # Shift to blue or red
+            if cluster_id % 2 == 0:
+                return (r, g * 0.3, min(1.0, b * 1.5))  # More blue
+            else:
+                return (min(1.0, r * 1.5), g * 0.3, b)  # More red
+        return base_color
+    
+    # Keep track of drawn regions to avoid overlap
+    drawn_regions = set()
+    
     # Create colored borders and hatch patterns for each cluster
     for cluster_id in range(n_clusters):
         # Create mask for this cluster
         cluster_mask = (labels_resized == cluster_id)
-
+        
         if not cluster_mask.any():
             continue
-
-        # Get cluster color from colormap
-        cluster_color = cmap(cluster_id / (n_clusters - 1))[:3]  # RGB only
-
+            
+        # Get cluster color, avoiding green
+        cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
+        
         # Create contour for this cluster with hatch pattern
         if HAS_SKIMAGE:
             try:
                 # Find contours for this cluster
                 contours = measure.find_contours(cluster_mask.astype(float), 0.5)
-
-                # Draw each contour as a polygon with hatch pattern
-                for contour in contours:
-                    if len(contour) > 10:  # Only draw substantial contours
+                
+                # Draw only the largest contour to avoid overlap
+                if contours:
+                    # Sort by length and take the largest
+                    largest_contour = max(contours, key=len)
+                    
+                    if len(largest_contour) > 20:  # Only draw substantial contours
                         # Flip coordinates (find_contours returns row, col)
-                        contour_flipped = np.fliplr(contour)
-
+                        contour_flipped = np.fliplr(largest_contour)
+                        
                         # Create polygon patch with hatch pattern
                         hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
-                        polygon = Polygon(contour_flipped, closed=True,
-                                        fill=False,
-                                        edgecolor=cluster_color,
-                                        linewidth=2,
+                        polygon = Polygon(contour_flipped, closed=True, 
+                                        fill=False, 
+                                        edgecolor=cluster_color, 
+                                        linewidth=3,  # Thicker edges
                                         hatch=hatch_pattern,
-                                        alpha=0.7)
+                                        alpha=0.8)
                         ax.add_patch(polygon)
+                        drawn_regions.add(cluster_id)
             except:
-                # Fallback to simple edge detection if contours fail
-                cluster_edges = detect_segmentation_edges(cluster_mask.astype(int), edge_width=edge_width)
-                border_y, border_x = np.where(cluster_edges)
-                if len(border_y) > 0:
-                    ax.scatter(border_x, border_y, c=[cluster_color], s=4, alpha=0.8)
-        else:
-            # Fallback to simple edge detection if scikit-image not available
+                pass
+        
+        # Fallback for regions not drawn with contours
+        if cluster_id not in drawn_regions:
             cluster_edges = detect_segmentation_edges(cluster_mask.astype(int), edge_width=edge_width)
             border_y, border_x = np.where(cluster_edges)
             if len(border_y) > 0:
-                ax.scatter(border_x, border_y, c=[cluster_color], s=4, alpha=0.8)
-
+                ax.scatter(border_x, border_y, c=[cluster_color], s=6, alpha=0.9)
+    
     ax.axis("off")
-
+    
     # Add config text
     ax.text(
         0.02, 0.98, config_text,
@@ -188,19 +210,19 @@ def generate_outputs(
         verticalalignment='top', horizontalalignment='left',
         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
     )
-
+    
     # Add small legend
     legend_elements = []
     for cluster_id in range(n_clusters):
-        cluster_color = cmap(cluster_id / (n_clusters - 1))[:3]
+        cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
         hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
-        legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=2,
+        legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=3, 
                                         label=f'Cluster {cluster_id} {hatch_pattern}'))
-
-    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6,
+    
+    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6, 
                       framealpha=0.7, fancybox=True, shadow=True, ncol=1 if n_clusters <= 6 else 2)
     legend.get_frame().set_facecolor('white')
-
+    
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)

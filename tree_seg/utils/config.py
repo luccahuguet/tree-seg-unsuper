@@ -3,7 +3,7 @@ Configuration utilities for tree segmentation.
 """
 
 
-def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width=6):
+def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width=4):
     """Generate a formatted string of configuration parameters."""
     config_lines = [
         f"Version: {version}",
