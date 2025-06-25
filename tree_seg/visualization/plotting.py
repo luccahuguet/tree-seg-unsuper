@@ -6,8 +6,33 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from scipy import ndimage
 
 from ..utils.config import get_config_text
+
+
+def detect_segmentation_edges(labels, edge_width=2):
+    """
+    Detect edges between different segmentation regions.
+
+    Args:
+        labels: 2D array of segmentation labels
+        edge_width: Width of the edge lines in pixels
+
+    Returns:
+        edges: Binary mask where edges are True
+    """
+    # Use Sobel filter to detect edges between different regions
+    edges_x = ndimage.sobel(labels.astype(float), axis=0)
+    edges_y = ndimage.sobel(labels.astype(float), axis=1)
+    edges = np.sqrt(edges_x**2 + edges_y**2) > 0
+
+    # Dilate edges to make them more visible
+    if edge_width > 1:
+        structure = ndimage.generate_binary_structure(2, 2)
+        edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
+
+    return edges
 
 
 def generate_outputs(
@@ -21,10 +46,11 @@ def generate_outputs(
     model_name,
     image_path,
     version,
+    edge_width=2,
 ):
     """
     Generate visualization outputs for segmentation results.
-    
+
     Args:
         image_np: Original image as numpy array
         labels_resized: Segmentation labels resized to original image size
@@ -36,6 +62,7 @@ def generate_outputs(
         model_name: Model name
         image_path: Path to original image
         version: Model version
+        edge_width: Width of edge lines in pixels for edge overlay visualization
     """
     if image_np is None or labels_resized is None:
         print(f"Skipping output generation for {image_path} due to processing error.")
@@ -52,8 +79,8 @@ def generate_outputs(
     else:
         cmap = plt.get_cmap("gist_ncar", n_clusters)
 
-    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version)
-    
+    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width)
+
     # Generate segmentation legend visualization
     fig, ax = plt.subplots(figsize=(10, 10))
     im = ax.imshow(labels_resized, cmap=cmap, vmin=0, vmax=n_clusters - 1)
@@ -92,6 +119,27 @@ def generate_outputs(
     plt.close()
     print(f"Saved overlay: {overlay_path}")
 
+    # Generate NEW edge overlay visualization
+    edges = detect_segmentation_edges(labels_resized, edge_width=edge_width)
+    edge_overlay = image_np.copy()
+    # Make edges bright white for high contrast
+    edge_overlay[edges] = [255, 255, 255]
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.imshow(edge_overlay)
+    ax.axis("off")
+    ax.text(
+        0.02, 0.98, config_text,
+        transform=ax.transAxes, fontsize=8,
+        verticalalignment='top', horizontalalignment='left',
+        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
+    )
+    plt.tight_layout()
+    edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
+    plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
+    plt.close()
+    print(f"Saved edge overlay: {edge_overlay_path}")
+
     # Generate side-by-side comparison
     fig, axes = plt.subplots(1, 2, figsize=(20, 10))
     axes[0].imshow(image_np)
@@ -112,4 +160,4 @@ def generate_outputs(
     side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
     plt.savefig(side_by_side_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
-    print(f"Saved side-by-side image: {side_by_side_path}") 
+    print(f"Saved side-by-side image: {side_by_side_path}")

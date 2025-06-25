@@ -91,6 +91,7 @@ config = {
     "n_clusters": 6,                        # Only used if auto_k=False
     "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
     "stride": 4,                            # Lower=higher resolution, slower
+    "edge_width": 2,                        # Width of edge lines in edge overlay visualization
 }
 
 def tree_seg_with_auto_k(
@@ -104,7 +105,8 @@ def tree_seg_with_auto_k(
     version="v1.5",
     auto_k=False,
     k_range=(3, 10),
-    elbow_threshold=3.0
+    elbow_threshold=3.0,
+    edge_width=2
 ):
     """Enhanced tree segmentation with automatic K selection."""
     print_gpu_info()
@@ -140,7 +142,7 @@ def tree_seg_with_auto_k(
                 generate_outputs(
                     image_np, labels_resized, output_prefix, output_dir,
                     actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version
+                    image_path, version, edge_width
                 )
 
                 print(f"✅ Processing completed! Used K = {actual_n_clusters}")
@@ -172,7 +174,7 @@ def tree_seg_with_auto_k(
                     generate_outputs(
                         image_np, labels_resized, output_prefix, output_dir,
                         actual_n_clusters, overlay_ratio, stride, model_name,
-                        image_path, version
+                        image_path, version, edge_width
                     )
 
                     print(f"✅ {fname} completed! Used K = {actual_n_clusters}")

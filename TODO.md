@@ -4,7 +4,7 @@
 - [x] **Test larger DINO models** - Experiment with `dinov2_vitb14`, `dinov2_vitl14`, or `dinov2_vitg14` for potentially better feature extraction
 
 ## 🎨 Visualization Enhancements  
-- [ ] **Add edge overlay visualization** - Create a new visualization that doesn't color the image, but overlays edge borders on top of each segmented region
+- [x] **Add edge overlay visualization** - Create a new visualization that doesn't color the image, but overlays edge borders on top of each segmented region
 
 ## 🧪 Feature Processing Experiments
 - [ ] **Test without PCA** - Run segmentation without PCA dimensionality reduction and compare results to see if the 128-dimension limit is necessary
