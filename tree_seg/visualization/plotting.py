@@ -120,17 +120,18 @@ def generate_outputs(
     plt.close()
     print(f"Saved overlay: {overlay_path}")
 
-    # Generate NEW edge overlay visualization with colored regions and hatching
+    # Generate NEW edge overlay visualization with colored hatched borders only
     edges = detect_segmentation_edges(labels_resized, edge_width=edge_width)
     
-    # Create the enhanced edge overlay with colored regions and hatching
+    # Create the enhanced edge overlay with colored hatched borders only
     fig, ax = plt.subplots(figsize=(10, 10))
-    ax.imshow(image_np)  # Show original image as background
+    ax.imshow(image_np)  # Show original image as background (completely natural)
     
-    # Create a masked overlay for each cluster with hatching
+    # Get edge pixels and their corresponding cluster labels
     unique_labels = np.unique(labels_resized)
     hatch_patterns = ['///', '\\\\\\', '|||', '---', '+++', '...', 'ooo', 'OOO', '***', 'xxx']
     
+    # For each cluster, find its boundary edges and draw colored hatched lines
     for i, label in enumerate(unique_labels):
         if label == -1:  # Skip noise/background if present
             continue
@@ -138,24 +139,29 @@ def generate_outputs(
         # Create mask for this cluster
         cluster_mask = (labels_resized == label)
         
+        # Get edges for this specific cluster
+        cluster_edges = detect_segmentation_edges(cluster_mask.astype(float), edge_width=2)
+        
+        if not np.any(cluster_edges):
+            continue
+            
         # Get color for this cluster
         color = cmap(label / (n_clusters - 1))
-        
-        # Create a hatched overlay for this region
         hatch_pattern = hatch_patterns[i % len(hatch_patterns)]
         
-        # Use contourf to create hatched regions
-        mask_for_contour = cluster_mask.astype(float)
-        ax.contourf(mask_for_contour, levels=[0.5, 1.5], colors=[color], alpha=0.3, hatches=[hatch_pattern])
-    
-    # Add white edges on top
-    edge_overlay_for_edges = image_np.copy()
-    edge_overlay_for_edges[edges] = [255, 255, 255]
-    
-    # Create a mask for just the edges and overlay them
-    edge_mask = np.zeros_like(edges, dtype=float)
-    edge_mask[edges] = 1.0
-    ax.contour(edge_mask, levels=[0.5], colors='white', linewidths=1, alpha=0.9)
+        # Create contour for just the edges of this cluster
+        ax.contour(cluster_edges.astype(float), levels=[0.5], 
+                  colors=[color], linewidths=edge_width, alpha=0.8)
+        
+        # Add hatching along the boundary using contourf with very thin band
+        # Dilate edges slightly to create a thin band for hatching
+        from scipy import ndimage
+        thin_band = ndimage.binary_dilation(cluster_edges, iterations=2)
+        thin_band = thin_band & ~ndimage.binary_erosion(cluster_edges, iterations=1)
+        
+        if np.any(thin_band):
+            ax.contourf(thin_band.astype(float), levels=[0.5, 1.5], 
+                       colors=[color], alpha=0.6, hatches=[hatch_pattern])
     
     ax.axis("off")
     
@@ -177,8 +183,8 @@ def generate_outputs(
         
         # Create legend patch with color and hatching
         from matplotlib.patches import Rectangle
-        legend_patch = Rectangle((0, 0), 1, 1, facecolor=color, alpha=0.3, 
-                               hatch=hatch_pattern, edgecolor='black', linewidth=0.5)
+        legend_patch = Rectangle((0, 0), 1, 1, facecolor=color, alpha=0.6, 
+                               hatch=hatch_pattern, edgecolor=color, linewidth=1)
         legend_elements.append((legend_patch, f'Cluster {label}'))
     
     # Add the legend - small and positioned in bottom right
@@ -194,7 +200,7 @@ def generate_outputs(
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
-    print(f"Saved enhanced edge overlay with colored regions and legend: {edge_overlay_path}")
+    print(f"Saved enhanced edge overlay with colored hatched borders: {edge_overlay_path}")
 
     # Generate side-by-side comparison
     fig, axes = plt.subplots(1, 2, figsize=(20, 10))
