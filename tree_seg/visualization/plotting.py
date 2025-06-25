@@ -137,20 +137,54 @@ def generate_outputs(
     # Define more spaced hatch patterns - avoid plus, make them thicker
     hatch_patterns = ['//', '\\\\', '||', '--', '..', 'oo', 'OO', '**', 'xx']
     
-    # Create a custom color function to avoid green
+    # Create a custom color function to prioritize bright colors
     def get_cluster_color(cluster_id, n_clusters, cmap):
-        """Get a color for cluster, avoiding green tones."""
-        base_color = cmap(cluster_id / (n_clusters - 1))[:3]
+        """Get a bright color for cluster, prioritizing high contrast colors."""
+        # Define a set of bright, high-contrast colors that work well against foliage
+        bright_colors = [
+            (1.0, 0.0, 0.0),    # Bright Red
+            (0.0, 0.0, 1.0),    # Bright Blue  
+            (1.0, 0.5, 0.0),    # Bright Orange
+            (1.0, 0.0, 1.0),    # Bright Magenta
+            (0.0, 1.0, 1.0),    # Bright Cyan
+            (1.0, 1.0, 0.0),    # Bright Yellow
+            (0.5, 0.0, 1.0),    # Bright Purple
+            (1.0, 0.0, 0.5),    # Bright Pink
+            (0.0, 0.5, 1.0),    # Bright Sky Blue
+            (1.0, 0.3, 0.7),    # Bright Rose
+        ]
         
-        # If color is too green (high G, low R+B), shift it
-        r, g, b = base_color
-        if g > 0.6 and (r + b) < 0.8:  # Greenish color
-            # Shift to blue or red
-            if cluster_id % 2 == 0:
-                return (r, g * 0.3, min(1.0, b * 1.5))  # More blue
-            else:
-                return (min(1.0, r * 1.5), g * 0.3, b)  # More red
-        return base_color
+        # Use bright colors first, then fall back to colormap
+        if cluster_id < len(bright_colors):
+            return bright_colors[cluster_id]
+        else:
+            # For additional clusters, boost the brightness of colormap colors
+            base_color = cmap(cluster_id / (n_clusters - 1))[:3]
+            r, g, b = base_color
+            
+            # Boost saturation and brightness
+            # Convert to HSV-like adjustment
+            max_val = max(r, g, b)
+            min_val = min(r, g, b)
+            
+            if max_val > 0:
+                # Increase contrast and brightness
+                scale = 1.3  # Brightness boost
+                r = min(1.0, r * scale)
+                g = min(1.0, g * scale) 
+                b = min(1.0, b * scale)
+                
+                # If still too dim, force it to be brighter
+                if max(r, g, b) < 0.7:
+                    dominant = max(r, g, b)
+                    if r == dominant:
+                        r = 1.0
+                    elif g == dominant:
+                        g = 1.0
+                    else:
+                        b = 1.0
+                        
+            return (r, g, b)
     
     # Keep track of drawn regions to avoid overlap
     drawn_regions = set()
