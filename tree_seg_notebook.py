@@ -203,6 +203,7 @@ output_dir = config["output_dir"]
 
 legend_path = os.path.join(output_dir, f"{output_prefix}_segmentation_legend.png")
 overlay_path = os.path.join(output_dir, f"{output_prefix}_overlay.png")
+edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
 side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
 elbow_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
 
@@ -210,6 +211,11 @@ elbow_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
 if os.path.exists(overlay_path):
     print("🖼️ Overlay Image:")
     display(Image(filename=overlay_path))
+
+# Display the NEW edge overlay
+if os.path.exists(edge_overlay_path):
+    print("🔳 Edge Overlay (Original + Boundaries):")
+    display(Image(filename=edge_overlay_path))
 
 # Display the side-by-side comparison
 if os.path.exists(side_by_side_path):
