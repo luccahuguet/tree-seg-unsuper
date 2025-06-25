@@ -17,10 +17,10 @@ except ImportError:
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges_enhanced(labels, edge_width=4):
+def detect_segmentation_edges_enhanced(labels, edge_width=6):
     """
     Detect and enhance edges between different segmentation regions.
-    Creates smooth, continuous colored edges with better visual appeal.
+    Creates thick, visible square boundaries - simple and reliable approach.
     
     Args:
         labels: 2D array of segmentation labels
@@ -30,76 +30,52 @@ def detect_segmentation_edges_enhanced(labels, edge_width=4):
         edge_map: 2D array where each pixel contains the edge color index (0=no edge)
         n_edge_types: Number of different edge types found
     """
-    # Create edge map by finding boundaries between different labels
-    edge_map = np.zeros_like(labels, dtype=np.uint8)
+    print(f"🎨 Creating thick square boundaries (width: {edge_width})...")
     
-    # Get unique labels for color assignment
+    # Simple approach: find all boundaries using morphological gradient
+    # This creates thick, reliable boundaries
+    structure = ndimage.generate_binary_structure(2, 1)  # 4-connectivity
+    
+    # Find edges for each unique label
     unique_labels = np.unique(labels)
     n_clusters = len(unique_labels)
     
-    print(f"🎨 Creating continuous colored edges between {n_clusters} regions...")
+    # Create the final edge map
+    edge_map = np.zeros_like(labels, dtype=np.uint8)
     
-    # For each unique pair of adjacent labels, create boundaries
-    edge_color = 1
+    # For each label, find its boundaries and assign colors
+    for i, label_val in enumerate(unique_labels):
+        # Create binary mask for this label
+        mask = (labels == label_val)
+        
+        # Find boundaries using morphological gradient (dilation - erosion)
+        dilated = ndimage.binary_dilation(mask, structure=structure, iterations=edge_width//2 + 1)
+        eroded = ndimage.binary_erosion(mask, structure=structure, iterations=1)
+        boundary = dilated & ~eroded
+        
+        # Assign a color to this boundary
+        color_idx = (i % 8) + 1  # Cycle through colors 1-8
+        edge_map[boundary] = color_idx
     
-    # Method 1: Scan horizontally for label changes
-    for y in range(labels.shape[0]):
-        for x in range(labels.shape[1] - 1):
-            if labels[y, x] != labels[y, x + 1]:
-                # Found vertical boundary - paint edge pixels around it
-                for dy in range(-edge_width//2, edge_width//2 + 1):
-                    for dx in range(-edge_width//2, edge_width//2 + 1):
-                        ny, nx = y + dy, x + dx
-                        if 0 <= ny < labels.shape[0] and 0 <= nx < labels.shape[1]:
-                            if edge_map[ny, nx] == 0:  # Don't overwrite existing edges
-                                # Assign color based on the adjacent labels
-                                label1, label2 = sorted([labels[y, x], labels[y, x + 1]])
-                                color_idx = ((label1 * 7 + label2 * 3) % 8) + 1
-                                edge_map[ny, nx] = color_idx
-    
-    # Method 2: Scan vertically for label changes
-    for x in range(labels.shape[1]):
-        for y in range(labels.shape[0] - 1):
-            if labels[y, x] != labels[y + 1, x]:
-                # Found horizontal boundary - paint edge pixels around it
-                for dy in range(-edge_width//2, edge_width//2 + 1):
-                    for dx in range(-edge_width//2, edge_width//2 + 1):
-                        ny, nx = y + dy, x + dx
-                        if 0 <= ny < labels.shape[0] and 0 <= nx < labels.shape[1]:
-                            if edge_map[ny, nx] == 0:  # Don't overwrite existing edges
-                                # Assign color based on the adjacent labels
-                                label1, label2 = sorted([labels[y, x], labels[y + 1, x]])
-                                color_idx = ((label1 * 7 + label2 * 3) % 8) + 1
-                                edge_map[ny, nx] = color_idx
-    
-    # Apply morphological operations to smooth and connect edges (if available)
-    if morphology is not None:
-        # Fill small gaps and smooth the edges
+    # Make edges even thicker if requested
+    if edge_width > 4:
+        # Dilate all edges together to make them extra thick
+        all_edges = edge_map > 0
+        thick_structure = ndimage.generate_binary_structure(2, 2)  # 8-connectivity  
+        thick_edges = ndimage.binary_dilation(all_edges, structure=thick_structure, iterations=edge_width//4)
+        
+        # Apply the thickness to all colored edges
         for color_idx in range(1, 9):
             color_mask = (edge_map == color_idx)
             if np.any(color_mask):
-                # Connect nearby edge pixels of the same color
-                color_mask = morphology.binary_closing(color_mask, morphology.disk(1))
-                # Smooth the boundaries
-                color_mask = morphology.binary_opening(color_mask, morphology.disk(1))
-                # Update the edge map
-                edge_map[color_mask] = color_idx
+                # Dilate this color's edges
+                thick_color = ndimage.binary_dilation(color_mask, structure=thick_structure, iterations=edge_width//4)
+                edge_map[thick_color] = color_idx
     
-    # Ensure edges are thick enough by dilating
-    final_edge_map = np.zeros_like(edge_map)
-    for color_idx in range(1, 9):
-        color_mask = (edge_map == color_idx)
-        if np.any(color_mask):
-            # Dilate to make thicker
-            if edge_width > 2:
-                structure = ndimage.generate_binary_structure(2, 2)
-                color_mask = ndimage.binary_dilation(color_mask, structure=structure, iterations=edge_width//3)
-            final_edge_map[color_mask] = color_idx
+    num_colors_used = len(np.unique(edge_map[edge_map > 0]))
+    print(f"✅ Created thick square boundaries using {num_colors_used} colors")
     
-    num_colors_used = len(np.unique(final_edge_map[final_edge_map > 0]))
-    print(f"✅ Created edges using {num_colors_used} different colors")
-    
-    return final_edge_map, min(8, n_clusters)
+    return edge_map, min(8, n_clusters)
 
 
 def generate_outputs(
