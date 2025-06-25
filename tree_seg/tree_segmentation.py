@@ -24,7 +24,7 @@ def tree_seg_with_auto_k(
     auto_k=False,
     k_range=(3, 10),
     elbow_threshold=3.0,
-    edge_width=4
+    edge_width=2
 ):
     """
     Enhanced tree segmentation with automatic K selection.

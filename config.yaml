@@ -9,7 +9,7 @@ stride: 4
 model_name: dinov2_vits14
 
 # Visualization settings
-edge_width: 4
+edge_width: 2
 
 # Others
 filename: DJI_20250127150117_0029_D.JPG

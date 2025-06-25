@@ -18,7 +18,7 @@ except ImportError:
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges(labels, edge_width=4):
+def detect_segmentation_edges(labels, edge_width=2):
     """
     Detect edges between different segmentation regions.
 
@@ -53,7 +53,7 @@ def generate_outputs(
     model_name,
     image_path,
     version,
-    edge_width=4,
+    edge_width=2,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -134,8 +134,8 @@ def generate_outputs(
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(image_np)
     
-    # Define more spaced hatch patterns - avoid plus, make them thicker
-    hatch_patterns = ['//', '\\\\', '||', '--', '..', 'oo', 'OO', '**', 'xx']
+    # Define even more spaced hatch patterns - single characters for maximum spacing
+    hatch_patterns = ['/', '\\', '|', '-', '.', 'o', 'O', '*', 'x']
     
     # Create a custom color function to prioritize bright colors
     def get_cluster_color(cluster_id, n_clusters, cmap):
