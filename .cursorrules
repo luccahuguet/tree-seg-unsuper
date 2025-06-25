@@ -1,0 +1,26 @@
+# Cursor Rules for final-paper project
+
+## Environment Setup
+This project requires proper PATH environment configuration for command execution.
+
+### Command Execution Fix
+When running terminal commands, prefix with PATH export to ensure system commands are available:
+```bash
+export PATH="/bin:/usr/bin:$PATH" && your_command_here
+```
+
+### Common Issues
+- Shell may not find basic commands like `bash`, `sed`, `id` without proper PATH
+- Mise tool version manager warnings can be ignored
+- Shell integration script warnings are cosmetic and don't affect functionality
+
+### Project Structure
+- Main project files in root directory
+- Deployment configuration in `deployment/` folder
+- Source code in `src/` directory
+- Python 3.10.17 environment
+
+### Best Practices
+- Always export PATH before running commands
+- Use absolute paths for critical system commands if needed
+- Check Python version with: `export PATH="/bin:/usr/bin:$PATH" && python --version` 
