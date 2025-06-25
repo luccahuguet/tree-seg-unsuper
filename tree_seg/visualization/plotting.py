@@ -9,11 +9,7 @@ from matplotlib import colors
 from matplotlib.patches import Polygon
 from scipy import ndimage
 
-try:
-    from skimage import measure
-    HAS_SKIMAGE = True
-except ImportError:
-    HAS_SKIMAGE = False
+# Removed skimage dependency - using matplotlib's built-in contour functions instead
 
 from ..utils.config import get_config_text
 
@@ -133,11 +129,11 @@ def generate_outputs(
     # Generate NEW edge overlay visualization with colored borders and hatch patterns
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(image_np)
-
+    
     # Define even more spaced hatch patterns - single characters for maximum spacing
     # Removed '-' and 'o' as they don't work properly as hatch patterns
     hatch_patterns = ['/', '\\', '|', '.', '~', '*', 'x']
-
+    
     # Create a custom color function to prioritize bright colors
     def get_cluster_color(cluster_id, n_clusters, cmap):
         """Get a bright color for cluster, prioritizing high contrast colors."""
@@ -186,88 +182,29 @@ def generate_outputs(
                         b = 1.0
 
             return (r, g, b)
-
-    # Keep track of successfully drawn clusters for fallback
-    successfully_drawn = set()
-
+    
     # Create colored borders and hatch patterns for each cluster
     for cluster_id in range(n_clusters):
-        # Create mask for this cluster
+        # Create mask for this cluster (same as colored overlay)
         cluster_mask = (labels_resized == cluster_id)
-
+        
         if not cluster_mask.any():
             continue
-
+            
         # Get cluster color, prioritizing bright colors
         cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
-
-        # Create contour for this cluster with hatch pattern
-        if HAS_SKIMAGE:
-            try:
-                # Find contours for this cluster
-                contours = measure.find_contours(cluster_mask.astype(float), 0.5)
-
-                # Smart contour selection to avoid overlap while preserving important regions
-                if contours:
-                    # Sort contours by length (larger contours first)
-                    sorted_contours = sorted(contours, key=len, reverse=True)
-
-                    drawn_contours = []
-                    contours_drawn = 0
-
-                    for contour in sorted_contours:
-                        if len(contour) > 15:  # Only consider substantial contours
-                            # Check if this contour is too close to already drawn ones
-                            too_close = False
-                            contour_center = np.mean(contour, axis=0)
-
-                            for drawn_contour in drawn_contours:
-                                drawn_center = np.mean(drawn_contour, axis=0)
-                                distance = np.sqrt(np.sum((contour_center - drawn_center)**2))
-
-                                # If centers are too close, skip this contour
-                                min_distance = max(50, len(contour) * 0.3)  # Adaptive minimum distance
-                                if distance < min_distance:
-                                    too_close = True
-                                    break
-
-                            # Only draw if not too close to existing contours
-                            if not too_close:
-                                # Flip coordinates (find_contours returns row, col)
-                                contour_flipped = np.fliplr(contour)
-
-                                                                # Create polygon patch with hatch pattern
-                                hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
-                                polygon = Polygon(contour_flipped, closed=True,
-                                                fill=False,
-                                                edgecolor=cluster_color,
-                                                linewidth=edge_width,  # Use configurable edge width
-                                                hatch=hatch_pattern,
-                                                alpha=0.6)  # Lower alpha to reduce visual clash
-                                ax.add_patch(polygon)
-                                drawn_contours.append(contour)
-                                contours_drawn += 1
-
-                                # Limit number of contours per cluster to avoid clutter
-                                if contours_drawn >= 3:  # Max 3 contours per cluster
-                                    break
-
-                    # Mark as successfully drawn if we drew any contours
-                    if contours_drawn > 0:
-                        successfully_drawn.add(cluster_id)
-
-            except:
-                pass
-
-        # Fallback for clusters that couldn't be drawn with contours
-        if cluster_id not in successfully_drawn:
-            cluster_edges = detect_segmentation_edges(cluster_mask.astype(int), edge_width=edge_width)
-            border_y, border_x = np.where(cluster_edges)
-            if len(border_y) > 0:
-                ax.scatter(border_x, border_y, c=[cluster_color], s=6, alpha=0.9)
-
+        hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
+        
+        # Use matplotlib contour to draw clean boundaries - no overlap by definition
+        ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color], 
+                  linewidths=edge_width, alpha=0.8)
+        
+        # Add hatch pattern using contourf with hatch
+        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors=['none'], 
+                   hatches=[hatch_pattern], alpha=0.5)
+    
     ax.axis("off")
-
+    
     # Add config text
     ax.text(
         0.02, 0.98, config_text,
@@ -275,7 +212,7 @@ def generate_outputs(
         verticalalignment='top', horizontalalignment='left',
         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
     )
-
+    
     # Add small legend
     legend_elements = []
     for cluster_id in range(n_clusters):
@@ -283,11 +220,11 @@ def generate_outputs(
         hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
         legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=edge_width,
                                          label=f'Cluster {cluster_id} {hatch_pattern}'))
-
-    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6,
+    
+    legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6, 
                       framealpha=0.7, fancybox=True, shadow=True, ncol=1 if n_clusters <= 6 else 2)
     legend.get_frame().set_facecolor('white')
-
+    
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
