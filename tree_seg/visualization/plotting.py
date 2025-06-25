@@ -134,7 +134,7 @@ def generate_outputs(
 
     # Define even more spaced hatch patterns - single characters for maximum spacing
     # Removed 'o' as they don't work properly as hatch patterns
-    hatch_patterns = ['/', '\\', '|', '.', '*', 'x', '-']
+    hatch_patterns = ['/', '\\', '|', '.', 'x', '-']
 
     # Create a custom color function to prioritize bright colors
     def get_cluster_color(cluster_id, n_clusters, cmap):
@@ -202,8 +202,8 @@ def generate_outputs(
                   linewidths=edge_width, alpha=0.8)
 
         # Add hatch pattern using contourf with matching cluster color and reduced alpha to prevent darkening
-        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors=[cluster_color],
-                   hatches=[hatch_pattern], alpha=0.15)  # Reduced alpha to prevent image darkening
+        ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors=['none'],
+                   hatches=[hatch_pattern], edgecolors=[cluster_color], alpha=1.0)
 
     ax.axis("off")
 
