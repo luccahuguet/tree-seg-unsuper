@@ -91,7 +91,7 @@ config = {
     "n_clusters": 6,                        # Only used if auto_k=False
     "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
     "stride": 4,                            # Lower=higher resolution, slower
-    "edge_width": 6,                        # Width of edge lines in edge overlay visualization
+    "edge_width": 2,                        # Width of edge lines in edge overlay visualization
 }
 
 def tree_seg_with_auto_k(
@@ -106,7 +106,7 @@ def tree_seg_with_auto_k(
     auto_k=False,
     k_range=(3, 10),
     elbow_threshold=3.0,
-    edge_width=6
+    edge_width=2
 ):
     """Enhanced tree segmentation with automatic K selection."""
     print_gpu_info()

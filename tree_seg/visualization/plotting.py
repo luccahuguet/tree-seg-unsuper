@@ -5,67 +5,34 @@ Visualization and plotting utilities for tree segmentation.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
 from matplotlib import colors
 from scipy import ndimage
-from skimage import segmentation
 
 from ..utils.config import get_config_text
 
 
-def detect_segmentation_edges(labels, edge_width=6):
+def detect_segmentation_edges(labels, edge_width=2):
     """
-    Detect clean edges between different segmentation regions.
-    
+    Detect edges between different segmentation regions.
+
     Args:
         labels: 2D array of segmentation labels
         edge_width: Width of the edge lines in pixels
-        
+
     Returns:
         edges: Binary mask where edges are True
     """
-    try:
-        # Try the advanced method with cv2 and skimage
-        # Convert labels to proper format
-        labels = labels.astype(np.int32)
-        
-        # Use skimage's find_boundaries for clean region boundaries
-        boundaries = segmentation.find_boundaries(labels, mode='thick')
-        
-        # Make edges thicker using morphological dilation
-        if edge_width > 1:
-            # Create a disk-shaped structuring element for round edges
-            kernel_size = max(3, edge_width)
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
-            # Convert to uint8 for OpenCV
-            boundaries_uint8 = (boundaries * 255).astype(np.uint8)
-            # Dilate to make edges thicker
-            thick_boundaries = cv2.dilate(boundaries_uint8, kernel, iterations=1)
-            boundaries = thick_boundaries > 0
-        
-        return boundaries
-    
-    except (ImportError, AttributeError):
-        # Fallback method using only scipy and numpy
-        print("Using fallback edge detection method (cv2/skimage not available)")
-        
-        # Create edge detection using gradient approach
-        labels = labels.astype(float)
-        
-        # Use gradient magnitude to find edges between regions
-        grad_x = np.abs(np.gradient(labels, axis=1))
-        grad_y = np.abs(np.gradient(labels, axis=0))
-        edges = (grad_x + grad_y) > 0.1
-        
-        # Make edges thicker using binary dilation
-        if edge_width > 1:
-            from scipy import ndimage
-            # Create circular structuring element
-            y, x = np.ogrid[-edge_width:edge_width+1, -edge_width:edge_width+1]
-            mask = x*x + y*y <= edge_width*edge_width
-            edges = ndimage.binary_dilation(edges, structure=mask)
-        
-        return edges
+    # Use Sobel filter to detect edges between different regions
+    edges_x = ndimage.sobel(labels.astype(float), axis=0)
+    edges_y = ndimage.sobel(labels.astype(float), axis=1)
+    edges = np.sqrt(edges_x**2 + edges_y**2) > 0
+
+    # Dilate edges to make them more visible
+    if edge_width > 1:
+        structure = ndimage.generate_binary_structure(2, 2)
+        edges = ndimage.binary_dilation(edges, structure=structure, iterations=edge_width-1)
+
+    return edges
 
 
 def generate_outputs(
@@ -155,20 +122,17 @@ def generate_outputs(
     # Generate NEW edge overlay visualization
     edges = detect_segmentation_edges(labels_resized, edge_width=edge_width)
     edge_overlay = image_np.copy()
-    
-    # Use bright yellow for high contrast against both light and dark backgrounds
-    # Yellow (255, 255, 0) is more visible than white on many natural images
-    edge_overlay[edges] = [255, 255, 0]  # Bright yellow edges
-    
+    # Make edges bright white for high contrast
+    edge_overlay[edges] = [255, 255, 255]
+
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(edge_overlay)
     ax.axis("off")
-    ax.set_title("Edge Overlay - Segmentation Boundaries", fontsize=14, pad=20)
     ax.text(
         0.02, 0.98, config_text,
         transform=ax.transAxes, fontsize=8,
         verticalalignment='top', horizontalalignment='left',
-        bbox=dict(facecolor='black', alpha=0.7, edgecolor='none', pad=3)
+        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
     )
     plt.tight_layout()
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
