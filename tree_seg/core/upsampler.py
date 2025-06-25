@@ -6,10 +6,10 @@ import torch.nn.functional as F
 
 from timm import create_model
 
-from src.patch import Patch
+from .patch import Patch
 
 from types import MethodType
-from src.transform import iden_partial
+from ..utils.transform import iden_partial
 
 from functools import partial
 from typing import List, Tuple, TypeAlias, Literal
@@ -353,7 +353,7 @@ class HighResDV2(nn.Module):
             sample_features = torch.concat((feats, attn), dim=-1)
         else:
             sample_features = out_dict["x_norm_patchtokens"]
-        
+
         # Get actual feature dimension from the concatenated features
         c = sample_features.shape[-1]
 

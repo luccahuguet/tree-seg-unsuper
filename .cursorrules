@@ -3,6 +3,13 @@
 ## Environment Setup
 This project uses nushell as the default shell environment.
 
+### Execution Environment
+**IMPORTANT**: This project runs on Kaggle, not locally. 
+- The user handles all project execution on Kaggle
+- Local environment is only used for code editing, linting, and type checking
+- Do NOT attempt to run the actual project locally - focus on code structure and quality tools
+- Dependencies may not be fully installable locally (e.g., CUDA, specific ML libraries)
+
 ### Shell Environment  
 - User shell: nushell (nu)
 - Use nushell syntax for terminal commands
