@@ -29,7 +29,7 @@ def tree_seg_with_auto_k(
 ):
     """
     Enhanced tree segmentation with automatic K selection.
-    
+
     Args:
         input_dir: Input directory containing images
         output_dir: Output directory for results
@@ -125,4 +125,4 @@ MODELS = {
     "base": "dinov2_vitb14",    # 86M params - Good balance (recommended)
     "large": "dinov2_vitl14",   # 307M params - Better quality, more credits
     "giant": "dinov2_vitg14"    # 1.1B params - May not fit on T4
-} 
+}
