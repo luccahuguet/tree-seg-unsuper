@@ -24,7 +24,8 @@ def tree_seg_with_auto_k(
     auto_k=False,
     k_range=(3, 10),
     elbow_threshold=3.0,
-    edge_width=2
+    edge_width=2,
+    min_region_size_percent=0,
 ):
     """
     Enhanced tree segmentation with automatic K selection.
@@ -42,6 +43,7 @@ def tree_seg_with_auto_k(
         k_range: Range for K selection (min_k, max_k)
         elbow_threshold: Sensitivity for elbow detection (lower = more sensitive)
         edge_width: Width of edge lines in pixels for edge overlay visualization
+        min_region_size_percent: Minimum size of a region as a percentage of total pixels to be kept.
     """
     print_gpu_info()
     os.makedirs(output_dir, exist_ok=True)
@@ -77,7 +79,7 @@ def tree_seg_with_auto_k(
                 generate_outputs(
                     image_np, labels_resized, output_prefix, output_dir,
                     actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version, edge_width
+                    image_path, version, edge_width, min_region_size_percent=min_region_size_percent
                 )
 
                 print(f"✅ Processing completed! Used K = {actual_n_clusters}")
@@ -109,7 +111,7 @@ def tree_seg_with_auto_k(
                     generate_outputs(
                         image_np, labels_resized, output_prefix, output_dir,
                         actual_n_clusters, overlay_ratio, stride, model_name,
-                        image_path, version, edge_width
+                        image_path, version, edge_width, min_region_size_percent=min_region_size_percent
                     )
 
                     print(f"✅ {fname} completed! Used K = {actual_n_clusters}")
