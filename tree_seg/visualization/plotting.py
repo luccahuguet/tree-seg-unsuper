@@ -205,7 +205,7 @@ def generate_outputs(
             for collection in cs.collections: # type: ignore
                 collection.set_facecolor('none')
                 collection.set_edgecolor(cluster_color)
-                collection.set_alpha(0.2)   # Subtle but visible hatching
+                collection.set_alpha(0.35)  # More visible hatching
                 # Do not draw the patch border, only the hatch
                 collection.set_linewidth(0.)
 
