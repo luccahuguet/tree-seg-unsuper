@@ -50,6 +50,7 @@ def generate_outputs(
     image_path,
     version,
     edge_width=2,
+    use_hatching=True,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -66,6 +67,7 @@ def generate_outputs(
         image_path: Path to original image
         version: Model version
         edge_width: Width of edge lines in pixels for edge overlay visualization
+        use_hatching: Whether to add hatch patterns to regions (borders are always shown)
     """
     if image_np is None or labels_resized is None:
         print(f"Skipping output generation for {image_path} due to processing error.")
@@ -202,17 +204,18 @@ def generate_outputs(
         ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color],
                   linewidths=edge_width, alpha=0.8)
 
-        # Add hatch pattern using contourf with hatch
-        cs = ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors='none',
-                   hatches=[hatch_pattern])
+        # Add hatch pattern if enabled
+        if use_hatching:
+            cs = ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors='none',
+                       hatches=[hatch_pattern])
 
-        # Set the hatch color and alpha to match the contour
-        for collection in cs.collections: # type: ignore
-            collection.set_facecolor('none')
-            collection.set_edgecolor(cluster_color)
-            collection.set_alpha(0.8)
-            # Do not draw the patch border, only the hatch
-            collection.set_linewidth(0.)
+            # Set the hatch color and alpha to match the contour
+            for collection in cs.collections: # type: ignore
+                collection.set_facecolor('none')
+                collection.set_edgecolor(cluster_color)
+                collection.set_alpha(0.8)
+                # Do not draw the patch border, only the hatch
+                collection.set_linewidth(0.)
 
     ax.axis("off")
 
@@ -228,9 +231,13 @@ def generate_outputs(
     legend_elements = []
     for cluster_id in range(n_clusters):
         cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
-        hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
-        legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=edge_width,
-                                         label=f'Cluster {cluster_id} {hatch_pattern}'))
+        if use_hatching:
+            hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
+            legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=edge_width,
+                                             label=f'Cluster {cluster_id} {hatch_pattern}'))
+        else:
+            legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=edge_width,
+                                             label=f'Cluster {cluster_id}'))
 
     legend = ax.legend(handles=legend_elements, loc='upper right', fontsize=6,
                       framealpha=0.7, fancybox=True, shadow=True, ncol=1 if n_clusters <= 6 else 2)
@@ -240,7 +247,8 @@ def generate_outputs(
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
-    print(f"Saved colored edge overlay with hatch patterns: {edge_overlay_path}")
+    hatching_text = "with hatch patterns" if use_hatching else "with borders only"
+    print(f"Saved colored edge overlay {hatching_text}: {edge_overlay_path}")
 
     # Generate side-by-side comparison
     fig, axes = plt.subplots(1, 2, figsize=(20, 10))

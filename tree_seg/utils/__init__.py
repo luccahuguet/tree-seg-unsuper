@@ -49,7 +49,7 @@ __all__ = [
     'true_iden_partial',
     'get_config_text',
     'NOTEBOOK_HELPERS_AVAILABLE'
-]
+] 
 
 # Add notebook helpers to __all__ if available
 if NOTEBOOK_HELPERS_AVAILABLE:
