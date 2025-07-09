@@ -14,7 +14,7 @@ from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
 
 def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                 auto_k=False, k_range=(3, 10), elbow_threshold=3.0):
+                 auto_k=False, k_range=(3, 10), elbow_threshold=3.0, use_pca=False):
     """
     Process a single image for tree segmentation.
     
@@ -97,7 +97,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         features_flat = features_np.reshape(-1, features_np.shape[-1])
         print(f"Flattened features shape: {features_flat.shape}")
 
-        if features_flat.shape[-1] > 128:
+        if use_pca and features_flat.shape[-1] > 128:
             print("Running PCA on flat features...")
             features_flat_tensor = torch.tensor(features_flat, dtype=torch.float32)
             mean = features_flat_tensor.mean(dim=0)
@@ -105,6 +105,10 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             U, S, V = torch.pca_lowrank(features_flat_centered, q=128, center=False)
             features_flat = (features_flat_centered @ V[:, :128]).numpy()
             print(f"PCA-reduced features shape: {features_flat.shape}")
+        elif features_flat.shape[-1] > 128:
+            print(f"Skipping PCA (disabled). Using full {features_flat.shape[-1]} dimensions.")
+        else:
+            print(f"Features already low-dimensional ({features_flat.shape[-1]} dims), no PCA needed.")
 
         # Automatic K selection using elbow method
         if auto_k:

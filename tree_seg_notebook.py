@@ -69,6 +69,7 @@ config = {
     "stride": 4,                            # Lower=higher resolution, slower
     "edge_width": 2,                        # Width of edge lines in edge overlay visualization
     "use_hatching": True,                    # Whether to add hatch patterns to regions (borders always shown) - now with transparent hatching
+    "use_pca": False,                        # Whether to use PCA dimensionality reduction (default: False)
 }
 
 # %%

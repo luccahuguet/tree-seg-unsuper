@@ -26,6 +26,7 @@ def tree_seg_with_auto_k(
     elbow_threshold=3.0,
     edge_width=2,
     use_hatching=False,
+    use_pca=False,
 ):
     """
     Enhanced tree segmentation with automatic K selection.
@@ -44,6 +45,7 @@ def tree_seg_with_auto_k(
         elbow_threshold: Sensitivity for elbow detection (lower = more sensitive)
         edge_width: Width of edge lines in pixels for edge overlay visualization
         use_hatching: Whether to add hatch patterns to regions (borders are always shown)
+        use_pca: Whether to use PCA dimensionality reduction (default: False)
     """
     print_gpu_info()
     os.makedirs(output_dir, exist_ok=True)
@@ -68,7 +70,7 @@ def tree_seg_with_auto_k(
             # Process with automatic K selection parameters
             result = process_image(
                 image_path, model, preprocess, n_clusters, stride, version, device,
-                auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold
+                auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold, use_pca=use_pca
             )
 
             if result[0] is not None:
@@ -101,7 +103,7 @@ def tree_seg_with_auto_k(
 
                 result = process_image(
                     image_path, model, preprocess, n_clusters, stride, version, device,
-                    auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold
+                    auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold, use_pca=use_pca
                 )
 
                 if result[0] is not None:
