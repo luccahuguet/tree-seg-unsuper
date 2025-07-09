@@ -205,7 +205,7 @@ def generate_outputs(
             for collection in cs.collections: # type: ignore
                 collection.set_facecolor('none')
                 collection.set_edgecolor(cluster_color)
-                collection.set_alpha(0.25)  # Much more transparent hatching
+                collection.set_alpha(0.08)  # Extremely transparent hatching
                 # Do not draw the patch border, only the hatch
                 collection.set_linewidth(0.)
 
@@ -242,25 +242,44 @@ def generate_outputs(
     hatching_text = "with hatch patterns" if use_hatching else "with borders only"
     print(f"Saved colored edge overlay {hatching_text}: {edge_overlay_path}")
 
-    # Generate side-by-side comparison
-    fig, axes = plt.subplots(1, 2, figsize=(20, 10))
-    axes[0].imshow(image_np)
-    axes[0].set_title("Original Image", fontsize=12)
-    axes[0].axis("off")
-    im = axes[1].imshow(labels_to_plot, cmap=cmap, vmin=0, vmax=n_clusters - 1)
-    axes[1].set_title("Segmentation Map", fontsize=12)
-    axes[1].axis("off")
-    cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters), shrink=0.3, aspect=15)
-    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
-    cbar.ax.tick_params(labelsize=6)
-    axes[1].text(
-        0.02, 0.98, config_text,
-        transform=axes[1].transAxes, fontsize=8,
-        verticalalignment='top', horizontalalignment='left',
-        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
-    )
-    plt.tight_layout()
-    side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
-    plt.savefig(side_by_side_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
-    plt.close()
-    print(f"Saved side-by-side image: {side_by_side_path}")
+    # Generate side-by-side comparison with improved robustness
+    try:
+        fig, axes = plt.subplots(1, 2, figsize=(16, 8))  # Reduced size for better memory management
+        
+        # Original image
+        axes[0].imshow(image_np)
+        axes[0].set_title("Original Image", fontsize=12, fontweight='bold')
+        axes[0].axis("off")
+        
+        # Segmentation map
+        im = axes[1].imshow(labels_to_plot, cmap=cmap, vmin=0, vmax=n_clusters - 1)
+        axes[1].set_title("Segmentation Map", fontsize=12, fontweight='bold')
+        axes[1].axis("off")
+        
+        # Add colorbar
+        cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters), shrink=0.4, aspect=20)
+        cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
+        cbar.ax.tick_params(labelsize=8)
+        
+        # Add config text to the segmentation side
+        axes[1].text(
+            0.02, 0.98, config_text,
+            transform=axes[1].transAxes, fontsize=8,
+            verticalalignment='top', horizontalalignment='left',
+            bbox=dict(facecolor='white', alpha=0.8, edgecolor='black', boxstyle='round,pad=0.3')
+        )
+        
+        plt.tight_layout(pad=2.0)
+        side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
+        plt.savefig(side_by_side_path, bbox_inches="tight", pad_inches=0.2, dpi=150, 
+                   facecolor='white', edgecolor='none')
+        plt.close()
+        print(f"✅ Saved side-by-side image: {side_by_side_path}")
+        
+    except Exception as e:
+        print(f"⚠️ Warning: Could not generate side-by-side image: {e}")
+        # Try to close any remaining figure
+        try:
+            plt.close('all')
+        except:
+            pass
