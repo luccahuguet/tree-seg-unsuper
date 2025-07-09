@@ -34,7 +34,16 @@
 import sys
 sys.path.append("/kaggle/working/project")
 
-from tree_seg import tree_seg_with_auto_k, MODELS, print_gpu_info
+# Force reload to ensure we get the latest version
+import importlib
+try:
+    import tree_seg
+    importlib.reload(tree_seg)
+    from tree_seg import tree_seg_with_auto_k, MODELS, print_gpu_info
+except ImportError:
+    # Fallback if module not found
+    print("⚠️ Could not import tree_seg module. Please check the path.")
+
 from tree_seg.utils.notebook_helpers import display_segmentation_results, print_config_summary
 
 # %%
@@ -64,6 +73,12 @@ config = {
 # %%
 # Run segmentation
 print_config_summary(config)
+
+# Debug: Check function signature
+import inspect
+print(f"Function signature: {inspect.signature(tree_seg_with_auto_k)}")
+print(f"Config keys: {list(config.keys())}")
+
 tree_seg_with_auto_k(**config)
 
 # %%
