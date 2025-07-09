@@ -2,7 +2,7 @@
 Configuration utilities for tree segmentation.
 """
 
-def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width, min_region_size_percent):
+def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width):
     """
     Generate a configuration text block for plots.
     """
@@ -12,7 +12,6 @@ def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, ver
         f"Clusters (k): {n_clusters}\n"
         f"Stride: {stride}\n"
         f"Overlay Ratio: {overlay_ratio}\n"
-        f"Edge Width: {edge_width}\n"
-        f"Min Region Size: {min_region_size_percent}%"
+        f"Edge Width: {edge_width}"
     )
     return config_text 

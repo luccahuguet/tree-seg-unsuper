@@ -58,7 +58,6 @@ config = {
     "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
     "stride": 4,                            # Lower=higher resolution, slower
     "edge_width": 2,                        # Width of edge lines in edge overlay visualization
-    "min_region_size_percent": 1,           # Filter regions smaller than this percentage of image area
 }
 
 # %%

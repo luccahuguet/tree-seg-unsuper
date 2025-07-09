@@ -50,7 +50,6 @@ def generate_outputs(
     image_path,
     version,
     edge_width=2,
-    min_region_size_percent=0,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -67,7 +66,6 @@ def generate_outputs(
         image_path: Path to original image
         version: Model version
         edge_width: Width of edge lines in pixels for edge overlay visualization
-        min_region_size_percent: Minimum size of a region as a percentage of total pixels to be kept.
     """
     if image_np is None or labels_resized is None:
         print(f"Skipping output generation for {image_path} due to processing error.")
@@ -76,39 +74,8 @@ def generate_outputs(
     alpha = (10 - overlay_ratio) / 10.0
     filename = os.path.basename(image_path)
 
-    # Filter small regions based on percentage
+    # Use labels directly without filtering
     labels_to_plot = np.copy(labels_resized)
-    if min_region_size_percent > 0:
-        total_pixels = image_np.shape[0] * image_np.shape[1]
-        min_region_size_pixels = (min_region_size_percent / 100.0) * total_pixels
-        
-        # Create a mask of regions to keep
-        final_mask = np.zeros_like(labels_to_plot, dtype=bool)
-
-        # Process each cluster ID to find and keep only large enough connected components
-        for cluster_id in range(n_clusters):
-            # Isolate the current cluster
-            cluster_mask = (labels_to_plot == cluster_id)
-            if not cluster_mask.any():
-                continue
-
-            # Find all connected components for the current cluster
-            labeled_components, num_components = ndimage.label(cluster_mask)
-            if num_components == 0:
-                continue
-
-            # Calculate the size of each component
-            component_sizes = ndimage.sum(cluster_mask, labeled_components, range(1, num_components + 1))
-
-            # Identify components that are large enough
-            large_enough_components = [i + 1 for i, size in enumerate(component_sizes) if size >= min_region_size_pixels]
-
-            if large_enough_components:
-                # Add the pixels of the large enough components to our final mask
-                final_mask |= np.isin(labeled_components, large_enough_components)
-
-        # Apply the mask: regions not in the mask will be set to -1 (black)
-        labels_to_plot[~final_mask] = -1
 
     # Choose colormap based on number of clusters - avoid green-heavy colormaps
     if n_clusters <= 10:
@@ -121,22 +88,13 @@ def generate_outputs(
         # Use viridis but we'll filter out green colors below
         cmap = plt.get_cmap("viridis", n_clusters)
 
-    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width, min_region_size_percent)
+    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width)
 
     # Generate segmentation legend visualization
     fig, ax = plt.subplots(figsize=(10, 10))
-    # Create a copy for visualization - paint small regions black
-    labels_viz = np.copy(labels_to_plot)
-    labels_viz[labels_to_plot == -1] = n_clusters  # Use n_clusters as black color index
-    
-    # Create a colormap that includes black for small regions
-    colors_list = list(cmap(np.linspace(0, 1, n_clusters)))
-    colors_list.append([0, 0, 0, 1])  # Add black color
-    extended_cmap = colors.ListedColormap(colors_list)
-    
-    im = ax.imshow(labels_viz, cmap=extended_cmap, vmin=0, vmax=n_clusters)
-    cbar = plt.colorbar(im, ax=ax, ticks=range(n_clusters + 1), shrink=0.3, aspect=15)
-    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)] + ["Black (small)"])
+    im = ax.imshow(labels_to_plot, cmap=cmap, vmin=0, vmax=n_clusters - 1)
+    cbar = plt.colorbar(im, ax=ax, ticks=range(n_clusters), shrink=0.3, aspect=15)
+    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
     cbar.ax.tick_params(labelsize=6)
     ax.axis("off")
     ax.text(
@@ -153,9 +111,7 @@ def generate_outputs(
 
     # Generate overlay visualization
     norm = colors.Normalize(vmin=0, vmax=n_clusters - 1)
-    # Generate RGBA and manually set filtered regions to be black
     segmentation_rgba = cmap(norm(labels_to_plot))
-    segmentation_rgba[labels_to_plot == -1] = [0, 0, 0, 1] # Set black (opaque)
     segmentation_rgb = (np.array(segmentation_rgba)[:, :, :3] * 255).astype(np.uint8)
     overlay = (alpha * image_np + (1 - alpha) * segmentation_rgb).astype(np.uint8)
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -291,11 +247,11 @@ def generate_outputs(
     axes[0].imshow(image_np)
     axes[0].set_title("Original Image", fontsize=12)
     axes[0].axis("off")
-    im = axes[1].imshow(labels_viz, cmap=extended_cmap, vmin=0, vmax=n_clusters)
+    im = axes[1].imshow(labels_to_plot, cmap=cmap, vmin=0, vmax=n_clusters - 1)
     axes[1].set_title("Segmentation Map", fontsize=12)
     axes[1].axis("off")
-    cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters + 1), shrink=0.3, aspect=15)
-    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)] + ["Black (small)"])
+    cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters), shrink=0.3, aspect=15)
+    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
     cbar.ax.tick_params(labelsize=6)
     axes[1].text(
         0.02, 0.98, config_text,
