@@ -107,7 +107,7 @@ def generate_outputs(
                 # Add the pixels of the large enough components to our final mask
                 final_mask |= np.isin(labeled_components, large_enough_components)
 
-        # Apply the mask: regions not in the mask will be set to -1 (ignored)
+        # Apply the mask: regions not in the mask will be set to -1 (black)
         labels_to_plot[~final_mask] = -1
 
     # Choose colormap based on number of clusters - avoid green-heavy colormaps
@@ -125,11 +125,18 @@ def generate_outputs(
 
     # Generate segmentation legend visualization
     fig, ax = plt.subplots(figsize=(10, 10))
-    # Use a masked array to prevent plotting of filtered regions (-1)
-    labels_masked = np.ma.masked_where(labels_to_plot == -1, labels_to_plot)
-    im = ax.imshow(labels_masked, cmap=cmap, vmin=0, vmax=n_clusters - 1)
-    cbar = plt.colorbar(im, ax=ax, ticks=range(n_clusters), shrink=0.3, aspect=15)
-    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
+    # Create a copy for visualization - paint small regions black
+    labels_viz = np.copy(labels_to_plot)
+    labels_viz[labels_to_plot == -1] = n_clusters  # Use n_clusters as black color index
+    
+    # Create a colormap that includes black for small regions
+    colors_list = list(cmap(np.linspace(0, 1, n_clusters)))
+    colors_list.append([0, 0, 0, 1])  # Add black color
+    extended_cmap = colors.ListedColormap(colors_list)
+    
+    im = ax.imshow(labels_viz, cmap=extended_cmap, vmin=0, vmax=n_clusters)
+    cbar = plt.colorbar(im, ax=ax, ticks=range(n_clusters + 1), shrink=0.3, aspect=15)
+    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)] + ["Black (small)"])
     cbar.ax.tick_params(labelsize=6)
     ax.axis("off")
     ax.text(
@@ -146,9 +153,9 @@ def generate_outputs(
 
     # Generate overlay visualization
     norm = colors.Normalize(vmin=0, vmax=n_clusters - 1)
-    # Generate RGBA and manually set filtered regions to be transparent
+    # Generate RGBA and manually set filtered regions to be black
     segmentation_rgba = cmap(norm(labels_to_plot))
-    segmentation_rgba[labels_to_plot == -1] = [0, 0, 0, 0] # Set transparent
+    segmentation_rgba[labels_to_plot == -1] = [0, 0, 0, 1] # Set black (opaque)
     segmentation_rgb = (np.array(segmentation_rgba)[:, :, :3] * 255).astype(np.uint8)
     overlay = (alpha * image_np + (1 - alpha) * segmentation_rgb).astype(np.uint8)
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -284,11 +291,11 @@ def generate_outputs(
     axes[0].imshow(image_np)
     axes[0].set_title("Original Image", fontsize=12)
     axes[0].axis("off")
-    im = axes[1].imshow(labels_masked, cmap=cmap, vmin=0, vmax=n_clusters - 1)
+    im = axes[1].imshow(labels_viz, cmap=extended_cmap, vmin=0, vmax=n_clusters)
     axes[1].set_title("Segmentation Map", fontsize=12)
     axes[1].axis("off")
-    cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters), shrink=0.3, aspect=15)
-    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
+    cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters + 1), shrink=0.3, aspect=15)
+    cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)] + ["Black (small)"])
     cbar.ax.tick_params(labelsize=6)
     axes[1].text(
         0.02, 0.98, config_text,
