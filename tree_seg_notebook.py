@@ -44,7 +44,8 @@ except ImportError:
     # Fallback if module not found
     print("⚠️ Could not import tree_seg module. Please check the path.")
 
-from tree_seg.utils.notebook_helpers import display_segmentation_results, print_config_summary
+from tree_seg.utils.notebook_helpers import print_config_summary
+from IPython.display import Image, display
 
 # %%
 # Setup confirmation
@@ -93,7 +94,56 @@ print(f"Config keys: {list(config.keys())}")
 tree_seg_with_auto_k(**config)
 
 # %%
-# Display results
-display_segmentation_results(config)
+# Display results - Split into separate cells for reliability
+
+# Get file paths
+filename = config["filename"]
+output_prefix = os.path.splitext(filename)[0]
+output_dir = config["output_dir"]
+
+# Define paths
+legend_path = os.path.join(output_dir, f"{output_prefix}_segmentation_legend.png")
+edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
+side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
+elbow_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
+
+print("📁 Generated files:")
+for path in [legend_path, edge_overlay_path, side_by_side_path, elbow_path]:
+    if os.path.exists(path):
+        print(f"✅ {os.path.basename(path)}")
+    else:
+        print(f"❌ {os.path.basename(path)} - Not found")
+
+# %%
+# Display 1: Edge Overlay (Original + Boundaries)
+if os.path.exists(edge_overlay_path):
+    print("🔳 Edge Overlay (Original + Boundaries):")
+    display(Image(filename=edge_overlay_path))
+else:
+    print("❌ Edge overlay not found")
+
+# %%
+# Display 2: Side-by-Side Comparison
+if os.path.exists(side_by_side_path):
+    print("📊 Original and Segmentation Side by Side:")
+    display(Image(filename=side_by_side_path))
+else:
+    print("❌ Side-by-side comparison not found")
+
+# %%
+# Display 3: Segmentation Legend
+if os.path.exists(legend_path):
+    print("🎨 Segmentation Map with Legend:")
+    display(Image(filename=legend_path))
+else:
+    print("❌ Segmentation legend not found")
+
+# %%
+# Display 4: K Selection Analysis (if auto_k was used)
+if os.path.exists(elbow_path):
+    print("📈 K Selection Analysis (Elbow Method):")
+    display(Image(filename=elbow_path))
+else:
+    print("ℹ️ K selection analysis not found (auto_k may be disabled)")
 
 
