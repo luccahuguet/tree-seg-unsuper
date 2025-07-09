@@ -67,9 +67,19 @@ config = {
     "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
     "stride": 4,                            # Lower=higher resolution, slower
     "edge_width": 2,                        # Width of edge lines in edge overlay visualization
-    "use_hatching": False,                   # Whether to add hatch patterns to regions (borders always shown) - now default False
-    "generate_overlay": False,               # Whether to generate the colored overlay visualization
+    "use_hatching": True,                    # Whether to add hatch patterns to regions (borders always shown) - now with transparent hatching
 }
+
+# %%
+# Clear output folder before processing
+import shutil
+import os
+
+if os.path.exists(config["output_dir"]):
+    print(f"🗑️ Clearing output directory: {config['output_dir']}")
+    shutil.rmtree(config["output_dir"])
+os.makedirs(config["output_dir"], exist_ok=True)
+print(f"✅ Output directory ready: {config['output_dir']}")
 
 # %%
 # Run segmentation

@@ -10,6 +10,7 @@ model_name: dinov2_vits14
 
 # Visualization settings
 edge_width: 2
+use_hatching: true  # Enable transparent hatching
 
 # Others
 filename: DJI_20250127150117_0029_D.JPG

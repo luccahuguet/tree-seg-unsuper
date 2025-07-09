@@ -20,16 +20,9 @@ def display_segmentation_results(config, verbose=True):
     
     # Define paths
     legend_path = os.path.join(output_dir, f"{output_prefix}_segmentation_legend.png")
-    overlay_path = os.path.join(output_dir, f"{output_prefix}_overlay.png")
     edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
     side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
     elbow_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
-    
-    # Display the overlay
-    if os.path.exists(overlay_path):
-        if verbose:
-            print("🖼️ Overlay Image:")
-        display(Image(filename=overlay_path))
     
     # Display the edge overlay
     if os.path.exists(edge_overlay_path):
