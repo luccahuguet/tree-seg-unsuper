@@ -50,7 +50,7 @@ def generate_outputs(
     image_path,
     version,
     edge_width=2,
-    use_hatching=True,
+    use_hatching=False,
     generate_overlay=False,
 ):
     """
@@ -142,21 +142,22 @@ def generate_outputs(
     # Removed 'o' as they don't work properly as hatch patterns
     hatch_patterns = ['/', '\\', '|', '.', 'x', '-']
 
-    # Create a custom color function to prioritize bright colors
+    # Create a custom color function to prioritize bright colors with better visibility
     def get_cluster_color(cluster_id, n_clusters, cmap):
         """Get a bright color for cluster, prioritizing high contrast colors."""
-        # Define a set of bright, high-contrast colors that work well against foliage
+        # Define a set of bright, high-contrast colors optimized for border visibility
+        # These colors are chosen to be highly visible against natural backgrounds
         bright_colors = [
-            (1.0, 0.0, 0.0),    # Bright Red
-            (0.0, 0.0, 1.0),    # Bright Blue
-            (1.0, 0.5, 0.0),    # Bright Orange
-            (1.0, 0.0, 1.0),    # Bright Magenta
-            (0.0, 1.0, 1.0),    # Bright Cyan
-            (1.0, 1.0, 0.0),    # Bright Yellow
-            (0.5, 0.0, 1.0),    # Bright Purple
-            (1.0, 0.0, 0.5),    # Bright Pink
-            (0.0, 0.5, 1.0),    # Bright Sky Blue
-            (1.0, 0.3, 0.7),    # Bright Rose
+            (1.0, 0.0, 0.0),    # Bright Red - excellent visibility
+            (0.0, 0.0, 1.0),    # Bright Blue - good contrast
+            (1.0, 1.0, 0.0),    # Bright Yellow - very visible
+            (1.0, 0.0, 1.0),    # Bright Magenta - high contrast
+            (0.0, 1.0, 1.0),    # Bright Cyan - good visibility
+            (1.0, 0.5, 0.0),    # Bright Orange - excellent visibility
+            (0.5, 0.0, 1.0),    # Bright Purple - good contrast
+            (1.0, 0.0, 0.5),    # Bright Pink - high visibility
+            (0.0, 1.0, 0.0),    # Bright Green - good for borders
+            (1.0, 0.3, 0.7),    # Bright Rose - excellent visibility
         ]
 
         # Use bright colors first, then fall back to colormap
@@ -191,7 +192,7 @@ def generate_outputs(
 
             return (r, g, b)
 
-    # Create colored borders and hatch patterns for each cluster
+    # Create colored borders with improved visibility
     for cluster_id in range(n_clusters):
         # Create mask for this cluster from the filtered labels
         cluster_mask = (labels_to_plot == cluster_id)
@@ -201,14 +202,23 @@ def generate_outputs(
 
         # Get cluster color, prioritizing bright colors
         cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
-        hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
-
-        # Use matplotlib contour to draw clean boundaries - no overlap by definition
+        
+        # Create a more visible border by using multiple contour levels
+        # This ensures borders are visible even with thin regions
         ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color],
-                  linewidths=edge_width, alpha=0.8)
+                  linewidths=edge_width, alpha=0.9)
+        
+        # Add a second, slightly thicker border for better visibility
+        ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color],
+                  linewidths=edge_width + 1, alpha=0.6)
+        
+        # Add a white outline for maximum visibility (very thin)
+        ax.contour(cluster_mask.astype(int), levels=[0.5], colors='white',
+                  linewidths=1, alpha=0.3)
 
         # Add hatch pattern if enabled
         if use_hatching:
+            hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
             cs = ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors='none',
                        hatches=[hatch_pattern])
 

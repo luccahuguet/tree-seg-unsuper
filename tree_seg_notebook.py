@@ -67,7 +67,7 @@ config = {
     "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
     "stride": 4,                            # Lower=higher resolution, slower
     "edge_width": 2,                        # Width of edge lines in edge overlay visualization
-    "use_hatching": False,                   # Whether to add hatch patterns to regions (borders always shown)
+    "use_hatching": False,                   # Whether to add hatch patterns to regions (borders always shown) - now default False
     "generate_overlay": False,               # Whether to generate the colored overlay visualization
 }
 
