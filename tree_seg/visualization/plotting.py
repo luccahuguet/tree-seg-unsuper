@@ -51,6 +51,7 @@ def generate_outputs(
     version,
     edge_width=2,
     use_hatching=True,
+    generate_overlay=False,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -68,6 +69,7 @@ def generate_outputs(
         version: Model version
         edge_width: Width of edge lines in pixels for edge overlay visualization
         use_hatching: Whether to add hatch patterns to regions (borders are always shown)
+        generate_overlay: Whether to generate the colored overlay visualization
     """
     if image_np is None or labels_resized is None:
         print(f"Skipping output generation for {image_path} due to processing error.")
@@ -111,25 +113,26 @@ def generate_outputs(
     plt.close()
     print(f"Saved segmentation with legend: {legend_path}")
 
-    # Generate overlay visualization
-    norm = colors.Normalize(vmin=0, vmax=n_clusters - 1)
-    segmentation_rgba = cmap(norm(labels_to_plot))
-    segmentation_rgb = (np.array(segmentation_rgba)[:, :, :3] * 255).astype(np.uint8)
-    overlay = (alpha * image_np + (1 - alpha) * segmentation_rgb).astype(np.uint8)
-    fig, ax = plt.subplots(figsize=(10, 10))
-    ax.imshow(overlay)
-    ax.axis("off")
-    ax.text(
-        0.02, 0.98, config_text,
-        transform=ax.transAxes, fontsize=8,
-        verticalalignment='top', horizontalalignment='left',
-        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
-    )
-    plt.tight_layout()
-    overlay_path = os.path.join(output_dir, f"{output_prefix}_overlay.png")
-    plt.savefig(overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
-    plt.close()
-    print(f"Saved overlay: {overlay_path}")
+    # Generate overlay visualization if enabled
+    if generate_overlay:
+        norm = colors.Normalize(vmin=0, vmax=n_clusters - 1)
+        segmentation_rgba = cmap(norm(labels_to_plot))
+        segmentation_rgb = (np.array(segmentation_rgba)[:, :, :3] * 255).astype(np.uint8)
+        overlay = (alpha * image_np + (1 - alpha) * segmentation_rgb).astype(np.uint8)
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.imshow(overlay)
+        ax.axis("off")
+        ax.text(
+            0.02, 0.98, config_text,
+            transform=ax.transAxes, fontsize=8,
+            verticalalignment='top', horizontalalignment='left',
+            bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
+        )
+        plt.tight_layout()
+        overlay_path = os.path.join(output_dir, f"{output_prefix}_overlay.png")
+        plt.savefig(overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
+        plt.close()
+        print(f"Saved overlay: {overlay_path}")
 
     # Generate NEW edge overlay visualization with colored borders and hatch patterns
     fig, ax = plt.subplots(figsize=(10, 10))

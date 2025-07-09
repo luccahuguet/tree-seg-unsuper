@@ -26,6 +26,7 @@ def tree_seg_with_auto_k(
     elbow_threshold=3.0,
     edge_width=2,
     use_hatching=True,
+    generate_overlay=False,
 ):
     """
     Enhanced tree segmentation with automatic K selection.
@@ -44,6 +45,7 @@ def tree_seg_with_auto_k(
         elbow_threshold: Sensitivity for elbow detection (lower = more sensitive)
         edge_width: Width of edge lines in pixels for edge overlay visualization
         use_hatching: Whether to add hatch patterns to regions (borders are always shown)
+        generate_overlay: Whether to generate the colored overlay visualization
     """
     print_gpu_info()
     os.makedirs(output_dir, exist_ok=True)
@@ -79,7 +81,7 @@ def tree_seg_with_auto_k(
                 generate_outputs(
                     image_np, labels_resized, output_prefix, output_dir,
                     actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version, edge_width, use_hatching
+                    image_path, version, edge_width, use_hatching, generate_overlay
                 )
 
                 print(f"✅ Processing completed! Used K = {actual_n_clusters}")
@@ -111,7 +113,7 @@ def tree_seg_with_auto_k(
                     generate_outputs(
                         image_np, labels_resized, output_prefix, output_dir,
                         actual_n_clusters, overlay_ratio, stride, model_name,
-                        image_path, version, edge_width, use_hatching
+                        image_path, version, edge_width, use_hatching, generate_overlay
                     )
 
                     print(f"✅ {fname} completed! Used K = {actual_n_clusters}")
