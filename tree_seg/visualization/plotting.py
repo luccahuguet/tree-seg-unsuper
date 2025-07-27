@@ -181,16 +181,16 @@ def generate_outputs(
 
         # Get cluster color, prioritizing bright colors
         cluster_color = get_cluster_color(cluster_id, n_clusters, cmap)
-        
+
         # Create a more visible border by using multiple contour levels
         # This ensures borders are visible even with thin regions
         ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color],
                   linewidths=edge_width, alpha=0.9)
-        
+
         # Add a second, slightly thicker border for better visibility
         ax.contour(cluster_mask.astype(int), levels=[0.5], colors=[cluster_color],
                   linewidths=edge_width + 1, alpha=0.6)
-        
+
         # Add a white outline for maximum visibility (very thin)
         ax.contour(cluster_mask.astype(int), levels=[0.5], colors='white',
                   linewidths=1, alpha=0.3)
@@ -205,7 +205,7 @@ def generate_outputs(
             for collection in cs.collections: # type: ignore
                 collection.set_facecolor('none')
                 collection.set_edgecolor(cluster_color)
-                collection.set_alpha(0.35)  # More visible hatching
+                collection.set_alpha(0.7)  # More visible hatching
                 # Do not draw the patch border, only the hatch
                 collection.set_linewidth(0.)
 
@@ -245,22 +245,22 @@ def generate_outputs(
     # Generate side-by-side comparison with improved robustness
     try:
         fig, axes = plt.subplots(1, 2, figsize=(16, 8))  # Reduced size for better memory management
-        
+
         # Original image
         axes[0].imshow(image_np)
         axes[0].set_title("Original Image", fontsize=12, fontweight='bold')
         axes[0].axis("off")
-        
+
         # Segmentation map
         im = axes[1].imshow(labels_to_plot, cmap=cmap, vmin=0, vmax=n_clusters - 1)
         axes[1].set_title("Segmentation Map", fontsize=12, fontweight='bold')
         axes[1].axis("off")
-        
+
         # Add colorbar
         cbar = fig.colorbar(im, ax=axes[1], ticks=range(n_clusters), shrink=0.4, aspect=20)
         cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(n_clusters)])
         cbar.ax.tick_params(labelsize=8)
-        
+
         # Add config text to the segmentation side
         axes[1].text(
             0.02, 0.98, config_text,
@@ -268,14 +268,14 @@ def generate_outputs(
             verticalalignment='top', horizontalalignment='left',
             bbox=dict(facecolor='white', alpha=0.8, edgecolor='black', boxstyle='round,pad=0.3')
         )
-        
+
         plt.tight_layout(pad=2.0)
         side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
-        plt.savefig(side_by_side_path, bbox_inches="tight", pad_inches=0.2, dpi=150, 
+        plt.savefig(side_by_side_path, bbox_inches="tight", pad_inches=0.2, dpi=150,
                    facecolor='white', edgecolor='none')
         plt.close()
         print(f"✅ Saved side-by-side image: {side_by_side_path}")
-        
+
     except Exception as e:
         print(f"⚠️ Warning: Could not generate side-by-side image: {e}")
         # Try to close any remaining figure
