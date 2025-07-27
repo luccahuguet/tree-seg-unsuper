@@ -81,7 +81,7 @@ def tree_seg_with_auto_k(
                 generate_outputs(
                     image_np, labels_resized, output_prefix, output_dir,
                     actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version, edge_width, use_hatching
+                    image_path, version, edge_width, use_hatching, elbow_threshold
                 )
 
                 print(f"✅ Processing completed! Used K = {actual_n_clusters}")
@@ -113,7 +113,7 @@ def tree_seg_with_auto_k(
                     generate_outputs(
                         image_np, labels_resized, output_prefix, output_dir,
                         actual_n_clusters, overlay_ratio, stride, model_name,
-                        image_path, version, edge_width, use_hatching
+                        image_path, version, edge_width, use_hatching, elbow_threshold
                     )
 
                     print(f"✅ {fname} completed! Used K = {actual_n_clusters}")

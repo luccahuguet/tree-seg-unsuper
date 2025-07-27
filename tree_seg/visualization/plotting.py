@@ -51,6 +51,7 @@ def generate_outputs(
     version,
     edge_width=2,
     use_hatching=False,
+    elbow_threshold=None,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -68,6 +69,7 @@ def generate_outputs(
         version: Model version
         edge_width: Width of edge lines in pixels for edge overlay visualization
         use_hatching: Whether to add hatch patterns to regions (borders are always shown)
+        elbow_threshold: Threshold for elbow method (optional)
     """
     if image_np is None or labels_resized is None:
         print(f"Skipping output generation for {image_path} due to processing error.")
@@ -90,7 +92,7 @@ def generate_outputs(
         # Use viridis but we'll filter out green colors below
         cmap = plt.get_cmap("viridis", n_clusters)
 
-    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width)
+    config_text = get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width, elbow_threshold)
 
     # Generate segmentation legend visualization
     fig, ax = plt.subplots(figsize=(10, 10))

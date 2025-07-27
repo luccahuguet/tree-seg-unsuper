@@ -38,7 +38,7 @@ def parse_model_info(model_name):
     return base_name, nickname, version
 
 
-def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width):
+def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width, elbow_threshold=None):
     """
     Generate a configuration text block for plots.
     """
@@ -53,4 +53,7 @@ def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, ver
         f"Overlay Ratio: {overlay_ratio}\n"
         f"Edge Width: {edge_width}"
     )
+    
+    if elbow_threshold is not None:
+        config_text += f"\nElbow Threshold: {elbow_threshold}"
     return config_text 
