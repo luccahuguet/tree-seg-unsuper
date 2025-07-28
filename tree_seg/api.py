@@ -11,7 +11,7 @@ from .core.types import Config, SegmentationResults, OutputPaths
 from .core.output_manager import OutputManager
 from .models import initialize_model, get_preprocess, print_gpu_info
 from .core.segmentation import process_image
-from .visualization.plotting import generate_outputs
+from .visualization.plotting import generate_visualizations
 
 
 class TreeSegmentation:
@@ -117,13 +117,15 @@ class TreeSegmentation:
         )
         
         # Generate visualizations using OutputManager paths
-        from .visualization.plotting import generate_visualizations
-        
         generate_visualizations(
             results=results,
             config=self.config,
             output_paths=output_paths
         )
+        
+        # Auto-optimize for web if enabled
+        if self.config.web_optimize:
+            output_paths = self.output_manager.optimize_all_outputs(output_paths)
         
         return output_paths
     
@@ -200,6 +202,7 @@ def segment_trees(
     output_dir: str = "/kaggle/working/output", 
     model: str = "base",
     auto_k: bool = True,
+    web_optimize: bool = False,
     **kwargs
 ) -> List[tuple[SegmentationResults, OutputPaths]]:
     """
@@ -210,6 +213,7 @@ def segment_trees(
         output_dir: Output directory path
         model: Model size ("small", "base", "large", "giant")
         auto_k: Whether to use automatic K selection
+        web_optimize: Whether to auto-optimize images for web display
         **kwargs: Additional config parameters
         
     Returns:
@@ -219,6 +223,7 @@ def segment_trees(
         output_dir=output_dir,
         model_name=model,
         auto_k=auto_k,
+        web_optimize=web_optimize,
         **kwargs
     )
     

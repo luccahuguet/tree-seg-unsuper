@@ -7,6 +7,7 @@ import hashlib
 import glob
 from pathlib import Path
 from typing import Optional, List
+from PIL import Image
 
 from .types import Config, OutputPaths
 from ..utils.config import parse_model_info
@@ -170,3 +171,72 @@ class OutputManager:
                         print(f"🗑️ Cleaned up: {os.path.basename(file_path)}")
                     except OSError:
                         pass
+    
+    def optimize_image_for_web(self, input_path: str) -> Optional[str]:
+        """
+        Optimize a single image for web display.
+        
+        Args:
+            input_path: Path to original PNG image
+            
+        Returns:
+            Path to optimized JPEG image, or None if optimization failed
+        """
+        if not self.config.web_optimize:
+            return None
+            
+        try:
+            # Determine output path
+            input_file = Path(input_path)
+            output_file = input_file.with_suffix('.jpg')
+            
+            with Image.open(input_path) as img:
+                # Convert to RGB if necessary (handles PNG with transparency)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                
+                # Resize if too wide (maintains aspect ratio)
+                if img.width > self.config.web_max_width:
+                    ratio = self.config.web_max_width / img.width
+                    new_height = int(img.height * ratio)
+                    img = img.resize((self.config.web_max_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Save as optimized JPEG
+                img.save(output_file, 'JPEG', quality=self.config.web_quality, optimize=True)
+                
+                # Get file sizes for reporting
+                original_size = os.path.getsize(input_path) / (1024 * 1024)  # MB
+                optimized_size = os.path.getsize(output_file) / (1024 * 1024)  # MB
+                
+                print(f"🌐 Web optimized: {input_file.name}")
+                print(f"   {original_size:.1f}MB → {optimized_size:.1f}MB ({optimized_size/original_size*100:.0f}%)")
+                
+                return str(output_file)
+                
+        except Exception as e:
+            print(f"⚠️ Web optimization failed for {input_path}: {e}")
+            return None
+    
+    def optimize_all_outputs(self, output_paths: OutputPaths) -> OutputPaths:
+        """
+        Optimize all output images for web display.
+        
+        Args:
+            output_paths: Original output paths
+            
+        Returns:
+            OutputPaths with optimized image paths (or original if optimization disabled)
+        """
+        if not self.config.web_optimize:
+            return output_paths
+        
+        print("🌐 Optimizing images for web...")
+        
+        optimized = OutputPaths(
+            segmentation_legend=self.optimize_image_for_web(output_paths.segmentation_legend) or output_paths.segmentation_legend,
+            edge_overlay=self.optimize_image_for_web(output_paths.edge_overlay) or output_paths.edge_overlay,
+            side_by_side=self.optimize_image_for_web(output_paths.side_by_side) or output_paths.side_by_side,
+            elbow_analysis=self.optimize_image_for_web(output_paths.elbow_analysis) if output_paths.elbow_analysis else None
+        )
+        
+        return optimized

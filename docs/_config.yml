@@ -1,0 +1,49 @@
+title: "Tree Segmentation with DINOv2"
+description: "Unsupervised tree segmentation using DINOv2 Vision Transformers"
+author: "Research Team"
+email: "your-email@example.com"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+# GitHub Pages settings
+baseurl: "/tree-seg-unsuper"
+url: "https://your-username.github.io"
+
+# Navigation
+header_pages:
+  - index.md
+  - methodology.md
+  - results.md
+  - analysis.md
+
+# Collections
+collections:
+  experiments:
+    output: true
+    permalink: /:collection/:name/
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+
+# Site settings for academic presentation
+academic:
+  show_downloads: true
+  github_repo: "tree-seg-unsuper"
+  
+# Custom variables
+experiment_date: "2025"
+model_version: "v1.5"
+dino_variant: "DINOv2"

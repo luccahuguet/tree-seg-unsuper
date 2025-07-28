@@ -35,6 +35,11 @@ class Config:
     edge_width: int = 2
     use_hatching: bool = True
     
+    # Web optimization settings
+    web_optimize: bool = False  # Auto-optimize images for GitHub Pages
+    web_quality: int = 85  # JPEG quality for web
+    web_max_width: int = 1200  # Max width for web images
+    
     @property
     def model_display_name(self) -> str:
         """Get the human-readable model name."""
