@@ -6,6 +6,8 @@ This module brings together all the components from the modular structure.
 import os
 import numpy as np
 import torch
+import random
+import string
 
 from .models import print_gpu_info, initialize_model, get_preprocess
 from .core.segmentation import process_image
@@ -56,6 +58,10 @@ def tree_seg_with_auto_k(
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    
+    # Generate a session random code to prevent filename collisions
+    session_code = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+    print(f"🔗 Session code: {session_code}")
 
     model = initialize_model(stride, model_name, device)
     preprocess = get_preprocess()
@@ -81,7 +87,7 @@ def tree_seg_with_auto_k(
                 generate_outputs(
                     image_np, labels_resized, output_prefix, output_dir,
                     actual_n_clusters, overlay_ratio, stride, model_name,
-                    image_path, version, edge_width, use_hatching, elbow_threshold
+                    image_path, version, edge_width, use_hatching, elbow_threshold, auto_k, session_code
                 )
 
                 print(f"✅ Processing completed! Used K = {actual_n_clusters}")
@@ -114,7 +120,7 @@ def tree_seg_with_auto_k(
                     generate_outputs(
                         image_np, labels_resized, output_prefix, output_dir,
                         actual_n_clusters, overlay_ratio, stride, model_name,
-                        image_path, version, edge_width, use_hatching, elbow_threshold
+                        image_path, version, edge_width, use_hatching, elbow_threshold, auto_k, session_code
                     )
 
                     print(f"✅ {fname} completed! Used K = {actual_n_clusters}")

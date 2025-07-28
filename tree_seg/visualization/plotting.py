@@ -8,10 +8,13 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.patches import Polygon
 from scipy import ndimage
+import random
+import string
+import hashlib
 
 # Removed skimage dependency - using matplotlib's built-in contour functions instead
 
-from ..utils.config import get_config_text
+from ..utils.config import get_config_text, parse_model_info
 
 
 def detect_segmentation_edges(labels, edge_width=2):
@@ -38,6 +41,52 @@ def detect_segmentation_edges(labels, edge_width=2):
     return edges
 
 
+def generate_config_filename(filename, model_name, version, stride, n_clusters, elbow_threshold=None, auto_k=False):
+    """
+    Generate a config-based filename with hash and parameters.
+    
+    Args:
+        filename: Original filename
+        model_name: Model name (e.g., "dinov2_vits14")
+        version: Version string (e.g., "v1.5")
+        stride: Stride value
+        n_clusters: Number of clusters
+        elbow_threshold: Elbow threshold (if auto_k=True)
+        auto_k: Whether auto K-selection was used
+        
+    Returns:
+        str: Config-based filename prefix
+    """
+    # Generate 4-character hash from filename
+    file_hash = hashlib.sha1(filename.encode()).hexdigest()[:4]
+    
+    # Parse model info to get nickname
+    _, nickname, _ = parse_model_info(model_name)
+    model_nick = nickname.lower()
+    
+    # Format version (replace dots with hyphens)
+    version_str = version.replace(".", "-")
+    
+    # Build filename components
+    components = [
+        file_hash,
+        version_str,
+        model_nick,
+        f"str{stride}"
+    ]
+    
+    # Add clustering info
+    if auto_k and elbow_threshold is not None:
+        # Format elbow threshold (replace dots with hyphens)
+        et_str = f"et{str(elbow_threshold).replace('.', '-')}"
+        components.append(et_str)
+    else:
+        # Fixed K
+        components.append(f"k{n_clusters}")
+    
+    return "_".join(components)
+
+
 def generate_outputs(
     image_np,
     labels_resized,
@@ -52,6 +101,8 @@ def generate_outputs(
     edge_width=2,
     use_hatching=False,
     elbow_threshold=None,
+    auto_k=False,
+    session_code=None,
 ):
     """
     Generate visualization outputs for segmentation results.
@@ -70,6 +121,8 @@ def generate_outputs(
         edge_width: Width of edge lines in pixels for edge overlay visualization
         use_hatching: Whether to add hatch patterns to regions (borders are always shown)
         elbow_threshold: Threshold for elbow method (optional)
+        auto_k: Whether auto K-selection was used
+        session_code: Random code to prevent filename collisions (optional)
     """
     if image_np is None or labels_resized is None:
         print(f"Skipping output generation for {image_path} due to processing error.")
@@ -77,7 +130,12 @@ def generate_outputs(
 
     alpha = (10 - overlay_ratio) / 10.0
     filename = os.path.basename(image_path)
-
+    
+    # Generate config-based filename prefix
+    config_prefix = generate_config_filename(
+        filename, model_name, version, stride, n_clusters, elbow_threshold, auto_k
+    )
+    
     # Use labels directly without filtering
     labels_to_plot = np.copy(labels_resized)
 
@@ -108,7 +166,7 @@ def generate_outputs(
         bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
     )
     plt.tight_layout()
-    legend_path = os.path.join(output_dir, f"{output_prefix}_segmentation_legend.png")
+    legend_path = os.path.join(output_dir, f"{config_prefix}_segmentation_legend.png")
     plt.savefig(legend_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
     print(f"Saved segmentation with legend: {legend_path}")
@@ -238,7 +296,7 @@ def generate_outputs(
     legend.get_frame().set_facecolor('white')
 
     plt.tight_layout()
-    edge_overlay_path = os.path.join(output_dir, f"{output_prefix}_edge_overlay.png")
+    edge_overlay_path = os.path.join(output_dir, f"{config_prefix}_edge_overlay.png")
     plt.savefig(edge_overlay_path, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
     hatching_text = "with hatch patterns" if use_hatching else "with borders only"
@@ -272,7 +330,7 @@ def generate_outputs(
         )
 
         plt.tight_layout(pad=2.0)
-        side_by_side_path = os.path.join(output_dir, f"{output_prefix}_side_by_side.png")
+        side_by_side_path = os.path.join(output_dir, f"{config_prefix}_side_by_side.png")
         plt.savefig(side_by_side_path, bbox_inches="tight", pad_inches=0.2, dpi=150,
                    facecolor='white', edgecolor='none')
         plt.close()
