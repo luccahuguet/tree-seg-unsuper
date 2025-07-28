@@ -1,7 +1,7 @@
 """
-Tree Segmentation Package - v2.0
+Tree Segmentation Package - Modern Architecture
 
-Modern unsupervised tree segmentation using DINOv2 and clean architecture.
+Unsupervised tree segmentation using DINOv2 (v1.5) with clean, modern API.
 
 Usage:
     from tree_seg import TreeSegmentation, Config, segment_trees
@@ -21,7 +21,7 @@ from .core.types import Config, SegmentationResults, ElbowAnalysisResults, Outpu
 from .core.output_manager import OutputManager
 from .models import print_gpu_info
 
-__version__ = "2.0.0"
+__version__ = "1.5.1"  # v1.5 + modern architecture
 __author__ = "Tree Segmentation Team"
 
 __all__ = [

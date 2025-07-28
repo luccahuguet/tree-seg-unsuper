@@ -2,14 +2,14 @@
 
 Modern unsupervised tree segmentation using DINOv2 Vision Transformers and K-means clustering for aerial drone imagery.
 
-## 🚀 What's New in v2.0
+## 🚀 What's New - Modern Architecture
 
-**Modern API with clean architecture:**
+**Clean API with professional patterns:**
 - 🏗️ **Dataclass Configuration** - Type-safe, validated config objects
 - 📦 **Result Objects** - Structured returns instead of tuples  
 - 🎯 **OutputManager** - Intelligent file naming and management
 - 🧹 **Clean Interface** - Simple API for both quick and advanced usage
-- ✅ **Backward Compatible** - Legacy API still works
+- ✅ **Pure Modern Code** - No legacy cruft
 
 ## 🌳 Project Overview
 
