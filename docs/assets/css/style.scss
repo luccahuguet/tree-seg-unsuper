@@ -1,11 +1,14 @@
 ---
-# Custom dark theme for GitHub Pages
 ---
 
 @import "minima";
 
-// Dark theme overrides
-body {
+// Force dark theme with maximum CSS specificity
+* {
+  box-sizing: border-box;
+}
+
+html, body, .wrapper, .page-content, main, .post-content {
   background-color: #1a1a1a !important;
   color: #e0e0e0 !important;
 }
