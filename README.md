@@ -54,7 +54,7 @@ final-paper/
 
 ## 🚀 Quick Start
 
-### Modern API (v2.0+ Recommended)
+### API Usage
 
 **Simple one-liner:**
 ```python
@@ -89,18 +89,6 @@ print(f"Used K = {results.n_clusters_used}")
 print(f"Files: {paths.all_paths()}")
 ```
 
-### Legacy API (Still Supported)
-
-```python
-from tree_seg import tree_seg_with_auto_k
-
-tree_seg_with_auto_k(
-    input_dir="/kaggle/input/drone-imagery",
-    output_dir="/kaggle/working/output",
-    model_name="dinov2_vitb14",
-    auto_k=True
-)
-```
 
 ### Cloud GPU Execution
 
@@ -127,7 +115,7 @@ tree_seg_with_auto_k(
 
 ## ⚙️ Configuration
 
-### Modern Configuration (Recommended)
+### Configuration
 
 ```python
 from tree_seg import Config

@@ -1,47 +1,44 @@
 """
-Tree Segmentation Package
+Tree Segmentation Package - v2.0
 
-A modular tree segmentation system using DINO features and automatic K selection.
+Modern unsupervised tree segmentation using DINOv2 and clean architecture.
 
-Modern API (v2.0+):
-    from tree_seg import TreeSegmentation, Config
+Usage:
+    from tree_seg import TreeSegmentation, Config, segment_trees
     
-Legacy API (still supported):
-    from tree_seg import tree_seg_with_auto_k
+    # Quick usage
+    results = segment_trees("image.jpg", model="base", auto_k=True)
+    
+    # Advanced usage
+    config = Config(model_name="base", elbow_threshold=0.1)
+    segmenter = TreeSegmentation(config)
+    results, paths = segmenter.process_and_visualize("image.jpg")
 """
 
-# Legacy API (maintained for compatibility)
-from .tree_segmentation import tree_seg_with_auto_k, MODELS
-from .models import print_gpu_info, setup_segmentation
-from .core import process_image
-from .analysis import find_optimal_k_elbow, plot_elbow_analysis
-from .visualization import generate_outputs
-
-# Modern API (recommended)
+# Modern API - clean, type-safe, professional
 from .api import TreeSegmentation, segment_trees
 from .core.types import Config, SegmentationResults, ElbowAnalysisResults, OutputPaths
 from .core.output_manager import OutputManager
+from .models import print_gpu_info
 
 __version__ = "2.0.0"
 __author__ = "Tree Segmentation Team"
 
 __all__ = [
-    # Modern API (recommended)
+    # Main API
     'TreeSegmentation',
-    'segment_trees', 
+    'segment_trees',
+    
+    # Configuration and results
     'Config',
-    'SegmentationResults',
+    'SegmentationResults', 
     'ElbowAnalysisResults',
     'OutputPaths',
     'OutputManager',
     
-    # Legacy API (maintained for compatibility)
-    'tree_seg_with_auto_k',
-    'MODELS',
+    # Utilities
     'print_gpu_info',
-    'setup_segmentation',
-    'process_image',
-    'find_optimal_k_elbow',
-    'plot_elbow_analysis',
-    'generate_outputs',
+    
+    # Version
+    '__version__',
 ]

@@ -1,13 +1,6 @@
 # %%
-# NOTE: This file is a Jupyter notebook exported as a Python file.
-# It contains special cell markers (e.g., # %%) to preserve notebook cell boundaries.
-# You can open and edit it as a notebook in Jupyter or Kaggle.
-# When editing as a .py file, be careful to preserve these cell markers and cell order.
-#
-# To convert back to a notebook, use Jupyter or VSCode's 'Import Notebook' feature.
-#
-# This approach is used for easier version control and editing.
-#
+# Modern Tree Segmentation Notebook
+# Clean, simple API with dataclasses and modern Python patterns
 
 # %%
 # Setup - Change to project directory and install dependencies
@@ -30,135 +23,158 @@
 %pip install xformers --index-url https://download.pytorch.org/whl/cu124
 
 # %%
-# Import the modular tree segmentation package
+# Import the modern API
 import sys
 sys.path.append("/kaggle/working/project")
 
-# Force reload to ensure we get the latest version
-import importlib
-try:
-    import tree_seg
-    importlib.reload(tree_seg)
-    from tree_seg import tree_seg_with_auto_k, MODELS, print_gpu_info
-except ImportError:
-    # Fallback if module not found
-    print("⚠️ Could not import tree_seg module. Please check the path.")
+from tree_seg import TreeSegmentation, segment_trees, Config, print_gpu_info
 
-from tree_seg.utils.notebook_helpers import print_config_summary
-from IPython.display import Image, display
-
-# %%
-# Setup confirmation
-print("✅ Using modular tree segmentation package!")
-print("📦 Functions are now organized in tree_seg/ modules")
+print("✅ Modern Tree Segmentation API loaded!")
 print_gpu_info()
 
 # %%
-# Configuration - Edit these settings as needed
-config = {
-    "input_dir": "/kaggle/input/drone-10-best",
-    "output_dir": "/kaggle/working/output",
-    "model_name": MODELS["base"],           # Choose: "small", "base", "large", "giant"
-    "filename": "DJI_20250127150117_0029_D.JPG",
-    "version": "v1.5",
-    "auto_k": True,                         # Automatic K selection (recommended)
-    "k_range": (3, 10),                     # K range for auto selection
-    "elbow_threshold": 3.0,                 # Elbow detection threshold
-    # Tips for elbow_threshold values:
-    # - 0.05-0.1: Sensitive detection, finds subtle elbows (more clusters)
-    # - 0.1-0.2: Balanced detection, good for most cases (recommended) 
-    # - 0.2-0.3: Conservative detection, finds only clear elbows (fewer clusters)
-    # - 3.0: Very conservative (current default)
-    # Common values: 0.1 (sensitive), 0.15 (balanced), 3.0 (conservative)
-    "n_clusters": 6,                        # Only used if auto_k=False
-    "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
-    "stride": 4,                            # Lower=higher resolution, slower
-    "edge_width": 2,                        # Width of edge lines in edge overlay visualization
-    "use_hatching": True,                    # Whether to add hatch patterns to regions (borders always shown) - now with transparent hatching
-    "use_pca": False,                        # Whether to use PCA dimensionality reduction (default: False)
-}
+# Quick and Easy Usage - Single function call
+print("🚀 Quick segmentation using convenience function:")
+
+# Process a single image with sensible defaults
+results = segment_trees(
+    input_path="/kaggle/input/drone-10-best/DJI_20250127150117_0029_D.JPG",
+    model="base",           # small, base, large, giant
+    auto_k=True,           # Automatic K selection
+    elbow_threshold=0.1,   # More sensitive than default 3.0
+    use_hatching=True,     # Enable hatch patterns
+    edge_width=2
+)
+
+segmentation_result, output_paths = results[0]
+print(f"✅ Processed! Used K = {segmentation_result.n_clusters_used}")
+print(f"📁 Files: {[os.path.basename(p) for p in output_paths.all_paths()]}")
 
 # %%
-# Clear output folder before processing
-import shutil
+# Advanced Usage - Full control with Config class
+print("🎯 Advanced usage with Config class:")
+
+config = Config(
+    # Input/Output
+    input_dir="/kaggle/input/drone-10-best",
+    output_dir="/kaggle/working/output",
+    filename="DJI_20250127150117_0029_D.JPG",
+    
+    # Model settings  
+    model_name="base",      # or "small", "large", "giant"
+    version="v1.5",         # Current version
+    stride=4,               # Balance of speed vs quality
+    
+    # Clustering
+    auto_k=True,            # Let elbow method choose K
+    elbow_threshold=0.15,   # Slightly conservative
+    k_range=(3, 8),         # Narrower range for trees
+    
+    # Visualization
+    overlay_ratio=4,        # Good transparency
+    edge_width=2,           # Clear borders
+    use_hatching=True,      # Distinguish regions
+    use_pca=False           # Keep full feature space
+)
+
+# Create segmentation instance
+segmenter = TreeSegmentation(config)
+
+# Process the image
+results, paths = segmenter.process_and_visualize(
+    "/kaggle/input/drone-10-best/DJI_20250127150117_0029_D.JPG"
+)
+
+print(f"🎯 Advanced processing complete!")
+print(f"📊 Stats: {results.processing_stats}")
+
+# %%
+# Display results using modern OutputManager
+from IPython.display import Image, display
 import os
 
-if os.path.exists(config["output_dir"]):
-    print(f"🗑️ Clearing output directory: {config['output_dir']}")
-    shutil.rmtree(config["output_dir"])
-os.makedirs(config["output_dir"], exist_ok=True)
-print(f"✅ Output directory ready: {config['output_dir']}")
+# Find latest outputs automatically
+latest_outputs = segmenter.find_latest_outputs()
 
-# %%
-# Run segmentation
-print_config_summary(config)
-
-# Debug: Check function signature
-import inspect
-print(f"Function signature: {inspect.signature(tree_seg_with_auto_k)}")
-print(f"Config keys: {list(config.keys())}")
-
-tree_seg_with_auto_k(**config)
-
-# %%
-# Display results - Split into separate cells for reliability
-
-# Get file paths using new config-based naming
-import glob
-output_dir = config["output_dir"]
-
-# Find files using glob patterns (works with new config-based naming)
-legend_files = glob.glob(os.path.join(output_dir, "*_segmentation_legend.png"))
-edge_overlay_files = glob.glob(os.path.join(output_dir, "*_edge_overlay.png"))
-side_by_side_files = glob.glob(os.path.join(output_dir, "*_side_by_side.png"))
-elbow_files = glob.glob(os.path.join(output_dir, "*_elbow_analysis.png"))
-
-# Use the most recent files (in case of multiple runs)
-legend_path = max(legend_files, key=os.path.getmtime) if legend_files else None
-edge_overlay_path = max(edge_overlay_files, key=os.path.getmtime) if edge_overlay_files else None
-side_by_side_path = max(side_by_side_files, key=os.path.getmtime) if side_by_side_files else None
-elbow_path = max(elbow_files, key=os.path.getmtime) if elbow_files else None
-
-print("📁 Generated files:")
-all_files = [legend_path, edge_overlay_path, side_by_side_path, elbow_path]
-file_types = ["segmentation_legend", "edge_overlay", "side_by_side", "elbow_analysis"]
-
-for path, file_type in zip(all_files, file_types):
-    if path and os.path.exists(path):
-        print(f"✅ {os.path.basename(path)}")
-    else:
-        print(f"❌ {file_type}.png - Not found")
-
-# %%
-# Display 1: Edge Overlay (Original + Boundaries)
-if edge_overlay_path and os.path.exists(edge_overlay_path):
-    print("🔳 Edge Overlay (Original + Boundaries):")
-    display(Image(filename=edge_overlay_path))
+if latest_outputs:
+    print("🖼️ Latest Segmentation Results:")
+    
+    # Display edge overlay
+    if latest_outputs.edge_overlay:
+        print("\n🔳 Edge Overlay (Original + Boundaries):")
+        display(Image(filename=latest_outputs.edge_overlay))
+    
+    # Display side-by-side
+    if latest_outputs.side_by_side:
+        print("\n📊 Side-by-Side Comparison:")
+        display(Image(filename=latest_outputs.side_by_side))
+    
+    # Display segmentation legend
+    if latest_outputs.segmentation_legend:
+        print("\n🎨 Segmentation Map with Legend:")
+        display(Image(filename=latest_outputs.segmentation_legend))
+    
+    # Display elbow analysis if available
+    if latest_outputs.elbow_analysis:
+        print("\n📈 K Selection Analysis (Elbow Method):")
+        display(Image(filename=latest_outputs.elbow_analysis))
+        
 else:
-    print("❌ Edge overlay not found")
+    print("❌ No output files found")
 
 # %%
-# Display 2: Side-by-Side Comparison
-if side_by_side_path and os.path.exists(side_by_side_path):
-    print("📊 Original and Segmentation Side by Side:")
-    display(Image(filename=side_by_side_path))
-else:
-    print("❌ Side-by-side comparison not found")
+# Batch Processing - Process multiple images
+print("📁 Batch processing example:")
+
+# Process all images in directory
+batch_results = segmenter.process_directory()
+
+print(f"✅ Processed {len(batch_results)} images")
+for result, paths in batch_results:
+    filename = os.path.basename(result.image_path)
+    print(f"  • {filename}: K={result.n_clusters_used}")
 
 # %%
-# Display 3: Segmentation Legend
-if legend_path and os.path.exists(legend_path):
-    print("🎨 Segmentation Map with Legend:")
-    display(Image(filename=legend_path))
-else:
-    print("❌ Segmentation legend not found")
+# Cleanup and file management
+print("🧹 File management:")
+
+# List all outputs
+all_outputs = segmenter.output_manager.list_all_outputs()
+print(f"📄 Total output files: {len(all_outputs)}")
+
+# Show latest files with their names (showcasing config-based naming)
+if all_outputs:
+    print("\n📋 Recent files (showing config-based naming):")
+    for file_path in all_outputs[:5]:  # Show latest 5
+        filename = os.path.basename(file_path)
+        size_mb = os.path.getsize(file_path) / (1024*1024)
+        print(f"  • {filename} ({size_mb:.1f}MB)")
+
+# Clean up old files (keep latest 3 of each type)
+segmenter.cleanup_old_outputs(keep_latest=3)
 
 # %%
-# Display 4: K Selection Analysis (if auto_k was used)
-if elbow_path and os.path.exists(elbow_path):
-    print("📈 K Selection Analysis (Elbow Method):")
-    display(Image(filename=elbow_path))
-else:
-    print("ℹ️ K selection analysis not found (auto_k may be disabled)")
+# Configuration validation and tips
+print("⚙️ Configuration tips:")
 
+try:
+    # This will fail validation
+    bad_config = Config(overlay_ratio=15, stride=20)
+    bad_config.validate()
+except ValueError as e:
+    print(f"❌ Invalid config: {e}")
 
+# Show model mapping
+config = Config()
+print(f"🤖 Model mapping examples:")
+for model in ["small", "base", "large", "giant"]:
+    config.model_name = model
+    print(f"  • {model} → {config.model_display_name}")
+
+print("\n🎉 Modern Tree Segmentation Demo Complete!")
+print("💡 Key improvements:")
+print("  • Clean Config dataclass with validation")
+print("  • Type-safe Results objects")
+print("  • Automatic file management")
+print("  • Intelligent filename generation")
+print("  • Simple API for both quick and advanced usage")

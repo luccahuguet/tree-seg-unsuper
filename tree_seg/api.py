@@ -117,7 +117,7 @@ class TreeSegmentation:
         )
         
         # Generate visualizations using OutputManager paths
-        from .visualization.modern_plotting import generate_visualizations
+        from .visualization.plotting import generate_visualizations
         
         generate_visualizations(
             results=results,

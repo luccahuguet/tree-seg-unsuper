@@ -1,7 +1,7 @@
-# Visualization and plotting modules
+# Modern visualization modules
 
-from .plotting import generate_outputs
+from .plotting import generate_visualizations
 
 __all__ = [
-    'generate_outputs'
+    'generate_visualizations'
 ] 
