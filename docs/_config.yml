@@ -8,9 +8,13 @@ markdown: kramdown
 highlighter: rouge
 theme: minima
 
+# Dark theme settings
+minima:
+  skin: dark
+
 # GitHub Pages settings
 baseurl: "/tree-seg-unsuper"
-url: "https://your-username.github.io"
+url: "https://luccahuguet.github.io"
 
 # Navigation
 header_pages:
