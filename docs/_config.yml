@@ -8,7 +8,7 @@ markdown: kramdown
 highlighter: rouge
 # theme: hacker
 # theme: hacker
-theme: slate
+theme: midnight
 
 # Plugins (built into GitHub Pages)
 plugins:
