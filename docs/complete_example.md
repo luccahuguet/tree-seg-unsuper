@@ -1,6 +1,7 @@
 ---
 layout: default
 title: "Complete Example"
+nav_order: 4
 ---
 
 # Complete Example: Full Pipeline Demonstration

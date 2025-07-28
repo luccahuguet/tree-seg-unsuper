@@ -1,6 +1,7 @@
 ---
 layout: default
 title: "Tree Segmentation Research"
+nav_order: 1
 ---
 
 # Tree Segmentation with DINOv2

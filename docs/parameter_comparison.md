@@ -1,6 +1,7 @@
 ---
 layout: default
 title: "Parameter Comparison"
+nav_order: 5
 ---
 
 # Parameter Comparison: Model Size and Stride Analysis
