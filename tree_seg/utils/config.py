@@ -12,10 +12,11 @@ def parse_model_info(model_name):
     Returns:
         tuple: (base_name, nickname, version)
     """
-    # Extract version info (v1, v1.5, v2, etc.)
+    # Extract base name (DINOv2 is current, v2 refers to future U2Seg roadmap)
     if "dinov2" in model_name.lower():
         base_name = "DINOv2"
-        version = "v2"
+        # Current DINOv2 models use v1.5 (patch + attention features)
+        version = "v1.5"
     elif "dino" in model_name.lower():
         base_name = "DINO"
         version = "v1"
