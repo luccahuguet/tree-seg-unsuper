@@ -1,0 +1,78 @@
+---
+# Main stylesheet
+---
+
+@import "minima";
+
+// Dark theme overrides for GitHub Pages
+body {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0 !important;
+}
+
+.site-header {
+  background-color: #2d2d2d !important;
+  border-bottom: 1px solid #404040 !important;
+}
+
+.site-title, .site-nav .page-link {
+  color: #ffffff !important;
+}
+
+.site-nav .page-link:hover {
+  color: #64b5f6 !important;
+}
+
+.site-footer {
+  background-color: #2d2d2d !important;
+  border-top: 1px solid #404040 !important;
+  color: #e0e0e0 !important;
+}
+
+.post-content h1, .post-content h2, .post-content h3, .post-content h4, .post-content h5, .post-content h6 {
+  color: #ffffff !important;
+}
+
+.page-content h1, .page-content h2, .page-content h3, .page-content h4, .page-content h5, .page-content h6 {
+  color: #ffffff !important;
+}
+
+.post-content p, .page-content p, .post-content li, .page-content li {
+  color: #e0e0e0 !important;
+}
+
+a {
+  color: #64b5f6 !important;
+}
+
+a:hover {
+  color: #90caf9 !important;
+}
+
+code {
+  background-color: #333333 !important;
+  color: #f0f0f0 !important;
+  border: 1px solid #555555 !important;
+}
+
+pre {
+  background-color: #2d2d2d !important;
+  border: 1px solid #404040 !important;
+  color: #f0f0f0 !important;
+}
+
+table {
+  background-color: #2d2d2d !important;
+  border: 1px solid #404040 !important;
+}
+
+table th, table td {
+  background-color: #2d2d2d !important;
+  color: #e0e0e0 !important;
+  border: 1px solid #404040 !important;
+}
+
+table th {
+  background-color: #3d3d3d !important;
+  color: #ffffff !important;
+}
