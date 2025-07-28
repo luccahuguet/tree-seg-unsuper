@@ -1,14 +1,23 @@
 # Tree Segmentation with DINOv2
 
-Unsupervised tree segmentation using DINOv2 Vision Transformers and K-means clustering for aerial drone imagery.
+Modern unsupervised tree segmentation using DINOv2 Vision Transformers and K-means clustering for aerial drone imagery.
+
+## 🚀 What's New in v2.0
+
+**Modern API with clean architecture:**
+- 🏗️ **Dataclass Configuration** - Type-safe, validated config objects
+- 📦 **Result Objects** - Structured returns instead of tuples  
+- 🎯 **OutputManager** - Intelligent file naming and management
+- 🧹 **Clean Interface** - Simple API for both quick and advanced usage
+- ✅ **Backward Compatible** - Legacy API still works
 
 ## 🌳 Project Overview
 
 This project implements an unsupervised tree segmentation pipeline that:
 - Uses DINOv2 Vision Transformers to extract deep features from aerial images
 - Applies K-means clustering for segmentation
-- Supports multiple versions (v1: patch features only, v1.5: patch + attention features)
-- Generates high-quality visualization outputs
+- Supports v1.5 (patch + attention features) with automatic K-selection
+- Generates high-quality visualization outputs with config-based naming
 
 ## 📁 Project Structure
 
@@ -45,39 +54,53 @@ final-paper/
 
 ## 🚀 Quick Start
 
-### ⚠️ Important: Local Execution Limitations
+### Modern API (v2.0+ Recommended)
 
-**Currently, the main pipeline is designed to run on cloud GPU platforms (Kaggle/Colab) rather than local machines.**
+**Simple one-liner:**
+```python
+from tree_seg import segment_trees
 
-**Local Execution Issues:**
-- The script starts but may hang or fail to complete on Linux systems
-- This appears to be related to environment differences, dependency versions, or resource management
-- **Note:** The same code runs successfully on Windows 11 on the same laptop (different SSD), suggesting it's a Linux-specific environment issue
+# Process single image with smart defaults
+results = segment_trees(
+    "/kaggle/input/drone-imagery/image.jpg",
+    model="base",
+    auto_k=True
+)
+```
 
-**Recommended Workflow:**
-1. **Edit and test** your notebook locally in Jupyter/VS Code
-2. **Run the full pipeline** on Kaggle or Colab for reliable execution
-3. **Use the cloud notebooks** in `notebooks/` directory for production runs
+**Advanced usage with full control:**
+```python
+from tree_seg import TreeSegmentation, Config
 
-### Local Execution (Experimental)
+# Create configuration
+config = Config(
+    model_name="base",      # small, base, large, giant
+    auto_k=True,           # Automatic K selection
+    elbow_threshold=0.1,   # Sensitive elbow detection
+    use_hatching=True,     # Visual distinction
+    edge_width=2
+)
 
-1. **Install dependencies:**
-   ```bash
-   pip install torch torchvision timm opencv-python matplotlib scikit-learn Pillow numpy xformers
-   ```
+# Process with modern API
+segmenter = TreeSegmentation(config)
+results, paths = segmenter.process_and_visualize("image.jpg")
 
-2. **Add images to input directory:**
-   ```bash
-   mkdir -p input
-   # Copy your drone images to input/
-   ```
+print(f"Used K = {results.n_clusters_used}")
+print(f"Files: {paths.all_paths()}")
+```
 
-3. **Run segmentation:**
-   ```bash
-   python tree_seg_local.py
-   ```
+### Legacy API (Still Supported)
 
-**Note:** Local execution may fail or hang. For reliable results, use cloud platforms.
+```python
+from tree_seg import tree_seg_with_auto_k
+
+tree_seg_with_auto_k(
+    input_dir="/kaggle/input/drone-imagery",
+    output_dir="/kaggle/working/output",
+    model_name="dinov2_vitb14",
+    auto_k=True
+)
+```
 
 ### Cloud GPU Execution
 
@@ -104,25 +127,80 @@ final-paper/
 
 ## ⚙️ Configuration
 
-Edit `config.yaml` or modify the config in the scripts:
+### Modern Configuration (Recommended)
 
-```yaml
-input_dir: "input"           # Input image directory
-output_dir: "output"         # Output directory
-n_clusters: 6               # Number of segmentation clusters
-overlay_ratio: 4            # Overlay transparency (1-10)
-stride: 4                   # Feature resolution (2-8)
-model_name: "dinov2_vits14" # DINOv2 model variant
-filename: null              # Specific file or null for all
-version: "v1.5"            # v1 or v1.5
+```python
+from tree_seg import Config
+
+config = Config(
+    # Input/Output
+    input_dir="/kaggle/input/drone-imagery",
+    output_dir="/kaggle/working/output", 
+    filename=None,              # Process all images in directory
+    
+    # Model settings
+    model_name="base",          # small/base/large/giant
+    version="v1.5",             # Current version
+    stride=4,                   # Balance of speed vs quality
+    
+    # Clustering (automatic K-selection recommended)
+    auto_k=True,                # Let elbow method choose K
+    elbow_threshold=0.1,        # Sensitivity (0.05-0.3)
+    k_range=(3, 10),            # K search range
+    n_clusters=6,               # Only used when auto_k=False
+    
+    # Visualization
+    overlay_ratio=4,            # Transparency (1=opaque, 10=transparent)
+    edge_width=2,               # Border thickness
+    use_hatching=True,          # Pattern distinction
+    use_pca=False               # Keep full feature space
+)
+
+# Automatic validation
+config.validate()  # Raises ValueError if invalid
 ```
+
+### Configuration Tips
+
+**Elbow Threshold Values:**
+- `0.05-0.1`: Sensitive (finds more clusters)
+- `0.1-0.2`: Balanced (recommended)  
+- `0.2-0.3`: Conservative (fewer clusters)
+
+**Model Sizes:**
+- `small`: Fast, good for testing
+- `base`: Best balance (recommended)
+- `large`: Higher quality, slower
+- `giant`: Maximum quality, very slow
 
 ## 📊 Output Files
 
-For each processed image, the pipeline generates:
-- `{filename}_segmentation_legend.png` - Segmentation map with legend
-- `{filename}_overlay.png` - Original image with segmentation overlay
-- `{filename}_side_by_side.png` - Original and segmentation comparison
+### Smart Filename Generation
+
+Files now use **config-based naming** for easy identification:
+
+```
+{hash}_{version}_{model}_{stride}_{clustering}_type.png
+```
+
+**Examples:**
+- `a3f7_v1-5_base_str4_et0-1_segmentation_legend.png`
+- `a3f7_v1-5_base_str4_et0-1_edge_overlay.png`
+- `a3f7_v1-5_base_str4_et0-1_side_by_side.png`
+- `a3f7_v1-5_base_str4_et0-1_elbow_analysis.png`
+
+**Filename Components:**
+- `a3f7`: 4-char hash of original filename (prevents collisions)
+- `v1-5`: Version used
+- `base`: Model size
+- `str4`: Stride value
+- `et0-1`: Elbow threshold (or `k6` for fixed K)
+
+**File Types:**
+- `segmentation_legend.png`: Colored map with cluster legend
+- `edge_overlay.png`: Original image with colored boundaries
+- `side_by_side.png`: Original vs segmentation comparison
+- `elbow_analysis.png`: K-selection analysis (when auto_k=True)
 
 ## 🔧 Dependencies
 
