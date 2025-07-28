@@ -1,75 +1,24 @@
 ---
 ---
 
+// BYPASS APPROACH: Load minima but immediately override everything
 @import "minima";
 
-// Automatic dark mode based on system preference
-@media (prefers-color-scheme: dark) {
-  html, body {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-  }
-  
-  .site-header {
-    background-color: #2d2d2d;
-    border-bottom: 1px solid #404040;
-  }
-  
-  .site-title, .site-nav .page-link {
-    color: #ffffff;
-  }
-  
-  .site-nav .page-link:hover {
-    color: #64b5f6;
-  }
-  
-  .site-footer {
-    background-color: #2d2d2d;
-    border-top: 1px solid #404040;
-    color: #e0e0e0;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    color: #ffffff;
-  }
-  
-  a {
-    color: #64b5f6;
-  }
-  
-  a:hover {
-    color: #90caf9;
-  }
-  
-  code {
-    background-color: #333333;
-    color: #f0f0f0;
-  }
-  
-  pre {
-    background-color: #2d2d2d;
-    color: #f0f0f0;
-  }
-  
-  table {
-    background-color: #2d2d2d;
-  }
-  
-  table th, table td {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border-color: #404040;
-  }
-}
-
-// Also add explicit dark mode for users who have dark mode enabled
-@media (prefers-color-scheme: dark) {
-  .wrapper {
-    background-color: #1a1a1a;
-  }
-  
-  .page-content, .post-content {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-  }
-}
+// FORCE DARK IMMEDIATELY - no media queries, no conditions, just DARK
+html { background: #1a1a1a !important; }
+body { background: #1a1a1a !important; color: #e0e0e0 !important; }
+.wrapper { background: #1a1a1a !important; }
+.page-content { background: #1a1a1a !important; color: #e0e0e0 !important; }
+.site-header { background: #2d2d2d !important; border-bottom: 1px solid #404040 !important; }
+.site-title { color: #fff !important; }
+.site-nav .page-link { color: #fff !important; }
+.site-nav .page-link:hover { color: #64b5f6 !important; }
+.site-footer { background: #2d2d2d !important; color: #e0e0e0 !important; }
+h1, h2, h3, h4, h5, h6 { color: #fff !important; }
+p, li, td, span { color: #e0e0e0 !important; }
+a { color: #64b5f6 !important; }
+a:hover { color: #90caf9 !important; }
+code { background: #333 !important; color: #f0f0f0 !important; }
+pre { background: #2d2d2d !important; color: #f0f0f0 !important; }
+table { background: #2d2d2d !important; }
+table th, table td { background: #2d2d2d !important; color: #e0e0e0 !important; }
