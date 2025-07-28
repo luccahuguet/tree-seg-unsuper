@@ -8,6 +8,15 @@ overlay_ratio: 4
 stride: 4
 model_name: dinov2_vits14
 
+# Auto K-selection settings (when using elbow method)
+# elbow_threshold: 0.1  # Threshold for elbow detection
+# Tips for elbow_threshold values:
+#   - 0.05-0.1: Sensitive detection, finds subtle elbows (more clusters)
+#   - 0.1-0.2: Balanced detection, good for most cases (recommended)
+#   - 0.2-0.3: Conservative detection, finds only clear elbows (fewer clusters)
+#   - 0.3+: Very conservative, may miss valid elbows
+# Common values: 0.1 (default), 0.15 (slightly conservative), 0.05 (sensitive)
+
 # Visualization settings
 edge_width: 2
 use_hatching: true  # Enable transparent hatching

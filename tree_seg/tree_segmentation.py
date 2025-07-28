@@ -87,6 +87,7 @@ def tree_seg_with_auto_k(
                 print(f"✅ Processing completed! Used K = {actual_n_clusters}")
                 if auto_k:
                     print("📊 K selection method: elbow")
+                    print(f"🎯 Elbow threshold used: {elbow_threshold}")
                     print(f"📈 K selection analysis saved as: {output_prefix}_elbow_analysis.png")
             else:
                 print("❌ Processing failed")
@@ -117,6 +118,8 @@ def tree_seg_with_auto_k(
                     )
 
                     print(f"✅ {fname} completed! Used K = {actual_n_clusters}")
+                    if auto_k:
+                        print(f"🎯 Elbow threshold used: {elbow_threshold}")
 
     print("\n🎉 All processing completed!")
 
