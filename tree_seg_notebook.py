@@ -21,6 +21,7 @@
 %pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 %pip install timm
 %pip install xformers --index-url https://download.pytorch.org/whl/cu124
+%pip install Pillow  # Required for web optimization feature
 
 # %%
 # Import the modern API
@@ -31,24 +32,6 @@ from tree_seg import TreeSegmentation, segment_trees, Config, print_gpu_info
 
 print("✅ Modern Tree Segmentation API loaded!")
 print_gpu_info()
-
-# %%
-# Quick and Easy Usage - Single function call
-print("🚀 Quick segmentation using convenience function:")
-
-# Process a single image with sensible defaults
-results = segment_trees(
-    input_path="/kaggle/input/drone-10-best/DJI_20250127150117_0029_D.JPG",
-    model="base",           # small, base, large, giant
-    auto_k=True,           # Automatic K selection
-    elbow_threshold=0.1,   # More sensitive than default 3.0
-    use_hatching=True,     # Enable hatch patterns
-    edge_width=2
-)
-
-segmentation_result, output_paths = results[0]
-print(f"✅ Processed! Used K = {segmentation_result.n_clusters_used}")
-print(f"📁 Files: {[os.path.basename(p) for p in output_paths.all_paths()]}")
 
 # %%
 # Advanced Usage - Full control with Config class
@@ -74,7 +57,12 @@ config = Config(
     overlay_ratio=4,        # Good transparency
     edge_width=2,           # Clear borders
     use_hatching=True,      # Distinguish regions
-    use_pca=False           # Keep full feature space
+    use_pca=False,          # Keep full feature space
+    
+    # Web optimization (NEW!)
+    web_optimize=True,      # Auto-compress 7MB → 1-2MB for GitHub Pages
+    web_quality=85,         # JPEG quality (85 = good balance)
+    web_max_width=1200      # Max width for web display
 )
 
 # Create segmentation instance
@@ -178,3 +166,5 @@ print("  • Type-safe Results objects")
 print("  • Automatic file management")
 print("  • Intelligent filename generation")
 print("  • Simple API for both quick and advanced usage")
+print("  • Automatic web optimization (7MB → 1-2MB)")
+print("  • Ready for GitHub Pages deployment")
