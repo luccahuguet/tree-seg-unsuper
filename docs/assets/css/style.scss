@@ -3,87 +3,73 @@
 
 @import "minima";
 
-// NUCLEAR dark theme - target everything
-html, body {
-  background-color: #1a1a1a !important;
-  color: #e0e0e0 !important;
-}
-
-body *, 
-.wrapper, 
-.wrapper *, 
-.page-content, 
-.page-content *, 
-main, 
-main *,
-.post-content,
-.post-content * {
-  background-color: inherit !important;
-  color: inherit !important;
-}
-
-.site-header {
-  background-color: #2d2d2d !important;
-  border-bottom: 1px solid #404040 !important;
+// Automatic dark mode based on system preference
+@media (prefers-color-scheme: dark) {
+  html, body {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+  }
+  
+  .site-header {
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #404040;
+  }
   
   .site-title, .site-nav .page-link {
-    color: #ffffff !important;
-    
-    &:hover {
-      color: #64b5f6 !important;
-    }
+    color: #ffffff;
   }
-}
-
-.site-footer {
-  background-color: #2d2d2d !important;
-  border-top: 1px solid #404040 !important;
-  color: #e0e0e0 !important;
-}
-
-.post-content, .page-content {
+  
+  .site-nav .page-link:hover {
+    color: #64b5f6;
+  }
+  
+  .site-footer {
+    background-color: #2d2d2d;
+    border-top: 1px solid #404040;
+    color: #e0e0e0;
+  }
+  
   h1, h2, h3, h4, h5, h6 {
-    color: #ffffff !important;
+    color: #ffffff;
   }
   
-  p, li, td {
-    color: #e0e0e0 !important;
+  a {
+    color: #64b5f6;
+  }
+  
+  a:hover {
+    color: #90caf9;
+  }
+  
+  code {
+    background-color: #333333;
+    color: #f0f0f0;
+  }
+  
+  pre {
+    background-color: #2d2d2d;
+    color: #f0f0f0;
+  }
+  
+  table {
+    background-color: #2d2d2d;
+  }
+  
+  table th, table td {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
   }
 }
 
-a {
-  color: #64b5f6 !important;
-  
-  &:hover {
-    color: #90caf9 !important;
-  }
-}
-
-code {
-  background-color: #333333 !important;
-  color: #f0f0f0 !important;
-  border: 1px solid #555555 !important;
-}
-
-pre {
-  background-color: #2d2d2d !important;
-  border: 1px solid #404040 !important;
-  color: #f0f0f0 !important;
-}
-
-// Table styling for dark theme
-table {
-  background-color: #2d2d2d !important;
-  border: 1px solid #404040 !important;
-  
-  th, td {
-    background-color: #2d2d2d !important;
-    color: #e0e0e0 !important;
-    border: 1px solid #404040 !important;
+// Also add explicit dark mode for users who have dark mode enabled
+@media (prefers-color-scheme: dark) {
+  .wrapper {
+    background-color: #1a1a1a;
   }
   
-  th {
-    background-color: #3d3d3d !important;
-    color: #ffffff !important;
+  .page-content, .post-content {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
   }
 }
