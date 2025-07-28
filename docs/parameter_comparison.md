@@ -1,0 +1,173 @@
+---
+layout: default
+title: "Parameter Comparison"
+---
+
+# Parameter Comparison: Model Size and Stride Analysis
+
+This section compares the impact of different DINOv2 model sizes and stride parameters on tree segmentation quality, using edge overlay visualizations for direct comparison.
+
+## Comparison Methodology
+
+All experiments use the same source image with identical clustering parameters, varying only:
+- **Model Size**: small, base, large
+- **Stride Parameter**: 2, 4, 8
+
+This controlled approach isolates the impact of each parameter on segmentation quality.
+
+---
+
+## Model Size Comparison
+
+### DINOv2 Small (`dinov2_vits14`)
+*Fast processing, good for testing and rapid iteration*
+
+![Small Model](../results/parameter_comparison/d111_v1-5_small_str4_et3-0_edge_overlay.jpg)
+
+**Characteristics**:
+- **Speed**: Fastest processing (~30 seconds)
+- **Memory**: Lowest GPU memory usage
+- **Feature Dimension**: 384
+- **Use Case**: Rapid prototyping, resource-constrained environments
+
+---
+
+### DINOv2 Base (`dinov2_vitb14`) - Recommended
+*Optimal balance of quality and performance*
+
+![Base Model](../results/parameter_comparison/d111_v1-5_base_str4_et3-0_edge_overlay.jpg)
+
+**Characteristics**:
+- **Speed**: Balanced processing (~45 seconds)
+- **Memory**: Moderate GPU memory usage
+- **Feature Dimension**: 768
+- **Use Case**: Production workflows, research applications
+
+---
+
+### DINOv2 Large (`dinov2_vitl14`)
+*Highest quality features, slower processing*
+
+![Large Model](../results/parameter_comparison/d111_v1-5_large_str4_et3-0_edge_overlay.jpg)
+
+**Characteristics**:
+- **Speed**: Slower processing (~75 seconds)
+- **Memory**: Higher GPU memory usage
+- **Feature Dimension**: 1024
+- **Use Case**: Maximum quality requirements, final production
+
+---
+
+## Stride Parameter Comparison
+
+### Stride 2: High Resolution
+*Maximum detail, slower processing*
+
+![Stride 2](../results/parameter_comparison/d111_v1-5_base_str2_et3-0_edge_overlay.jpg)
+
+**Characteristics**:
+- **Resolution**: Highest feature map resolution
+- **Detail**: Maximum boundary precision
+- **Speed**: Slowest processing
+- **Memory**: Highest usage
+
+---
+
+### Stride 4: Balanced (Recommended)
+*Optimal trade-off between quality and speed*
+
+![Stride 4](../results/parameter_comparison/d111_v1-5_base_str4_et3-0_edge_overlay.jpg)
+
+**Characteristics**:
+- **Resolution**: Good feature map resolution
+- **Detail**: Excellent boundary quality
+- **Speed**: Reasonable processing time
+- **Memory**: Moderate usage
+
+---
+
+### Stride 8: Fast Processing
+*Quick results, lower resolution*
+
+![Stride 8](../results/parameter_comparison/d111_v1-5_base_str8_et3-0_edge_overlay.jpg)
+
+**Characteristics**:
+- **Resolution**: Lower feature map resolution
+- **Detail**: Good general segmentation
+- **Speed**: Fastest processing
+- **Memory**: Lowest usage
+
+---
+
+## Comparative Analysis
+
+### Model Size Impact
+
+| Model | Processing Time | Memory Usage | Boundary Precision | Feature Quality |
+|-------|----------------|--------------|-------------------|-----------------|
+| **Small** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ |
+| **Base** | ⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+| **Large** | ⭐ | ⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+
+### Stride Parameter Impact
+
+| Stride | Processing Time | Memory Usage | Detail Level | Practical Use |
+|--------|----------------|--------------|--------------|---------------|
+| **2** | ⭐ | ⭐ | ⭐⭐⭐ | Research |
+| **4** | ⭐⭐ | ⭐⭐ | ⭐⭐⭐ | Production |
+| **8** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | Rapid Testing |
+
+---
+
+## Key Findings
+
+### Model Selection Recommendations
+
+1. **For Research & Production**: Use **Base** model
+   - Best balance of quality and performance
+   - Suitable for academic publication
+   - Reasonable computational requirements
+
+2. **For Rapid Prototyping**: Use **Small** model
+   - Quick iteration cycles
+   - Good for parameter testing
+   - Lower resource requirements
+
+3. **For Maximum Quality**: Use **Large** model
+   - When computational resources are abundant
+   - For final production runs
+   - When highest precision is required
+
+### Stride Selection Guidelines
+
+1. **Stride 4 (Recommended)**: Best general-purpose setting
+   - Excellent boundary quality
+   - Reasonable processing time
+   - Good for most applications
+
+2. **Stride 2**: When maximum detail is critical
+   - Fine-grained boundary detection
+   - Research applications requiring precision
+   - When processing time is not a constraint
+
+3. **Stride 8**: For rapid exploration
+   - Quick parameter testing
+   - Large-scale batch processing
+   - When approximate results are sufficient
+
+---
+
+## Performance vs Quality Trade-offs
+
+The comparison reveals clear trade-offs between computational efficiency and segmentation quality:
+
+- **Model size** primarily affects feature richness and boundary precision
+- **Stride parameter** mainly impacts spatial resolution and detail level
+- **Base + Stride 4** provides the optimal balance for most use cases
+- **Large + Stride 2** offers maximum quality at significant computational cost
+
+These results enable informed parameter selection based on specific requirements and available computational resources.
+
+---
+
+[← Complete Example](complete_example.html) | [Analysis →](analysis.html) | [Home](index.html)

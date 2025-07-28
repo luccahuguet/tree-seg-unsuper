@@ -9,37 +9,36 @@ title: "Results"
 
 Results from processing aerial drone imagery using our DINOv2-based tree segmentation pipeline. All images processed with automatic K-selection using elbow method optimization.
 
-## Sample Results
+## Results Sections
 
-### Experiment 1: Dense Forest Canopy
+### [Complete Example: Full Pipeline Demonstration](complete_example.html)
+*Comprehensive showcase of all four output types from a single segmentation run*
 
-**Configuration**: `a3f7_v1-5_base_str4_et0-1`
-- **Image**: DJI_20250127150117_0029_D.JPG
-- **Clusters Detected**: 5 (automatically selected)
-- **Processing Time**: ~45 seconds
+- **All Output Types**: Segmentation legend, edge overlay, side-by-side, elbow analysis
+- **Complete Documentation**: Full parameter tracking and methodology
+- **Professional Quality**: Publication-ready visualizations
+- **Academic Standard**: Suitable for research presentation
 
-#### Visualization Outputs
+### [Parameter Comparison: Model & Stride Analysis](parameter_comparison.html)
+*Systematic comparison of DINOv2 model sizes and stride parameters*
 
-**Edge Overlay**: Original image with colored boundaries
-![Edge Overlay](assets/images/a3f7_v1-5_base_str4_et0-1_edge_overlay.jpg)
-*Colored boundaries overlaid on original drone imagery with hatch patterns for region distinction*
-
-**Side-by-Side Comparison**: Original vs. Segmentation
-![Side by Side](assets/images/a3f7_v1-5_base_str4_et0-1_side_by_side.jpg)
-*Left: Original aerial image | Right: Segmentation map with cluster legend*
-
-**Segmentation Legend**: Detailed cluster visualization
-![Segmentation Legend](assets/images/a3f7_v1-5_base_str4_et0-1_segmentation_legend.jpg)
-*Segmentation map with comprehensive cluster legend and configuration parameters*
-
-**K-Selection Analysis**: Elbow method visualization
-![Elbow Analysis](assets/images/a3f7_v1-5_base_str4_et0-1_elbow_analysis.jpg)
-*WCSS curve showing automatic K=5 selection with elbow threshold analysis*
+- **Model Comparison**: Small vs Base vs Large DINOv2 variants
+- **Stride Analysis**: Resolution vs speed trade-offs (stride 2, 4, 8)
+- **Performance Metrics**: Processing time, memory usage, quality assessment
+- **Selection Guidelines**: Recommendations for different use cases
 
 ---
 
-### Key Observations
+## Quick Preview
 
+### Sample Configuration: `d111_v1-5_base_str4_et3-0`
+- **Image**: DJI_20250127150117_0029_D.JPG
+- **Model**: DINOv2 Base (recommended)
+- **Stride**: 4 (balanced)
+- **Clustering**: Elbow threshold 3.0
+- **Clusters Found**: 5 (automatically selected)
+
+### Key Observations
 1. **Boundary Quality**: Clean, accurate tree boundaries with minimal over-segmentation
 2. **Cluster Coherence**: Meaningful groupings corresponding to distinct tree regions
 3. **Automatic K-Selection**: Elbow method successfully identified optimal cluster count

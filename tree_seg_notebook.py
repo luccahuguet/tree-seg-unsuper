@@ -110,49 +110,6 @@ if latest_outputs:
 else:
     print("❌ No output files found")
 
-# %%
-# Cleanup and file management
-print("🧹 File management:")
-
-# List all outputs
-all_outputs = segmenter.output_manager.list_all_outputs()
-print(f"📄 Total output files: {len(all_outputs)}")
-
-# Show latest files with their names (showcasing config-based naming)
-if all_outputs:
-    print("\n📋 Recent files (showing config-based naming):")
-    for file_path in all_outputs[:5]:  # Show latest 5
-        filename = os.path.basename(file_path)
-        size_mb = os.path.getsize(file_path) / (1024*1024)
-        print(f"  • {filename} ({size_mb:.1f}MB)")
-
-# Clean up old files (keep latest 3 of each type)
-segmenter.cleanup_old_outputs(keep_latest=3)
-
-# %%
-# Configuration validation and tips
-print("⚙️ Configuration tips:")
-
-try:
-    # This will fail validation
-    bad_config = Config(overlay_ratio=15, stride=20)
-    bad_config.validate()
-except ValueError as e:
-    print(f"❌ Invalid config: {e}")
-
-# Show model mapping
-config = Config()
-print(f"🤖 Model mapping examples:")
-for model in ["small", "base", "large", "giant"]:
-    config.model_name = model
-    print(f"  • {model} → {config.model_display_name}")
-
-print("\n🎉 Modern Tree Segmentation Demo Complete!")
-print("💡 Key improvements:")
-print("  • Clean Config dataclass with validation")
-print("  • Type-safe Results objects")
-print("  • Automatic file management")
-print("  • Intelligent filename generation")
-print("  • Simple API for both quick and advanced usage")
-print("  • Automatic web optimization (7MB → 1-2MB)")
-print("  • Ready for GitHub Pages deployment")
+print("\n🎉 Tree Segmentation Complete!")
+print(f"📁 Results saved with config-based naming")
+print(f"🌐 Web optimization: {'enabled' if config.web_optimize else 'disabled'}")
