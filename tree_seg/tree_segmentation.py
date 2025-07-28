@@ -76,7 +76,7 @@ def tree_seg_with_auto_k(
             # Process with automatic K selection parameters
             result = process_image(
                 image_path, model, preprocess, n_clusters, stride, version, device,
-                auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold, use_pca=use_pca
+                auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold, use_pca=use_pca, model_name=model_name
             )
 
             if result[0] is not None:
@@ -110,7 +110,7 @@ def tree_seg_with_auto_k(
 
                 result = process_image(
                     image_path, model, preprocess, n_clusters, stride, version, device,
-                    auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold, use_pca=use_pca
+                    auto_k=auto_k, k_range=k_range, elbow_threshold=elbow_threshold, use_pca=use_pca, model_name=model_name
                 )
 
                 if result[0] is not None:

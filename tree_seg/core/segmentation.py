@@ -14,7 +14,7 @@ from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
 
 def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                 auto_k=False, k_range=(3, 10), elbow_threshold=3.0, use_pca=False):
+                 auto_k=False, k_range=(3, 10), elbow_threshold=3.0, use_pca=False, model_name=None):
     """
     Process a single image for tree segmentation.
     
@@ -120,7 +120,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             # Save K selection analysis plot
             output_dir = "/kaggle/working/output"
             output_prefix = os.path.splitext(os.path.basename(image_path))[0]
-            plot_elbow_analysis(k_scores, output_dir, output_prefix, elbow_threshold)
+            plot_elbow_analysis(k_scores, output_dir, output_prefix, elbow_threshold,
+                               model_name, version, stride, optimal_k, auto_k, image_path)
 
             n_clusters = optimal_k
         else:

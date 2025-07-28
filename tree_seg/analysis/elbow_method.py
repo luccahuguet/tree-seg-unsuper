@@ -5,6 +5,7 @@ Elbow method for automatic K selection in tree segmentation clustering.
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import hashlib
 from sklearn.cluster import KMeans
 
 
@@ -87,7 +88,9 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.0):
     }
 
 
-def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0):
+def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0, 
+                        model_name=None, version=None, stride=None, n_clusters=None, 
+                        auto_k=True, image_path=None):
     """
     Create enhanced elbow plot with additional analysis information.
     """
@@ -129,8 +132,35 @@ def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0):
 
     plt.tight_layout()
 
-    # Save plot
-    plot_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
+    # Generate config-based filename if all parameters are provided
+    if all([model_name, version, stride, image_path]) and n_clusters:
+        from ..utils.config import parse_model_info
+        
+        # Generate filename hash
+        filename = os.path.basename(image_path)
+        file_hash = hashlib.sha1(filename.encode()).hexdigest()[:4]
+        
+        # Parse model info
+        _, nickname, _ = parse_model_info(model_name)
+        model_nick = nickname.lower()
+        
+        # Format version (replace dots with hyphens)
+        version_str = version.replace(".", "-")
+        
+        # Build config-based filename
+        components = [file_hash, version_str, model_nick, f"str{stride}"]
+        
+        if auto_k and elbow_threshold is not None:
+            et_str = f"et{str(elbow_threshold).replace('.', '-')}"
+            components.append(et_str)
+        else:
+            components.append(f"k{n_clusters}")
+        
+        config_filename = "_".join(components) + "_elbow_analysis"
+        plot_path = os.path.join(output_dir, f"{config_filename}.png")
+    else:
+        # Fallback to old naming
+        plot_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
     plt.savefig(plot_path, dpi=300, bbox_inches='tight')
     plt.close()
 
