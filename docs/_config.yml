@@ -6,11 +6,18 @@ email: "your-email@example.com"
 # Build settings
 markdown: kramdown
 highlighter: rouge
-theme: minima
+remote_theme: jekyll/minima
 
 # Dark theme settings
 minima:
   skin: dark
+
+# Plugins
+plugins:
+  - jekyll-remote-theme
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
 
 # GitHub Pages settings
 baseurl: "/tree-seg-unsuper"
@@ -31,11 +38,6 @@ collections:
     output: true
     permalink: /:collection/:name/
 
-# Plugins
-plugins:
-  - jekyll-feed
-  - jekyll-sitemap
-  - jekyll-seo-tag
 
 # Exclude from processing
 exclude:

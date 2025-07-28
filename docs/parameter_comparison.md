@@ -23,7 +23,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ### DINOv2 Small (`dinov2_vits14`)
 *Fast processing, good for testing and rapid iteration*
 
-![Small Model]({{ '/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg' | relative_url }})
+![Small Model]({{ "/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg" | relative_url }})
 
 **Characteristics**:
 - **Speed**: Fastest processing (~30 seconds)
@@ -36,7 +36,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ### DINOv2 Base (`dinov2_vitb14`) - Recommended
 *Optimal balance of quality and performance*
 
-![Base Model]({{ '/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg' | relative_url }})
+![Base Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Speed**: Balanced processing (~45 seconds)
@@ -49,7 +49,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ### DINOv2 Large (`dinov2_vitl14`)
 *Highest quality features, slower processing*
 
-![Large Model]({{ '/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg' | relative_url }})
+![Large Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Speed**: Slower processing (~75 seconds)
@@ -64,7 +64,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ### Stride 2: High Resolution
 *Maximum detail, slower processing*
 
-![Stride 2]({{ '/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg' | relative_url }})
+![Stride 2]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Resolution**: Highest feature map resolution
@@ -77,7 +77,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ### Stride 4: Balanced (Recommended)
 *Optimal trade-off between quality and speed*
 
-![Stride 4]({{ '/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg' | relative_url }})
+![Stride 4]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Resolution**: Good feature map resolution
@@ -90,7 +90,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ### Stride 8: Fast Processing
 *Quick results, lower resolution*
 
-![Stride 8]({{ '/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg' | relative_url }})
+![Stride 8]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Resolution**: Lower feature map resolution
