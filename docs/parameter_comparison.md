@@ -23,7 +23,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ### DINOv2 Small (`dinov2_vits14`)
 *Fast processing, good for testing and rapid iteration*
 
-![Small Model]({{ "/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg" | relative_url }})
+![Small Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Speed**: Fastest processing (~30 seconds)

@@ -1,5 +1,50 @@
 ---
 ---
 
-@import "minima/skins/{{ site.minima.skin | default: 'classic' }}";
-@import "minima/initialize";
+@import "minima";
+
+// Custom dark theme overrides
+body {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0 !important;
+}
+
+.site-header {
+  background-color: #2d2d2d !important;
+  border-bottom: 1px solid #404040 !important;
+}
+
+.site-title, .site-nav .page-link {
+  color: #ffffff !important;
+}
+
+.site-nav .page-link:hover {
+  color: #64b5f6 !important;
+}
+
+.site-footer {
+  background-color: #2d2d2d !important;
+  border-top: 1px solid #404040 !important;
+}
+
+.post-content h1, .post-content h2, .post-content h3, .post-content h4 {
+  color: #ffffff !important;
+}
+
+a {
+  color: #64b5f6 !important;
+}
+
+a:hover {
+  color: #90caf9 !important;
+}
+
+code {
+  background-color: #333333 !important;
+  color: #f0f0f0 !important;
+}
+
+pre {
+  background-color: #2d2d2d !important;
+  border: 1px solid #404040 !important;
+}
