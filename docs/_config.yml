@@ -6,7 +6,9 @@ email: "your-email@example.com"
 # Build settings
 markdown: kramdown
 highlighter: rouge
-theme: hacker
+# theme: hacker
+# theme: hacker
+theme: slate
 
 # Plugins (built into GitHub Pages)
 plugins:
