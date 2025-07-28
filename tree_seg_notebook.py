@@ -111,18 +111,6 @@ else:
     print("❌ No output files found")
 
 # %%
-# Batch Processing - Process multiple images
-print("📁 Batch processing example:")
-
-# Process all images in directory
-batch_results = segmenter.process_directory()
-
-print(f"✅ Processed {len(batch_results)} images")
-for result, paths in batch_results:
-    filename = os.path.basename(result.image_path)
-    print(f"  • {filename}: K={result.n_clusters_used}")
-
-# %%
 # Cleanup and file management
 print("🧹 File management:")
 
