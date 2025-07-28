@@ -1,24 +1,4 @@
 ---
 ---
 
-// BYPASS APPROACH: Load minima but immediately override everything
-@import "minima";
-
-// FORCE DARK IMMEDIATELY - no media queries, no conditions, just DARK
-html { background: #1a1a1a !important; }
-body { background: #1a1a1a !important; color: #e0e0e0 !important; }
-.wrapper { background: #1a1a1a !important; }
-.page-content { background: #1a1a1a !important; color: #e0e0e0 !important; }
-.site-header { background: #2d2d2d !important; border-bottom: 1px solid #404040 !important; }
-.site-title { color: #fff !important; }
-.site-nav .page-link { color: #fff !important; }
-.site-nav .page-link:hover { color: #64b5f6 !important; }
-.site-footer { background: #2d2d2d !important; color: #e0e0e0 !important; }
-h1, h2, h3, h4, h5, h6 { color: #fff !important; }
-p, li, td, span { color: #e0e0e0 !important; }
-a { color: #64b5f6 !important; }
-a:hover { color: #90caf9 !important; }
-code { background: #333 !important; color: #f0f0f0 !important; }
-pre { background: #2d2d2d !important; color: #f0f0f0 !important; }
-table { background: #2d2d2d !important; }
-table th, table td { background: #2d2d2d !important; color: #e0e0e0 !important; }
+@import "{{ site.theme }}";
