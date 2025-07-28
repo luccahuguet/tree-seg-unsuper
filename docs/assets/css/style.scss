@@ -3,14 +3,23 @@
 
 @import "minima";
 
-// Force dark theme with maximum CSS specificity
-* {
-  box-sizing: border-box;
-}
-
-html, body, .wrapper, .page-content, main, .post-content {
+// NUCLEAR dark theme - target everything
+html, body {
   background-color: #1a1a1a !important;
   color: #e0e0e0 !important;
+}
+
+body *, 
+.wrapper, 
+.wrapper *, 
+.page-content, 
+.page-content *, 
+main, 
+main *,
+.post-content,
+.post-content * {
+  background-color: inherit !important;
+  color: inherit !important;
 }
 
 .site-header {
