@@ -6,10 +6,10 @@ email: "your-email@example.com"
 # Build settings
 markdown: kramdown
 highlighter: rouge
-theme: cayman
+remote_theme: pages-themes/slate@v0.2.0
 
-# Plugins (built into GitHub Pages)
 plugins:
+  - jekyll-remote-theme
   - jekyll-feed
   - jekyll-sitemap
   - jekyll-seo-tag
