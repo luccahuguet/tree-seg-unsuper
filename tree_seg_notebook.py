@@ -63,7 +63,13 @@ config = {
     "version": "v1.5",
     "auto_k": True,                         # Automatic K selection (recommended)
     "k_range": (3, 10),                     # K range for auto selection
-    "elbow_threshold": 3.0,                 # Sensitivity for elbow detection (lower = more sensitive)
+    "elbow_threshold": 3.0,                 # Elbow detection threshold
+    # Tips for elbow_threshold values:
+    # - 0.05-0.1: Sensitive detection, finds subtle elbows (more clusters)
+    # - 0.1-0.2: Balanced detection, good for most cases (recommended) 
+    # - 0.2-0.3: Conservative detection, finds only clear elbows (fewer clusters)
+    # - 3.0: Very conservative (current default)
+    # Common values: 0.1 (sensitive), 0.15 (balanced), 3.0 (conservative)
     "n_clusters": 6,                        # Only used if auto_k=False
     "overlay_ratio": 4,                     # Transparency: 1=opaque, 10=transparent
     "stride": 4,                            # Lower=higher resolution, slower

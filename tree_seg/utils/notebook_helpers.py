@@ -52,5 +52,6 @@ def print_config_summary(config):
     if config['auto_k']:
         print(f"📊 Method: Elbow (optimized for trees)")
         print(f"📈 K Range: {config['k_range']}")
+        print(f"🎯 Elbow Threshold: {config['elbow_threshold']}")
     else:
         print(f"🔢 Fixed K: {config['n_clusters']}") 
