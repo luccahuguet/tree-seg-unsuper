@@ -25,7 +25,7 @@ Our tree segmentation pipeline consists of four main stages:
 **Model**: DINOv2 Vision Transformer (v1.5)
 - **Variant**: Base model (dinov2_vitb14)
 - **Features**: Patch embeddings + attention features
-- **Dimensionality**: 780-dimensional feature space
+- **Dimensionality**: 768-dimensional feature space
 - **Stride**: 4 (balance of quality vs. speed)
 
 ### 2. Automatic K-Selection
@@ -80,6 +80,3 @@ config = Config(
 - **Performance**: Optimized numpy operations and memory management
 - **Maintainability**: Clean separation of concerns and modular design
 
----
-
-[← Home](index.html) | [Results →](results.html)

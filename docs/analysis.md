@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Analysis"
-nav_order: 6
+nav_order: 5
 ---
 
 {% include navbar.html %}
@@ -16,7 +16,7 @@ nav_order: 6
 Our DINOv2-based approach demonstrates several key strengths:
 
 #### 1. Feature Quality
-- **Rich Representations**: 780-dimensional feature space captures fine-grained tree characteristics
+- **Rich Representations**: 768-dimensional feature space captures fine-grained tree characteristics
 - **Self-Supervised Learning**: No manual annotation requirements
 - **Scale Invariance**: Robust across different tree sizes and densities
 
@@ -43,18 +43,23 @@ Our DINOv2-based approach demonstrates several key strengths:
 2. **Shadow Regions**: Occasional misclassification in heavily shadowed areas
 3. **Edge Cases**: Performance varies with extreme lighting conditions
 
-### Technical Innovation
+### Model Size Impact on Segmentation
 
-#### Modern Architecture Benefits
-- **Type Safety**: Eliminates common configuration errors
-- **Maintainability**: Clean separation of concerns
-- **Extensibility**: Easy to add new features and algorithms
-- **Professional Output**: Publication-ready visualizations
+Our systematic comparison across DINOv2 model sizes reveals important insights:
 
-#### Smart File Management
-- **Config-Based Naming**: All parameters visible in filenames
-- **Collision Prevention**: Unique hashing prevents overwrites
-- **Organized Output**: Systematic result organization
+#### K-Selection Patterns
+- **Small Model (384D)**: Optimal K=4 clusters
+- **Base Model (768D)**: Optimal K=5 clusters  
+- **Large Model (1024D)**: Optimal K=5 clusters
+- **Giant Model (1536D)**: Optimal K=6 clusters
+
+This progression demonstrates how higher-dimensional feature representations enable detection of more granular tree region distinctions.
+
+#### Boundary Quality Assessment
+Visual inspection of edge overlay results shows:
+- **Improved precision** with larger models
+- **Better separation** of similar vegetation types
+- **Diminishing returns** beyond Base model for most applications
 
 ## Comparison with Traditional Methods
 
@@ -63,8 +68,7 @@ Our DINOv2-based approach demonstrates several key strengths:
 | **Annotation Required** | Yes (supervised) | No (unsupervised) |
 | **Feature Engineering** | Manual | Automatic (DINOv2) |
 | **Scalability** | Limited | High |
-| **Code Quality** | Research scripts | Production-ready |
-| **Visualization** | Basic | Professional |
+| **Clustering Decision** | Manual K selection | Automatic elbow method |
 
 ## Future Directions
 
@@ -87,14 +91,17 @@ This work demonstrates how modern self-supervised learning can be effectively ap
 3. **Research Foundation**: Platform for future algorithmic development
 4. **Educational Value**: Clear documentation and reproducible results
 
-## Reproducibility
+## Research Contributions
 
-All results are fully reproducible using:
-- **Configuration Files**: Complete parameter specifications
-- **Version Control**: All code changes tracked
-- **Documentation**: Detailed methodology and setup instructions
-- **Clean Architecture**: Modular, testable components
+This work advances unsupervised tree segmentation through:
 
----
+### 1. Empirical Findings
+- **Feature Dimensionality Impact**: Higher-dimensional DINOv2 features lead to more granular clustering
+- **Automatic K-Selection**: Elbow method with 0.15 threshold works effectively across model sizes
+- **Model Performance Scaling**: Diminishing returns observed beyond Base model for most forestry applications
 
-[← Results](results.html) | [Home](index.html)
+### 2. Methodological Innovation
+- **Self-Supervised Approach**: Eliminates need for manual tree boundary annotations
+- **Multi-Scale Analysis**: Systematic comparison across four DINOv2 model sizes
+- **Reproducible Pipeline**: Standardized configuration and output naming conventions
+

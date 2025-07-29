@@ -11,25 +11,37 @@ nav_order: 1
 
 ## Overview
 
-This research presents an unsupervised tree segmentation approach using DINOv2 Vision Transformers for aerial drone imagery. Our method combines modern deep learning features with intelligent clustering to achieve high-quality tree boundary detection.
+This research presents a systematic study of unsupervised tree segmentation using DINOv2 Vision Transformers for aerial drone imagery. Our approach eliminates the need for manual annotations while achieving high-quality tree boundary detection through intelligent clustering of self-supervised features.
 
-## Key Features
+## Research Objectives
 
-- **🌳 Unsupervised Learning**: No manual annotations required
-- **🚁 Drone Imagery**: Optimized for aerial perspectives
-- **🤖 DINOv2 Features**: State-of-the-art vision transformer features
-- **📊 Automatic K-Selection**: Intelligent cluster number detection
-- **🎯 Professional Results**: Publication-ready visualizations
+1. **Evaluate DINOv2 effectiveness** for forestry applications across multiple model sizes
+2. **Develop automatic K-selection** methodology for optimal cluster number determination  
+3. **Establish performance benchmarks** across computational vs. quality trade-offs
+4. **Create reproducible pipeline** for systematic tree segmentation analysis
 
-## Current Implementation
+## Key Contributions
 
-**Algorithm Version**: v1.5 (DINOv2 with patch + attention features)  
-**Architecture**: Modern Python API with type safety  
-**Clustering**: K-means with elbow method optimization  
-**Visualization**: Multi-format outputs with config-based naming  
+- **🔬 Empirical Analysis**: Systematic comparison of Small, Base, Large, and Giant DINOv2 models
+- **📊 K-Selection Discovery**: Higher-dimensional features lead to more granular clustering (K=4→5→5→6)
+- **⚖️ Performance Trade-offs**: Quantified diminishing returns beyond Base model for most applications
+- **🛠️ Methodological Framework**: Production-ready pipeline with automatic parameter optimization
 
-## Research Context
+## Technical Innovation
 
-This work represents a modern approach to unsupervised segmentation in the forestry domain, leveraging recent advances in self-supervised learning to achieve robust tree boundary detection without requiring labeled training data.
+**Self-Supervised Features**: DINOv2 Vision Transformers eliminate manual annotation requirements  
+**Intelligent Clustering**: Elbow method with optimized thresholds for forest imagery  
+**Multi-Scale Analysis**: Comprehensive evaluation across four model architectures  
+**Professional Visualization**: Publication-ready outputs with systematic naming conventions
+
+## Research Impact
+
+This work demonstrates how modern self-supervised learning can advance forestry remote sensing by:
+- **Reducing annotation costs** through unsupervised methodology
+- **Scaling to large datasets** with automatic processing pipelines  
+- **Providing quantitative guidance** for model selection in resource-constrained environments
+- **Establishing baseline performance** for future algorithmic development
+
+The systematic model comparison reveals that Base DINOv2 provides optimal balance for most forestry applications, while larger models offer marginal improvements at significant computational cost.
 
 

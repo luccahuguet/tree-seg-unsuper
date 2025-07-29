@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Complete Example"
-nav_order: 4
+nav_order: 3
 ---
 
 {% include navbar.html %}
@@ -14,12 +14,12 @@ This section showcases a complete tree segmentation run with all four output vis
 ## Configuration Used
 
 **Image**: DJI_20250127150117_0029_D.JPG  
-**Configuration**: `d111_v1-5_base_str4_et3-0`
+**Configuration**: `d111_v1-5_base_str4_et0-15`
 
 - **Model**: DINOv2 Base (`dinov2_vitb14`)
 - **Version**: v1.5 (patch + attention features)
 - **Stride**: 4 (balanced speed/quality)
-- **Clustering**: Elbow threshold 3.0
+- **Clustering**: Elbow threshold 0.15
 - **Clusters Found**: 5 (automatically selected)
 
 ---
@@ -90,6 +90,3 @@ This complete example demonstrates:
 
 The results show successful unsupervised segmentation of complex forest imagery with professional-grade output quality suitable for academic presentation.
 
----
-
-[← Results](results.html) | [Parameter Comparison →](parameter_comparison.html) | [Home](index.html)

@@ -23,7 +23,6 @@ url: "https://luccahuguet.github.io"
 header_pages:
   - index.md
   - methodology.md
-  - results.md
   - complete_example.md
   - parameter_comparison.md
   - analysis.md

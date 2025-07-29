@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Parameter Comparison"
-nav_order: 5
+nav_order: 4
 ---
 
 {% include navbar.html %}
@@ -108,6 +108,3 @@ The comparison reveals clear relationships between model size and segmentation q
 
 The edge overlay visualizations above enable direct visual comparison of tree boundary detection quality across all model sizes. Note that while clustering parameters remain identical (elbow_threshold=0.15), the automatic K-selection algorithm chooses different optimal cluster counts based on the feature dimensionality and richness of each model, demonstrating how larger models naturally discover more granular tree segmentation patterns.
 
----
-
-[← Complete Example](complete_example.html) | [Analysis →](analysis.html) | [Home](index.html)
