@@ -1,8 +1,8 @@
 # TODO List - Tree Segmentation Project
 
-- [ ] small
-- [ ] large
-- [ ] giant
+- [x] small
+- [x] large
+- [ ] giant (taking too long)
 - [x] docs: parameter
 - [ ] docs: parameter
 
