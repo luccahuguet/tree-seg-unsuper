@@ -84,18 +84,20 @@ The comparison reveals clear relationships between model size and segmentation q
 ### Key Observations
 
 1. **Feature Richness**: Larger models capture more nuanced tree boundary details
-2. **Computational Trade-offs**: Each model size step significantly increases processing time and memory usage
-3. **Diminishing Returns**: Quality improvements become smaller as model size increases
-4. **Practical Balance**: Base model provides excellent results for most applications
+2. **Automatic K-Selection**: Optimal cluster count increases with model size (K=4, 5, 5, 6 for Small, Base, Large, Giant respectively)
+3. **Clustering Granularity**: Higher-dimensional features enable detection of more distinct tree regions
+4. **Computational Trade-offs**: Each model size step significantly increases processing time and memory usage
+5. **Diminishing Returns**: Quality improvements become smaller as model size increases
+6. **Practical Balance**: Base model provides excellent results for most applications
 
 ### Performance vs Quality Trade-offs
 
-| Model | Feature Dim | Relative Speed | Memory Usage | Best Use Case |
-|-------|-------------|----------------|--------------|---------------|
-| Small | 384 | Fastest | Lowest | Testing, prototyping |
-| Base | 768 | Balanced | Moderate | Production workflows |
-| Large | 1024 | Slower | Higher | High-quality analysis |
-| Giant | 1536 | Slowest | Highest | Research benchmarks |
+| Model | Feature Dim | Auto K | Relative Speed | Memory Usage | Best Use Case |
+|-------|-------------|---------|----------------|--------------|---------------|
+| Small | 384 | 4 | Fastest | Lowest | Testing, prototyping |
+| Base | 768 | 5 | Balanced | Moderate | Production workflows |
+| Large | 1024 | 5 | Slower | Higher | High-quality analysis |
+| Giant | 1536 | 6 | Slowest | Highest | Research benchmarks |
 
 ### Recommendations
 
@@ -104,7 +106,7 @@ The comparison reveals clear relationships between model size and segmentation q
 - **Maximum Quality**: Large model for detailed analysis
 - **Research**: Giant model for benchmark comparisons
 
-The edge overlay visualizations above enable direct visual comparison of tree boundary detection quality across all model sizes using identical clustering parameters.
+The edge overlay visualizations above enable direct visual comparison of tree boundary detection quality across all model sizes. Note that while clustering parameters remain identical (elbow_threshold=0.15), the automatic K-selection algorithm chooses different optimal cluster counts based on the feature dimensionality and richness of each model, demonstrating how larger models naturally discover more granular tree segmentation patterns.
 
 ---
 
