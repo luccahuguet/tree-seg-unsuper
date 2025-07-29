@@ -26,7 +26,6 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ![Small Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
-- **Speed**: Fastest processing (~30 seconds)
 - **Memory**: Lowest GPU memory usage
 - **Feature Dimension**: 384
 - **Use Case**: Rapid prototyping, resource-constrained environments
@@ -39,7 +38,6 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ![Base Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
-- **Speed**: Balanced processing (~45 seconds)
 - **Memory**: Moderate GPU memory usage
 - **Feature Dimension**: 768
 - **Use Case**: Production workflows, research applications
@@ -52,7 +50,6 @@ This controlled approach isolates the impact of each parameter on segmentation q
 ![Large Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
-- **Speed**: Slower processing (~75 seconds)
 - **Memory**: Higher GPU memory usage
 - **Feature Dimension**: 1024
 - **Use Case**: Maximum quality requirements, final production
@@ -69,7 +66,6 @@ This controlled approach isolates the impact of each parameter on segmentation q
 **Characteristics**:
 - **Resolution**: Highest feature map resolution
 - **Detail**: Maximum boundary precision
-- **Speed**: Slowest processing
 - **Memory**: Highest usage
 
 ---
@@ -82,7 +78,6 @@ This controlled approach isolates the impact of each parameter on segmentation q
 **Characteristics**:
 - **Resolution**: Good feature map resolution
 - **Detail**: Excellent boundary quality
-- **Speed**: Reasonable processing time
 - **Memory**: Moderate usage
 
 ---
@@ -95,66 +90,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 **Characteristics**:
 - **Resolution**: Lower feature map resolution
 - **Detail**: Good general segmentation
-- **Speed**: Fastest processing
 - **Memory**: Lowest usage
-
----
-
-## Comparative Analysis
-
-### Model Size Impact
-
-| Model | Processing Time | Memory Usage | Boundary Precision | Feature Quality |
-|-------|----------------|--------------|-------------------|-----------------|
-| **Small** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐ |
-| **Base** | ⭐⭐ | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| **Large** | ⭐ | ⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-
-### Stride Parameter Impact
-
-| Stride | Processing Time | Memory Usage | Detail Level | Practical Use |
-|--------|----------------|--------------|--------------|---------------|
-| **2** | ⭐ | ⭐ | ⭐⭐⭐ | Research |
-| **4** | ⭐⭐ | ⭐⭐ | ⭐⭐⭐ | Production |
-| **8** | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | Rapid Testing |
-
----
-
-## Key Findings
-
-### Model Selection Recommendations
-
-1. **For Research & Production**: Use **Base** model
-   - Best balance of quality and performance
-   - Suitable for academic publication
-   - Reasonable computational requirements
-
-2. **For Rapid Prototyping**: Use **Small** model
-   - Quick iteration cycles
-   - Good for parameter testing
-   - Lower resource requirements
-
-3. **For Maximum Quality**: Use **Large** model
-   - When computational resources are abundant
-   - For final production runs
-   - When highest precision is required
-
-### Stride Selection Guidelines
-
-1. **Stride 4 (Recommended)**: Best general-purpose setting
-   - Excellent boundary quality
-   - Reasonable processing time
-   - Good for most applications
-
-2. **Stride 2**: When maximum detail is critical
-   - Fine-grained boundary detection
-   - Research applications requiring precision
-   - When processing time is not a constraint
-
-3. **Stride 8**: For rapid exploration
-   - Quick parameter testing
-   - Large-scale batch processing
-   - When approximate results are sufficient
 
 ---
 

@@ -75,28 +75,6 @@ This section showcases a complete tree segmentation run with all four output vis
 
 ---
 
-## Key Observations
-
-### Algorithm Performance
-- **Boundary Precision**: Clean, accurate delineation of tree canopy edges
-- **Cluster Coherence**: Meaningful groupings of similar vegetation regions
-- **Feature Quality**: Rich 780-dimensional DINOv2 features capture fine details
-- **Automatic Selection**: Elbow method successfully identified optimal K=5
-
-### Visual Quality
-- **Professional Output**: Publication-ready visualizations
-- **Clear Distinction**: Hatch patterns and colors provide excellent region separation
-- **Configuration Tracking**: All parameters visible in filenames and legends
-- **Reproducible Results**: Complete parameter documentation enables replication
-
-### Technical Excellence
-- **Modern Architecture**: Clean, type-safe implementation
-- **Smart File Management**: Config-based naming prevents collisions
-- **Comprehensive Coverage**: All aspects of segmentation captured
-- **Academic Standards**: Suitable for research presentation
-
----
-
 ## Methodology Validation
 
 This complete example demonstrates:

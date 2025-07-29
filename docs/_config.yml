@@ -20,7 +20,7 @@ url: "https://luccahuguet.github.io"
 
 # Navigation
 header_pages:
-  - index.md
+  # - index.md
   - methodology.md
   - results.md
   - complete_example.md

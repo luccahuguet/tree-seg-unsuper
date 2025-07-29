@@ -18,12 +18,6 @@ This research presents an unsupervised tree segmentation approach using DINOv2 V
 - **📊 Automatic K-Selection**: Intelligent cluster number detection
 - **🎯 Professional Results**: Publication-ready visualizations
 
-## Quick Navigation
-
-- [**Methodology**](methodology.html) - Technical approach and implementation
-- [**Results**](results.html) - Visual outcomes and analysis
-- [**Analysis**](analysis.html) - Performance evaluation and insights
-
 ## Current Implementation
 
 **Algorithm Version**: v1.5 (DINOv2 with patch + attention features)  
@@ -35,6 +29,4 @@ This research presents an unsupervised tree segmentation approach using DINOv2 V
 
 This work represents a modern approach to unsupervised segmentation in the forestry domain, leveraging recent advances in self-supervised learning to achieve robust tree boundary detection without requiring labeled training data.
 
----
 
-*Explore the sections above to see detailed methodology, results, and analysis of our tree segmentation approach.*
