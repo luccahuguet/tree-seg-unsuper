@@ -86,30 +86,35 @@ latest_outputs = segmenter.find_latest_outputs()
 
 if latest_outputs:
     print("🖼️ Latest Segmentation Results:")
-    
-    # Display edge overlay
-    if latest_outputs.edge_overlay:
-        print("\n🔳 Edge Overlay (Original + Boundaries):")
-        display(Image(filename=latest_outputs.edge_overlay))
-    
-    # Display side-by-side
-    if latest_outputs.side_by_side:
-        print("\n📊 Side-by-Side Comparison:")
-        display(Image(filename=latest_outputs.side_by_side))
-    
-    # Display segmentation legend
-    if latest_outputs.segmentation_legend:
-        print("\n🎨 Segmentation Map with Legend:")
-        display(Image(filename=latest_outputs.segmentation_legend))
-    
-    # Display elbow analysis if available
-    if latest_outputs.elbow_analysis:
-        print("\n📈 K Selection Analysis (Elbow Method):")
-        display(Image(filename=latest_outputs.elbow_analysis))
-        
 else:
     print("❌ No output files found")
 
-print("\n🎉 Tree Segmentation Complete!")
+# %%
+# Display edge overlay
+if latest_outputs and latest_outputs.edge_overlay:
+    print("🔳 Edge Overlay (Original + Boundaries):")
+    display(Image(filename=latest_outputs.edge_overlay))
+
+# %%
+# Display side-by-side comparison
+if latest_outputs and latest_outputs.side_by_side:
+    print("📊 Side-by-Side Comparison:")
+    display(Image(filename=latest_outputs.side_by_side))
+
+# %%
+# Display segmentation legend
+if latest_outputs and latest_outputs.segmentation_legend:
+    print("🎨 Segmentation Map with Legend:")
+    display(Image(filename=latest_outputs.segmentation_legend))
+
+# %%
+# Display elbow analysis
+if latest_outputs and latest_outputs.elbow_analysis:
+    print("📈 K Selection Analysis (Elbow Method):")
+    display(Image(filename=latest_outputs.elbow_analysis))
+
+# %%
+# Summary
+print("🎉 Tree Segmentation Complete!")
 print(f"📁 Results saved with config-based naming")
 print(f"🌐 Web optimization: {'enabled' if config.web_optimize else 'disabled'}")
