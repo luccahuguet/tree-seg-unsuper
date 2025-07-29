@@ -2,9 +2,11 @@
 
 - [x] small
 - [x] large
-- [ ] giant (taking too long)
+- [x] giant (taking too long)
 - [x] docs: parameter
 - [ ] docs: parameter
+- [ ] fix docs comparison
+- [ ] fix notebook file, split output cells
 
 ## 🚀 Optional Future Enhancements
 - [ ] Test different stride values for resolution vs performance trade-offs

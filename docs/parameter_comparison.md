@@ -23,14 +23,17 @@ This controlled approach isolates the impact of each parameter on segmentation q
 
 ## Model Size Comparison
 
+All results use identical parameters (stride=4, elbow_threshold=0.15) with only model size varying, enabling direct quality comparison.
+
 ### DINOv2 Small (`dinov2_vits14`)
 *Fast processing, good for testing and rapid iteration*
 
-![Small Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
+![Small Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_small_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Memory**: Lowest GPU memory usage
 - **Feature Dimension**: 384
+- **Processing Speed**: Fastest
 - **Use Case**: Rapid prototyping, resource-constrained environments
 
 ---
@@ -43,70 +46,65 @@ This controlled approach isolates the impact of each parameter on segmentation q
 **Characteristics**:
 - **Memory**: Moderate GPU memory usage
 - **Feature Dimension**: 768
+- **Processing Speed**: Balanced
 - **Use Case**: Production workflows, research applications
 
 ---
 
 ### DINOv2 Large (`dinov2_vitl14`)
-*Highest quality features, slower processing*
+*Higher quality features, slower processing*
 
-![Large Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
+![Large Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_large_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
 - **Memory**: Higher GPU memory usage
 - **Feature Dimension**: 1024
-- **Use Case**: Maximum quality requirements, final production
+- **Processing Speed**: Slower
+- **Use Case**: High-quality requirements, detailed analysis
 
 ---
 
-## Stride Parameter Comparison
+### DINOv2 Giant (`dinov2_vitg14`)
+*Maximum quality features, slowest processing*
 
-### Stride 2: High Resolution
-*Maximum detail, slower processing*
-
-![Stride 2]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
+![Giant Model]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_giant_str4_et0-15_edge_overlay.jpg)
 
 **Characteristics**:
-- **Resolution**: Highest feature map resolution
-- **Detail**: Maximum boundary precision
-- **Memory**: Highest usage
+- **Memory**: Highest GPU memory usage
+- **Feature Dimension**: 1536
+- **Processing Speed**: Slowest
+- **Use Case**: Maximum quality applications, research benchmarks
 
 ---
 
-### Stride 4: Balanced (Recommended)
-*Optimal trade-off between quality and speed*
+## Analysis: Model Size Impact
 
-![Stride 4]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
+The comparison reveals clear relationships between model size and segmentation quality:
 
-**Characteristics**:
-- **Resolution**: Good feature map resolution
-- **Detail**: Excellent boundary quality
-- **Memory**: Moderate usage
+### Key Observations
 
----
+1. **Feature Richness**: Larger models capture more nuanced tree boundary details
+2. **Computational Trade-offs**: Each model size step significantly increases processing time and memory usage
+3. **Diminishing Returns**: Quality improvements become smaller as model size increases
+4. **Practical Balance**: Base model provides excellent results for most applications
 
-### Stride 8: Fast Processing
-*Quick results, lower resolution*
+### Performance vs Quality Trade-offs
 
-![Stride 8]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
+| Model | Feature Dim | Relative Speed | Memory Usage | Best Use Case |
+|-------|-------------|----------------|--------------|---------------|
+| Small | 384 | Fastest | Lowest | Testing, prototyping |
+| Base | 768 | Balanced | Moderate | Production workflows |
+| Large | 1024 | Slower | Higher | High-quality analysis |
+| Giant | 1536 | Slowest | Highest | Research benchmarks |
 
-**Characteristics**:
-- **Resolution**: Lower feature map resolution
-- **Detail**: Good general segmentation
-- **Memory**: Lowest usage
+### Recommendations
 
----
+- **Default Choice**: Base model for most applications
+- **Resource Constrained**: Small model for rapid iteration
+- **Maximum Quality**: Large model for detailed analysis
+- **Research**: Giant model for benchmark comparisons
 
-## Performance vs Quality Trade-offs
-
-The comparison reveals clear trade-offs between computational efficiency and segmentation quality:
-
-- **Model size** primarily affects feature richness and boundary precision
-- **Stride parameter** mainly impacts spatial resolution and detail level
-- **Base + Stride 4** provides the optimal balance for most use cases
-- **Large + Stride 2** offers maximum quality at significant computational cost
-
-These results enable informed parameter selection based on specific requirements and available computational resources.
+The edge overlay visualizations above enable direct visual comparison of tree boundary detection quality across all model sizes using identical clustering parameters.
 
 ---
 
