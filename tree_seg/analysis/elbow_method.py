@@ -144,8 +144,9 @@ def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0,
         if auto_k and elbow_threshold is not None:
             et_str = f"et{str(elbow_threshold).replace('.', '-')}"
             components.append(et_str)
-        else:
-            components.append(f"k{n_clusters}")
+        
+        # Always add the actual K value used
+        components.append(f"k{n_clusters}")
         
         config_filename = "_".join(components) + "_elbow_analysis"
         plot_path = os.path.join(output_dir, f"{config_filename}.png")

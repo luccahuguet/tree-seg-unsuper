@@ -34,8 +34,8 @@ Tree segmentation using DINOv2 for aerial drone imagery. Modern v2.0 architectur
 
 ### File Naming Strategy
 ```python
-# Smart filename: a3f7_v1-5_base_str4_et0-1_segmentation_legend.png
-# Components: hash_version_model_stride_clustering_type.png
+# Smart filename: a3f7_v1-5_base_str4_et3-5_k5_segmentation_legend.png
+# Components: hash_version_model_stride_method_clusters_type.png
 ```
 
 ### Modern Python Practices

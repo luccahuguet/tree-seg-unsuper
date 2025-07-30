@@ -38,7 +38,7 @@ class OutputManager:
             n_clusters: Number of clusters used
             
         Returns:
-            Config-based filename prefix (e.g., "a3f7_v1-5_base_str4_et3-0")
+            Config-based filename prefix (e.g., "a3f7_v1-5_base_str4_et3-5_k5")
         """
         filename = os.path.basename(image_path)
         
@@ -60,12 +60,13 @@ class OutputManager:
             f"str{self.config.stride}"
         ]
         
-        # Add clustering info
+        # Add clustering method info
         if self.config.auto_k:
             et_str = f"et{str(self.config.elbow_threshold).replace('.', '-')}"
             components.append(et_str)
-        else:
-            components.append(f"k{n_clusters}")
+        
+        # Always add the actual K value used
+        components.append(f"k{n_clusters}")
         
         return "_".join(components)
     

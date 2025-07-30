@@ -11,7 +11,7 @@ This folder contains results generated using the **curvature-based K-selection m
 
 ## Files
 
-All files follow the naming convention: `d111_v1-5_{model}_str{stride}_et0-15_edge_overlay.jpg`
+All files follow the legacy naming convention: `d111_v1-5_{model}_str{stride}_et0-15_edge_overlay.jpg`
 
 Where:
 - `d111`: Image hash (first 4 characters)
@@ -19,6 +19,8 @@ Where:
 - `{model}`: Model size (small, base, large, giant)
 - `str{stride}`: Stride parameter (2 or 4)
 - `et0-15`: Elbow threshold 0.15 (actually curvature threshold)
+
+**Note**: These files use the legacy naming format. New outputs will include the actual K value: `d111_v1-5_{model}_str{stride}_et3-5_k{actual_k}_{type}.{ext}`
 
 ## Known Behaviors
 

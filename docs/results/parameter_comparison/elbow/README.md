@@ -31,7 +31,7 @@ The corrected elbow method should address issues found in the curvature method:
 
 ## File Naming Convention
 
-When generated, files will follow: `d111_v1-5_{model}_str{stride}_et3-5_{type}.{ext}`
+When generated, files will follow: `d111_v1-5_{model}_str{stride}_et3-5_k{actual_k}_{type}.{ext}`
 
 Where:
 - `d111`: Image hash (first 4 characters)
@@ -39,6 +39,7 @@ Where:
 - `{model}`: Model size (small, base, large, giant)
 - `str{stride}`: Stride parameter (2 or 4)
 - `et3-5`: Elbow threshold 3.5% (true percentage format)
+- `k{actual_k}`: Actual number of clusters used (e.g., k5, k6)
 - `{type}`: Output type (edge_overlay, segmentation_legend, etc.)
 - `{ext}`: File extension (png for original, jpg for web-optimized)
 
