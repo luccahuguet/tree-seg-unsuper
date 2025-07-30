@@ -31,8 +31,8 @@ Our tree segmentation pipeline consists of four main stages:
 ### 2. Automatic K-Selection
 
 **Elbow Method** with intelligent thresholding:
-- **K Range**: 3-10 clusters (optimized for tree imagery)
-- **Threshold**: 0.1 (sensitive detection for subtle elbows)
+- **K Range**: 3-8 clusters (narrower range optimized for trees)
+- **Threshold**: 0.15 (slightly conservative for stable results)
 - **Metric**: Within-Cluster Sum of Squares (WCSS)
 - **Optimization**: Percentage decrease analysis
 
@@ -58,8 +58,8 @@ config = Config(
     version="v1.5",             # Algorithm version
     stride=4,                   # Feature resolution
     auto_k=True,                # Automatic K selection
-    elbow_threshold=0.1,        # Sensitivity parameter
-    k_range=(3, 10),            # Search range
+    elbow_threshold=0.15,       # Slightly conservative
+    k_range=(3, 8),             # Narrower range for trees
     use_pca=False,              # Keep full feature space
     edge_width=2,               # Visualization parameter
     use_hatching=True           # Visual distinction
