@@ -59,8 +59,8 @@ config = Config(
     use_hatching=True,      # Distinguish regions
     use_pca=False,          # Keep full feature space
     
-    # Web optimization (NEW!)
-    web_optimize=True,      # Auto-compress 7MB → 1-2MB for GitHub Pages
+    # Web optimization (enabled by default)
+    web_optimize=True,      # Auto-compress 7MB → 1-2MB for GitHub Pages  
     web_quality=85,         # JPEG quality (85 = good balance)
     web_max_width=1200      # Max width for web display
 )
@@ -116,5 +116,6 @@ if latest_outputs and latest_outputs.elbow_analysis:
 # %%
 # Summary
 print("🎉 Tree Segmentation Complete!")
-print(f"📁 Results saved with config-based naming")
+print(f"📁 PNG results saved to: output/png/")
+print(f"🌐 Web-optimized results saved to: output/web/")
 print(f"🌐 Web optimization: {'enabled' if config.web_optimize else 'disabled'}")

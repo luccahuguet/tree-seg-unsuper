@@ -21,7 +21,13 @@ class OutputManager:
     def __init__(self, config: Config):
         self.config = config
         self.output_dir = Path(config.output_dir)
+        self.png_dir = self.output_dir / "png"
+        self.web_dir = self.output_dir / "web"
+        
+        # Create output directories
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.png_dir.mkdir(parents=True, exist_ok=True)
+        self.web_dir.mkdir(parents=True, exist_ok=True)
     
     def generate_filename_prefix(self, image_path: str, n_clusters: int) -> str:
         """
@@ -78,11 +84,12 @@ class OutputManager:
         """
         prefix = self.generate_filename_prefix(image_path, n_clusters)
         
+        # Generate PNG paths (stored in png/ subfolder)
         paths = OutputPaths(
-            segmentation_legend=str(self.output_dir / f"{prefix}_segmentation_legend.png"),
-            edge_overlay=str(self.output_dir / f"{prefix}_edge_overlay.png"),
-            side_by_side=str(self.output_dir / f"{prefix}_side_by_side.png"),
-            elbow_analysis=str(self.output_dir / f"{prefix}_elbow_analysis.png") if include_elbow else None
+            segmentation_legend=str(self.png_dir / f"{prefix}_segmentation_legend.png"),
+            edge_overlay=str(self.png_dir / f"{prefix}_edge_overlay.png"),
+            side_by_side=str(self.png_dir / f"{prefix}_side_by_side.png"),
+            elbow_analysis=str(self.png_dir / f"{prefix}_elbow_analysis.png") if include_elbow else None
         )
         
         return paths
@@ -90,23 +97,28 @@ class OutputManager:
     def find_latest_outputs(self) -> Optional[OutputPaths]:
         """
         Find the most recently generated output files.
+        Prefers web-optimized outputs, falls back to PNG if not available.
         
         Returns:
             OutputPaths with latest files, or None if no files found
         """
         patterns = {
-            'segmentation_legend': "*_segmentation_legend.png",
-            'edge_overlay': "*_edge_overlay.png", 
-            'side_by_side': "*_side_by_side.png",
-            'elbow_analysis': "*_elbow_analysis.png"
+            'segmentation_legend': "*_segmentation_legend",
+            'edge_overlay': "*_edge_overlay", 
+            'side_by_side': "*_side_by_side",
+            'elbow_analysis': "*_elbow_analysis"
         }
         
         latest_files = {}
         
         for key, pattern in patterns.items():
-            files = glob.glob(str(self.output_dir / pattern))
-            if files:
-                latest_files[key] = max(files, key=os.path.getmtime)
+            # First try web-optimized (JPG) files
+            web_files = glob.glob(str(self.web_dir / f"{pattern}.jpg"))
+            png_files = glob.glob(str(self.png_dir / f"{pattern}.png"))
+            
+            all_files = web_files + png_files
+            if all_files:
+                latest_files[key] = max(all_files, key=os.path.getmtime)
             else:
                 latest_files[key] = None
         
@@ -125,22 +137,27 @@ class OutputManager:
     
     def list_all_outputs(self) -> List[str]:
         """
-        List all output files in the output directory.
+        List all output files in both PNG and web directories.
         
         Returns:
             List of output file paths
         """
         patterns = [
-            "*_segmentation_legend.png",
-            "*_edge_overlay.png", 
-            "*_side_by_side.png",
-            "*_elbow_analysis.png"
+            "*_segmentation_legend",
+            "*_edge_overlay", 
+            "*_side_by_side",
+            "*_elbow_analysis"
         ]
         
         all_files = []
         for pattern in patterns:
-            files = glob.glob(str(self.output_dir / pattern))
-            all_files.extend(files)
+            # Add PNG files
+            png_files = glob.glob(str(self.png_dir / f"{pattern}.png"))
+            all_files.extend(png_files)
+            
+            # Add web-optimized files
+            web_files = glob.glob(str(self.web_dir / f"{pattern}.jpg"))
+            all_files.extend(web_files)
         
         return sorted(all_files, key=os.path.getmtime, reverse=True)
     
@@ -152,23 +169,36 @@ class OutputManager:
             keep_latest: Number of latest files to keep for each type
         """
         patterns = [
-            "*_segmentation_legend.png",
-            "*_edge_overlay.png", 
-            "*_side_by_side.png",
-            "*_elbow_analysis.png"
+            "*_segmentation_legend",
+            "*_edge_overlay", 
+            "*_side_by_side",
+            "*_elbow_analysis"
         ]
         
         for pattern in patterns:
-            files = glob.glob(str(self.output_dir / pattern))
-            if len(files) > keep_latest:
-                # Sort by modification time, keep latest
-                files_by_time = sorted(files, key=os.path.getmtime, reverse=True)
+            # Clean PNG files
+            png_files = glob.glob(str(self.png_dir / f"{pattern}.png"))
+            if len(png_files) > keep_latest:
+                files_by_time = sorted(png_files, key=os.path.getmtime, reverse=True)
                 files_to_delete = files_by_time[keep_latest:]
                 
                 for file_path in files_to_delete:
                     try:
                         os.remove(file_path)
-                        print(f"🗑️ Cleaned up: {os.path.basename(file_path)}")
+                        print(f"🗑️ Cleaned up PNG: {os.path.basename(file_path)}")
+                    except OSError:
+                        pass
+            
+            # Clean web files
+            web_files = glob.glob(str(self.web_dir / f"{pattern}.jpg"))
+            if len(web_files) > keep_latest:
+                files_by_time = sorted(web_files, key=os.path.getmtime, reverse=True)
+                files_to_delete = files_by_time[keep_latest:]
+                
+                for file_path in files_to_delete:
+                    try:
+                        os.remove(file_path)
+                        print(f"🗑️ Cleaned up web: {os.path.basename(file_path)}")
                     except OSError:
                         pass
     
@@ -186,9 +216,10 @@ class OutputManager:
             return None
             
         try:
-            # Determine output path
+            # Determine output path in web/ folder
             input_file = Path(input_path)
-            output_file = input_file.with_suffix('.jpg')
+            filename_stem = input_file.stem
+            output_file = self.web_dir / f"{filename_stem}.jpg"
             
             with Image.open(input_path) as img:
                 # Convert to RGB if necessary (handles PNG with transparency)

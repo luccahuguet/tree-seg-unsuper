@@ -36,7 +36,7 @@ class Config:
     use_hatching: bool = True
     
     # Web optimization settings
-    web_optimize: bool = False  # Auto-optimize images for GitHub Pages
+    web_optimize: bool = True  # Auto-optimize images for GitHub Pages (default enabled)
     web_quality: int = 85  # JPEG quality for web
     web_max_width: int = 1200  # Max width for web images
     

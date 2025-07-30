@@ -123,7 +123,7 @@ class TreeSegmentation:
             output_paths=output_paths
         )
         
-        # Auto-optimize for web if enabled
+        # Auto-optimize for web if enabled (now enabled by default)
         if self.config.web_optimize:
             output_paths = self.output_manager.optimize_all_outputs(output_paths)
         
