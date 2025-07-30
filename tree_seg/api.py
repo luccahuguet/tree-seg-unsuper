@@ -76,7 +76,7 @@ class TreeSegmentation:
             device=self.device,
             auto_k=self.config.auto_k,
             k_range=self.config.k_range,
-            elbow_threshold=self.config.elbow_threshold,
+            elbow_threshold=self.config.elbow_threshold_decimal,
             use_pca=self.config.use_pca,
             model_name=self.config.model_display_name
         )

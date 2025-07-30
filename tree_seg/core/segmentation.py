@@ -14,7 +14,7 @@ from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
 
 def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                 auto_k=False, k_range=(3, 10), elbow_threshold=3.0, use_pca=False, model_name=None):
+                 auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, model_name=None):
     """
     Process a single image for tree segmentation.
     
@@ -28,7 +28,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         device: PyTorch device
         auto_k: Whether to use automatic K selection
         k_range: Range for K selection (min_k, max_k)
-        elbow_threshold: Threshold for elbow method
+        elbow_threshold: Threshold for elbow method (as decimal, e.g., 0.035)
         
     Returns:
         Tuple of (image_np, labels_resized) or (None, None) on error
@@ -113,14 +113,14 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         # Automatic K selection using elbow method
         if auto_k:
             print("\n--- Automatic K Selection using elbow method ---")
-            optimal_k, k_scores = find_optimal_k_elbow(features_flat, k_range, elbow_threshold)
+            optimal_k, k_scores = find_optimal_k_elbow(features_flat, k_range, elbow_threshold * 100)
 
             print(f"Selected optimal K = {optimal_k}")
 
             # Save K selection analysis plot
             output_dir = "/kaggle/working/output"
             output_prefix = os.path.splitext(os.path.basename(image_path))[0]
-            plot_elbow_analysis(k_scores, output_dir, output_prefix, elbow_threshold,
+            plot_elbow_analysis(k_scores, output_dir, output_prefix, elbow_threshold * 100,
                                model_name, version, stride, optimal_k, auto_k, image_path)
 
             n_clusters = optimal_k

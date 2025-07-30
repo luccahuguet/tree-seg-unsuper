@@ -27,7 +27,7 @@ class Config:
     auto_k: bool = True
     n_clusters: int = 6  # Used when auto_k=False
     k_range: Tuple[int, int] = (3, 10)
-    elbow_threshold: float = 0.04
+    elbow_threshold: float = 3.5  # Percentage (will be converted to decimal)
     use_pca: bool = False
     
     # Visualization settings
@@ -50,6 +50,11 @@ class Config:
             "giant": "dinov2_vitg14"
         }
         return model_map.get(self.model_name, self.model_name)
+    
+    @property
+    def elbow_threshold_decimal(self) -> float:
+        """Get elbow_threshold as decimal (percentage / 100)."""
+        return self.elbow_threshold / 100.0
     
     def validate(self) -> None:
         """Validate configuration parameters."""

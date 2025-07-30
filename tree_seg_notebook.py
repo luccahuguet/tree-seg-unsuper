@@ -50,7 +50,7 @@ config = Config(
     
     # Clustering
     auto_k=True,            # Let elbow method choose K
-    elbow_threshold=0.04,   # Sensitive threshold (4%)
+    elbow_threshold=3.5,    # Sensitive threshold (3.5%)
     k_range=(3, 8),         # Narrower range for trees
     
     # Visualization

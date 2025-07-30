@@ -9,14 +9,14 @@ import hashlib
 from sklearn.cluster import KMeans
 
 
-def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=0.04):
+def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.5):
     """
     Find optimal K using enhanced elbow method optimized for tree segmentation.
 
     Args:
         features_flat: Flattened feature array
         k_range: Tuple of (min_k, max_k) - default (3,10) optimized for tree species
-        elbow_threshold: Decimal threshold for diminishing returns (0.04 = 4%, lower = more sensitive)
+        elbow_threshold: Percentage threshold for diminishing returns (3.5 = 3.5%, lower = more sensitive)
 
     Returns:
         optimal_k: Best number of clusters
@@ -47,7 +47,7 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=0.04):
     # Find where percentage decrease drops below threshold (diminishing returns)
     threshold_idx = len(pct_decrease) - 1  # Default to last K if none found
     for i, pct in enumerate(pct_decrease):
-        if pct < elbow_threshold * 100:  # Convert decimal to percentage
+        if pct < elbow_threshold:  # Direct percentage comparison
             threshold_idx = i
             break
 
@@ -114,7 +114,7 @@ def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0,
     # Percentage decrease plot
     if pct_decrease:
         ax2.plot(k_values[1:], pct_decrease, 'go-', linewidth=2, markersize=8)
-        ax2.axhline(y=elbow_threshold * 100, color='r', linestyle='--', alpha=0.7, label=f'{elbow_threshold * 100}% Threshold')
+        ax2.axhline(y=elbow_threshold, color='r', linestyle='--', alpha=0.7, label=f'{elbow_threshold}% Threshold')
         ax2.set_xlabel('Number of Clusters (K)', fontsize=12)
         ax2.set_ylabel('WCSS Improvement (%)', fontsize=12)
         ax2.set_title('Diminishing Returns Analysis', fontsize=12)
