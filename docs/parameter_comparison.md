@@ -21,7 +21,7 @@ This controlled approach isolates the impact of each parameter on segmentation q
 
 ---
 
-## Model Size Comparison
+## Model Size Comparison (Stride 4)
 
 All results use identical parameters (stride=4, elbow_threshold=0.15) with only model size varying, enabling direct quality comparison.
 
@@ -106,5 +106,70 @@ The comparison reveals clear relationships between model size and segmentation q
 - **Maximum Quality**: Large model for detailed analysis
 - **Research**: Giant model for benchmark comparisons
 
-The edge overlay visualizations above enable direct visual comparison of tree boundary detection quality across all model sizes. Note that while clustering parameters remain identical (elbow_threshold=0.15), the automatic K-selection algorithm chooses different optimal cluster counts based on the feature dimensionality and richness of each model, demonstrating how larger models naturally discover more granular tree segmentation patterns.
+---
+
+## Stride Parameter Comparison
+
+Comparing stride values shows the resolution vs performance trade-off. Lower stride values provide higher resolution features but require more processing time.
+
+### Stride 2 vs Stride 4 Comparison
+
+**Small Model (dinov2_vits14)**
+
+| Stride 2 | Stride 4 |
+|----------|----------|
+| ![Small Stride 2]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_small_str2_et0-15_edge_overlay.jpg) | ![Small Stride 4]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_small_str4_et0-15_edge_overlay.jpg) |
+
+**Base Model (dinov2_vitb14)**
+
+| Stride 2 | Stride 4 |
+|----------|----------|
+| ![Base Stride 2]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str2_et0-15_edge_overlay.jpg) | ![Base Stride 4]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_base_str4_et0-15_edge_overlay.jpg) |
+
+**Large Model (dinov2_vitl14)**
+
+| Stride 2 | Stride 4 |
+|----------|----------|
+| ![Large Stride 2]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_large_str2_et0-15_edge_overlay.jpg) | ![Large Stride 4]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_large_str4_et0-15_edge_overlay.jpg) |
+
+**Giant Model (dinov2_vitg14)**
+
+| Stride 2 | Stride 4 |
+|----------|----------|
+| ![Giant Stride 2]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_giant_str2_et0-15_edge_overlay.jpg) | ![Giant Stride 4]({{ site.baseurl }}/results/parameter_comparison/d111_v1-5_giant_str4_et0-15_edge_overlay.jpg) |
+
+---
+
+## Analysis: Stride Impact
+
+The stride parameter significantly affects both processing time and feature resolution:
+
+### Key Observations
+
+1. **Resolution**: Stride 2 provides ~4x higher spatial resolution than stride 4
+2. **Detail Capture**: Lower stride captures finer tree boundary details and smaller trees
+3. **Processing Time**: Stride 2 requires ~4x more computation than stride 4
+4. **Memory Usage**: Lower stride increases memory requirements proportionally
+5. **Quality vs Speed**: Diminishing returns - stride 2 improvements may not justify 4x slowdown
+
+### Stride Recommendations
+
+| Stride | Resolution | Speed | Memory | Best Use Case |
+|--------|------------|--------|---------|---------------|
+| 2 | Highest | Slowest | Highest | Maximum detail requirements |
+| 4 | Balanced | Moderate | Moderate | Production workflows |
+| 8 | Lower | Fastest | Lowest | Rapid prototyping only |
+
+**Note**: Stride 8 is not recommended for production use due to significant quality degradation.
+
+---
+
+## Combined Analysis
+
+The edge overlay visualizations enable direct visual comparison of tree boundary detection quality across both model sizes and stride parameters. Key findings:
+
+- **Model Size**: Larger models capture more nuanced features (K=4,5,5,6 for Small,Base,Large,Giant)
+- **Stride Parameter**: Lower stride provides higher resolution but with computational costs
+- **Sweet Spot**: Base model with stride 4 offers optimal balance for most applications
+- **Maximum Quality**: Large model with stride 2 for detailed analysis requiring fine boundaries
 

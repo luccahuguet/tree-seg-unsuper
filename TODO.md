@@ -4,9 +4,13 @@
 - [x] large
 - [x] giant (taking too long)
 - [x] docs: parameter
-- [ ] docs: parameter
-- [ ] fix docs comparison
-- [ ] fix notebook file, split output cells
+- [x] docs: polish
+- [x] fix docs comparison
+- [x] fix notebook file, split output cells
+- [ ] final check, read all the docs
+- [x] recreate the outputs using stride 2
+- [x] evaluate creating a page for stride 2, but probably not good, since we might instead want a page for v2
+- dont use stride 8
 
 ## 🚀 Optional Future Enhancements
 - [ ] Test different stride values for resolution vs performance trade-offs
