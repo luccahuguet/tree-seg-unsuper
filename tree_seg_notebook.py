@@ -41,8 +41,7 @@ config = Config(
     # Input/Output
     input_dir="/kaggle/input/drone-10-best",
     output_dir="/kaggle/working/output",
-    filename="DJI_20250127150117_0029_D.JPG",  # Change this to your image filename
-                                                              # Or set to None to process all images
+    filename="DJI_20250127150117_0029_D.JPG",  # Your image filename (or None to process all images)
     
     # Model settings  
     model_name="base",      # or "small", "large", "giant"
