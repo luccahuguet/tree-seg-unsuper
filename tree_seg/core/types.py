@@ -27,7 +27,7 @@ class Config:
     auto_k: bool = True
     n_clusters: int = 6  # Used when auto_k=False
     k_range: Tuple[int, int] = (3, 10)
-    elbow_threshold: float = 3.0
+    elbow_threshold: float = 0.04
     use_pca: bool = False
     
     # Visualization settings

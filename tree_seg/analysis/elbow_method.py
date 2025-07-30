@@ -9,14 +9,14 @@ import hashlib
 from sklearn.cluster import KMeans
 
 
-def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.0):
+def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=0.04):
     """
     Find optimal K using enhanced elbow method optimized for tree segmentation.
 
     Args:
         features_flat: Flattened feature array
         k_range: Tuple of (min_k, max_k) - default (3,10) optimized for tree species
-        elbow_threshold: Percentage threshold for diminishing returns (lower = more sensitive)
+        elbow_threshold: Decimal threshold for diminishing returns (0.04 = 4%, lower = more sensitive)
 
     Returns:
         optimal_k: Best number of clusters
@@ -35,32 +35,23 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.0):
         wcss.append(kmeans.inertia_)
         print(f"   K={k}: WCSS={wcss[-1]:.2f}")
 
-    # Enhanced elbow detection with multiple methods
+    # Percentage decrease threshold method
     wcss_array = np.array(wcss)
-
-    # Method 1: Second derivative (curvature)
-    if len(wcss_array) >= 3:
-        first_diff = np.diff(wcss_array)
-        second_diff = np.diff(first_diff)
-        curvature_idx = np.argmax(np.abs(second_diff)) + 1  # +1 due to diff operations
-    else:
-        curvature_idx = 0
-
-    # Method 2: Percentage decrease threshold
+    
+    # Calculate percentage decrease between consecutive K values
     pct_decrease = []
     for i in range(1, len(wcss_array)):
         pct = (wcss_array[i-1] - wcss_array[i]) / wcss_array[i-1] * 100
         pct_decrease.append(pct)
 
     # Find where percentage decrease drops below threshold (diminishing returns)
-    threshold_idx = 0
+    threshold_idx = len(pct_decrease) - 1  # Default to last K if none found
     for i, pct in enumerate(pct_decrease):
-        if pct < elbow_threshold:  # Less than threshold% improvement
+        if pct < elbow_threshold * 100:  # Convert decimal to percentage
             threshold_idx = i
             break
 
-    # Choose the more conservative estimate (earlier elbow)
-    elbow_idx = min(int(curvature_idx), int(threshold_idx)) if threshold_idx > 0 else int(curvature_idx)
+    elbow_idx = threshold_idx
 
     # Safety bounds
     elbow_idx = max(0, min(int(elbow_idx), len(k_values) - 1))
@@ -123,7 +114,7 @@ def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0,
     # Percentage decrease plot
     if pct_decrease:
         ax2.plot(k_values[1:], pct_decrease, 'go-', linewidth=2, markersize=8)
-        ax2.axhline(y=elbow_threshold, color='r', linestyle='--', alpha=0.7, label=f'{elbow_threshold}% Threshold')
+        ax2.axhline(y=elbow_threshold * 100, color='r', linestyle='--', alpha=0.7, label=f'{elbow_threshold * 100}% Threshold')
         ax2.set_xlabel('Number of Clusters (K)', fontsize=12)
         ax2.set_ylabel('WCSS Improvement (%)', fontsize=12)
         ax2.set_title('Diminishing Returns Analysis', fontsize=12)
