@@ -151,6 +151,7 @@ The stride parameter significantly affects both processing time and feature reso
 3. **Processing Time**: Stride 2 requires ~4x more computation than stride 4
 4. **Memory Usage**: Lower stride increases memory requirements proportionally
 5. **Quality vs Speed**: Diminishing returns - stride 2 improvements may not justify 4x slowdown
+6. **Unexpected K-Selection**: Stride 2 shows inverse relationship - smaller models select more clusters (K=7,6,4,4 for Small,Base,Large,Giant vs K=4,5,5,6 for stride 4)
 
 ### Stride Recommendations
 
@@ -168,8 +169,9 @@ The stride parameter significantly affects both processing time and feature reso
 
 The edge overlay visualizations enable direct visual comparison of tree boundary detection quality across both model sizes and stride parameters. Key findings:
 
-- **Model Size**: Larger models capture more nuanced features (K=4,5,5,6 for Small,Base,Large,Giant)
+- **Model Size**: At stride 4, larger models select more clusters (K=4,5,5,6 for Small,Base,Large,Giant)
 - **Stride Parameter**: Lower stride provides higher resolution but with computational costs
+- **K-Selection Paradox**: Stride 2 reverses the trend - smaller models find more clusters (K=7,6,4,4), suggesting higher resolution may overwhelm larger models' clustering
 - **Sweet Spot**: Base model with stride 4 offers optimal balance for most applications
 - **Maximum Quality**: Large model with stride 2 for detailed analysis requiring fine boundaries
 
