@@ -41,7 +41,8 @@ config = Config(
     # Input/Output
     input_dir="/kaggle/input/drone-10-best",
     output_dir="/kaggle/working/output",
-    filename="DJI_20250127150117_0029_D.JPG",
+    filename="DJI_20250127150117_0029_D.JPG",  # Change this to your image filename
+                                                              # Or set to None to process all images
     
     # Model settings  
     model_name="base",      # or "small", "large", "giant"
@@ -68,13 +69,24 @@ config = Config(
 # Create segmentation instance
 segmenter = TreeSegmentation(config)
 
-# Process the image
-results, paths = segmenter.process_and_visualize(
-    "/kaggle/input/drone-10-best/DJI_20250127150117_0029_D.JPG"
-)
+# Process the image using config settings
+# To use a different image, change the 'filename' in the config above
+import os
 
-print(f"🎯 Advanced processing complete!")
-print(f"📊 Stats: {results.processing_stats}")
+if config.filename:
+    # Process single image
+    image_path = os.path.join(config.input_dir, config.filename)
+    print(f"🖼️ Processing single image: {image_path}")
+    results, paths = segmenter.process_and_visualize(image_path)
+    print(f"🎯 Single image processing complete!")
+    print(f"📊 Stats: {results.processing_stats}")
+else:
+    # Process all images in directory
+    print(f"🖼️ Processing all images in: {config.input_dir}")
+    results_list = segmenter.process_directory()
+    print(f"🎯 Processed {len(results_list)} images!")
+    if results_list:
+        results, paths = results_list[0]  # Use first result for display
 
 # %%
 # Display results using modern OutputManager
