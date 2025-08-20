@@ -16,12 +16,11 @@
 %cd /kaggle/working/project
 
 # %%
-# Install dependencies
+# Install dependencies for DINOv3
 %pip uninstall -y torchaudio fastai
 %pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
-%pip install timm
-%pip install xformers --index-url https://download.pytorch.org/whl/cu124
-%pip install Pillow  # Required for web optimization feature
+%pip install omegaconf ftfy regex torchmetrics  # DINOv3 dependencies
+%pip install Pillow opencv-python  # Required for processing
 
 # %%
 # Import the modern API
@@ -44,13 +43,13 @@ config = Config(
     filename="DJI_20250127150117_0029_D.JPG",  # Your image filename (or None to process all images)
     
     # Model settings  
-    model_name="base",      # or "small", "large", "giant"
-    version="v1.5",         # Current version
+    model_name="base",      # "small", "base", "large", "giant", "mega" (DINOv3)
+    version="v3",           # DINOv3 version
     stride=4,               # Balance of speed vs quality
     
     # Clustering
     auto_k=True,            # Let elbow method choose K
-    elbow_threshold=3.5,    # Sensitive threshold (3.5%)
+    elbow_threshold=0.15,   # DINOv3 optimized threshold (0.15 = 15%)
     k_range=(3, 8),         # Narrower range for trees
     
     # Visualization

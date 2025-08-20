@@ -87,17 +87,12 @@ class DINOv3Adapter(nn.Module):
         # Load model using the hub function
         model_fn = model_map[model_name]
         try:
-            backbone = model_fn(pretrained=True, weights="LVD1689M")
-            print(f"📥 Loaded DINOv3 model: {model_name} (LVD1689M weights)")
+            # Use default loading (LVD1689M is the default)
+            backbone = model_fn(pretrained=True)
+            print(f"📥 Loaded DINOv3 model: {model_name} (pretrained weights)")
         except Exception as e:
-            # Fallback to SAT493M if available
-            try:
-                backbone = model_fn(pretrained=True, weights="SAT493M")
-                print(f"📥 Loaded DINOv3 model: {model_name} (SAT493M weights - satellite optimized)")
-            except Exception as e2:
-                # Fallback to default
-                backbone = model_fn(pretrained=True)
-                print(f"📥 Loaded DINOv3 model: {model_name} (default weights)")
+            print(f"❌ Failed to load DINOv3 model: {e}")
+            raise
         
         return backbone
     
