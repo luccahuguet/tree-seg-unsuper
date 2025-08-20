@@ -87,14 +87,22 @@ class DINOv3Adapter(nn.Module):
         # Load model using the hub function
         model_fn = model_map[model_name]
         try:
-            # Use default loading (LVD1689M is the default)
+            # Try to load with pretrained weights
             backbone = model_fn(pretrained=True)
             print(f"📥 Loaded DINOv3 model: {model_name} (pretrained weights)")
+            return backbone
         except Exception as e:
-            print(f"❌ Failed to load DINOv3 model: {e}")
-            raise
-        
-        return backbone
+            print(f"⚠️  Pretrained weights unavailable: {e}")
+            print(f"🔄 Loading model architecture only (random weights)...")
+            try:
+                # Fallback: load without pretrained weights
+                backbone = model_fn(pretrained=False)
+                print(f"📥 Loaded DINOv3 model: {model_name} (random initialization)")
+                print(f"⚠️  Note: Using random weights - performance will be limited")
+                return backbone
+            except Exception as e2:
+                print(f"❌ Failed to load DINOv3 model architecture: {e2}")
+                raise
     
     def _get_feature_dim(self, model_name: str) -> int:
         """Get feature dimension for the model."""
