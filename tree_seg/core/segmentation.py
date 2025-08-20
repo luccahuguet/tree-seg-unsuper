@@ -44,19 +44,22 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
         with torch.no_grad():
+            # DINOv3 always uses attention features for v3 (equivalent to v1.5)
             attn_choice = "none" if version == "v1" else "o"
             features_out = model.forward_sequential(image_tensor, attn_choice=attn_choice)
             print(f"features_out type: {type(features_out)}")
+            
+            # DINOv3 adapter returns a dictionary with patch features
             if isinstance(features_out, dict):
                 patch_features = features_out["x_norm_patchtokens"]
-                attn_features = features_out.get("x_patchattn", None) if version == "v1.5" else None
+                attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
                 print(f"patch_features shape: {patch_features.shape}")
                 if attn_features is not None:
                     print(f"attn_features shape: {attn_features.shape}")
-                patch_features = patch_features.mean(dim=0).squeeze()
-                if attn_features is not None:
-                    attn_features = attn_features.mean(dim=0).squeeze()
+                # DINOv3 features are already in spatial format (H, W, D)
+                # No need to take mean across batch dimension
             else:
+                # Fallback for legacy tensor format
                 print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
                 if hasattr(features_out, "dim") and features_out.dim() == 4:
                     features = features_out.mean(dim=0)
@@ -85,7 +88,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         if attn_features is not None:
             print(f"attn_features reshaped: {attn_features.shape}")
 
-        if attn_features is not None and version == "v1.5":
+        if attn_features is not None and version in ["v1.5", "v3"]:
             features_np = np.concatenate(
                 [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
             )

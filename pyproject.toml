@@ -11,6 +11,12 @@ dependencies = [
     "torch>=2.0.0",
     "timm>=0.9.0",
     "pyyaml>=6.0.2",
+    "omegaconf",
+    "ftfy",
+    "regex",
+    "torchmetrics",
+    "opencv-python>=4.8.0",
+    "Pillow>=10.0.0",
 ]
 
 [dependency-groups]

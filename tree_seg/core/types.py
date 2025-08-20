@@ -19,8 +19,8 @@ class Config:
     filename: Optional[str] = None  # If None, process all images
     
     # Model settings
-    model_name: str = "dinov2_vits14"  # small/base/large/giant or full name
-    version: str = "v1.5"
+    model_name: str = "base"  # small/base/large/giant/mega or full DINOv3 name
+    version: str = "v3"  # Now using DINOv3
     stride: int = 4
     
     # Clustering settings
@@ -42,12 +42,13 @@ class Config:
     
     @property
     def model_display_name(self) -> str:
-        """Get the human-readable model name."""
+        """Get the DINOv3 model name for loading."""
         model_map = {
-            "small": "dinov2_vits14", 
-            "base": "dinov2_vitb14",
-            "large": "dinov2_vitl14", 
-            "giant": "dinov2_vitg14"
+            "small": "dinov3_vits16",      # ViT-S/16 (21M params)
+            "base": "dinov3_vitb16",       # ViT-B/16 (86M params) - recommended
+            "large": "dinov3_vitl16",      # ViT-L/16 (300M params)
+            "giant": "dinov3_vith16plus",  # ViT-H+/16 (840M params)
+            "mega": "dinov3_vit7b16",      # ViT-7B/16 (6.7B params) - satellite optimized
         }
         return model_map.get(self.model_name, self.model_name)
     

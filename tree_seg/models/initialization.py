@@ -5,11 +5,7 @@ Model initialization and GPU utilities for tree segmentation.
 import os
 import torch
 
-from ..core.upsampler import HighResDV2
-from ..utils.transform import (
-    get_shift_transforms, get_flip_transforms, get_rotation_transforms, 
-    combine_transforms, iden_partial
-)
+from .dinov3_adapter import create_dinov3_model
 
 
 def print_gpu_info():
@@ -34,18 +30,12 @@ def setup_segmentation(output_dir):
 
 
 def initialize_model(stride, model_name, device):
-    """Initialize and configure the HighResDV2 model with transforms."""
-    model = HighResDV2(model_name, stride=stride, dtype=torch.float16).to(device)
-    model.eval()
-    
-    # Setup transforms
-    shift_transforms, shift_inv_transforms = get_shift_transforms(dists=[1], pattern="Moore")
-    flip_transforms, flip_inv_transforms = get_flip_transforms()
-    rot_transforms, rot_inv_transforms = get_rotation_transforms()
-    all_fwd_transforms, all_inv_transforms = combine_transforms(
-        shift_transforms, flip_transforms, shift_inv_transforms, flip_inv_transforms
+    """Initialize and configure the DINOv3 model."""
+    model = create_dinov3_model(
+        model_name=model_name,
+        stride=stride,
+        device=device,
+        dtype=torch.float16
     )
-    all_transforms = [t for t in all_fwd_transforms if t != iden_partial]
-    all_inv_transforms = [t for t in all_inv_transforms if t != iden_partial]
-    model.set_transforms(all_transforms, all_inv_transforms)
+    model.eval()
     return model 

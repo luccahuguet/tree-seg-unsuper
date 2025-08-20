@@ -1,7 +1,7 @@
 # Claude Development Learnings
 
 ## Project Context
-Tree segmentation using DINOv2 for aerial drone imagery. Modern v2.0 architecture with clean API.
+Tree segmentation using DINOv3 for aerial drone imagery. Modern v3.0 architecture with clean API.
 
 ## Key Architecture Decisions
 
@@ -34,7 +34,7 @@ Tree segmentation using DINOv2 for aerial drone imagery. Modern v2.0 architectur
 
 ### File Naming Strategy
 ```python
-# Smart filename: a3f7_v1-5_base_str4_et3-5_k5_segmentation_legend.png
+# Smart filename: a3f7_v3_base_str4_et3-5_k5_segmentation_legend.png
 # Components: hash_version_model_stride_method_clusters_type.png
 ```
 
@@ -71,4 +71,7 @@ results = segment_trees("image.jpg", model="base", auto_k=True)
 config = Config(model_name="base", elbow_threshold=0.1)
 segmenter = TreeSegmentation(config)
 results, paths = segmenter.process_and_visualize("image.jpg")
+
+# Satellite-optimized for maximum accuracy
+config = Config(model_name="mega", elbow_threshold=0.05)  # ViT-7B/16
 ```

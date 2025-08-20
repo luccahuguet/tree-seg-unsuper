@@ -6,9 +6,10 @@ from torchvision.transforms import Compose, ToTensor, Normalize, Resize
 
 
 def get_preprocess():
-    """Get the standard preprocessing pipeline for tree segmentation."""
+    """Get the standard preprocessing pipeline for DINOv3 tree segmentation."""
+    # DINOv3 uses standard ImageNet normalization
     return Compose([
-        Resize((518, 518)),
+        Resize((518, 518)),  # Keep same size for compatibility
         ToTensor(),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -16,14 +17,18 @@ def get_preprocess():
 
 def init_model_and_preprocess(model_name, stride, device):
     """
-    Initialize model with simple preprocessing (legacy function).
+    Initialize DINOv3 model with preprocessing (legacy function).
     Note: This is a simplified version. Use initialize_model() for full functionality.
     """
-    from ..core.upsampler import HighResDV2
+    from .dinov3_adapter import create_dinov3_model
     import torch
     
-    model = HighResDV2(model_name, stride=stride, dtype=torch.float16).to(device)
+    model = create_dinov3_model(
+        model_name=model_name,
+        stride=stride,
+        device=device,
+        dtype=torch.float16
+    )
     model.eval()
-    model.set_transforms([lambda x: x], [lambda x: x])  # Identity transforms
     preprocess = get_preprocess()
     return model, preprocess 

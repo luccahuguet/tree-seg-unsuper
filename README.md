@@ -1,6 +1,6 @@
 # Tree Segmentation with DINOv2
 
-Modern unsupervised tree segmentation using DINOv2 Vision Transformers and K-means clustering for aerial drone imagery.
+Modern unsupervised tree segmentation using DINOv3 Vision Transformers and K-means clustering for aerial drone imagery.
 
 ## 🚀 What's New - Modern Architecture
 
@@ -14,9 +14,9 @@ Modern unsupervised tree segmentation using DINOv2 Vision Transformers and K-mea
 ## 🌳 Project Overview
 
 This project implements an unsupervised tree segmentation pipeline that:
-- Uses DINOv2 Vision Transformers to extract deep features from aerial images
+- Uses DINOv3 Vision Transformers to extract deep features from aerial images  
 - Applies K-means clustering for segmentation
-- Supports v1.5 (patch + attention features) with automatic K-selection
+- Supports v3 (satellite-optimized features) with automatic K-selection
 - Generates high-quality visualization outputs with config-based naming
 
 ## 📁 Project Structure
@@ -156,10 +156,11 @@ config.validate()  # Raises ValueError if invalid
 - `0.2-0.3`: Conservative (fewer clusters)
 
 **Model Sizes:**
-- `small`: Fast, good for testing
-- `base`: Best balance (recommended)
-- `large`: Higher quality, slower
-- `giant`: Maximum quality, very slow
+- `small`: ViT-S/16 (21M params) - Fast, good for testing
+- `base`: ViT-B/16 (86M params) - Best balance (recommended)
+- `large`: ViT-L/16 (300M params) - Higher quality, slower  
+- `giant`: ViT-H+/16 (840M params) - Maximum quality, very slow
+- `mega`: ViT-7B/16 (6.7B params) - Satellite-optimized, ultimate quality
 
 ## 📊 Output Files
 
@@ -172,15 +173,15 @@ Files now use **config-based naming** for easy identification:
 ```
 
 **Examples:**
-- `a3f7_v1-5_base_str4_et0-1_segmentation_legend.png`
-- `a3f7_v1-5_base_str4_et0-1_edge_overlay.png`
-- `a3f7_v1-5_base_str4_et0-1_side_by_side.png`
-- `a3f7_v1-5_base_str4_et0-1_elbow_analysis.png`
+- `a3f7_v3_base_str4_et0-1_segmentation_legend.png`
+- `a3f7_v3_base_str4_et0-1_edge_overlay.png`
+- `a3f7_v3_base_str4_et0-1_side_by_side.png`
+- `a3f7_v3_base_str4_et0-1_elbow_analysis.png`
 
 **Filename Components:**
 - `a3f7`: 4-char hash of original filename (prevents collisions)
-- `v1-5`: Version used
-- `base`: Model size
+- `v3`: DINOv3 version used
+- `base`: Model size (small/base/large/giant/mega)
 - `str4`: Stride value
 - `et0-1`: Elbow threshold (or `k6` for fixed K)
 
@@ -194,18 +195,18 @@ Files now use **config-based naming** for easy identification:
 
 - **PyTorch** >= 2.0.0
 - **torchvision** >= 0.15.0
-- **timm** >= 0.9.0 (for DINOv2 models)
+- **omegaconf** (for DINOv3 configuration)
 - **opencv-python** >= 4.8.0
 - **matplotlib** >= 3.7.0
 - **scikit-learn** >= 1.3.0
 - **Pillow** >= 10.0.0
 - **numpy** >= 1.24.0
-- **xformers** >= 0.0.20 (optional, for memory efficiency)
+- **ftfy**, **regex**, **torchmetrics** (DINOv3 dependencies)
 
 ## 🎯 Model Variants
 
-- **v1**: Uses only patch features from DINOv2
-- **v1.5**: Uses both patch features and attention features (recommended)
+- **v3**: Uses DINOv3 satellite-optimized features with enhanced performance
+- **Previous versions**: v1 (patch only), v1.5 (patch + attention) - now superseded
 
 ## 🖼️ Supported Image Formats
 
@@ -277,11 +278,11 @@ This is a research project. For questions or issues, please refer to the paper o
 
 ## 🗺️ Roadmap
 
-- **V1:** Patch features only, K-Means clustering.
-- **V1.5 (Current):** Patch + attention features, K-Means clustering, PCA cluster visualization.
+- **V1.5 (Current):** DINOv3 satellite features, K-Means clustering, PCA cluster visualization.
 - **V2:** U2Seg (advanced unsupervised segmentation).
 - **V3:** DynaSeg (dynamic fusion segmentation).
 - **V4:** Multispectral extension.
+- **Previous:** V1 (patch only), V1.5 (DINOv2 patch + attention) - now superseded
 
 ## 🔜 Next Steps
 
@@ -292,8 +293,9 @@ This is a research project. For questions or issues, please refer to the paper o
 
 ## 📚 References
 
-- Docherty et al. (2024). Upsampling DINOv2 features. https://doi.org/10.48550/ARXIV.2410.19836
-- HR-Dv2: https://github.com/tldr-group/HR-Dv2
+- DINOv3: Meta AI (2025). Self-supervised learning for vision at unprecedented scale
+- DINOv3 GitHub: https://github.com/facebookresearch/dinov3
+- Satellite optimization: WRI forestry applications with 70% accuracy improvement
 - NEON AOP: https://data.neonscience.org/data-products/DP3.30010.001
-- DINOv2: https://github.com/facebookresearch/dinov2
+- Previous work: DINOv2 - https://github.com/facebookresearch/dinov2
 
