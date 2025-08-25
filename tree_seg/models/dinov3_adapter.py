@@ -108,7 +108,34 @@ class DINOv3Adapter(nn.Module):
         except Exception as e:
             print(f"⚠️  DINOv3 hub loading failed: {e}")
         
-        # Try 2: Load using transformers library (if available and model is in HF)
+        # Try 2: Load using direct safetensors download (if available)
+        if model_name in hf_model_map:
+            try:
+                print(f"🔄 Trying direct safetensors download...")
+                success = self._load_hf_safetensors_weights(model_fn, hf_model_map[model_name])
+                if success:
+                    backbone = model_fn(pretrained=False)  # Load architecture
+                    
+                    # Initialize all parameters (especially LayerScale gamma)
+                    print("   Initializing DINOv3 parameters...")
+                    backbone.init_weights()
+                    
+                    # Fix LinearKMaskedBias bias_mask initialization issue
+                    print("   Fixing LinearKMaskedBias bias_mask...")
+                    self._fix_linear_k_masked_bias(backbone)
+                    
+                    # Load the weights we just downloaded and converted
+                    weights_applied = self._apply_converted_weights(backbone, model_name)
+                    if weights_applied:
+                        print(f"📥 Loaded DINOv3 model: {model_name} (safetensors, pretrained)")
+                        print(f"   Hugging Face model: {hf_model_map[model_name]}")
+                        return backbone
+                    else:
+                        print("   ⚠️ Weight application failed, continuing to next method...")
+            except Exception as e:
+                print(f"⚠️  Safetensors loading failed: {e}")
+        
+        # Try 3: Load using transformers library (if available and model is in HF)
         if model_name in hf_model_map:
             try:
                 from transformers import AutoModel
@@ -123,7 +150,7 @@ class DINOv3Adapter(nn.Module):
             except Exception as e:
                 print(f"⚠️  Transformers loading failed: {e}")
         
-        # Try 3: Load architecture only (random weights)
+        # Try 4: Load architecture only (random weights)
         try:
             print(f"🔄 Loading model architecture only (random weights)...")
             backbone = model_fn(pretrained=False)
@@ -150,6 +177,329 @@ class DINOv3Adapter(nn.Module):
             "dinov3_vit7b16_sat": 1536, # 7B (satellite)
         }
         return dim_map.get(model_name, 768)  # Default to base
+    
+    def _load_hf_safetensors_weights(self, model_fn, hf_model_id):
+        """Download and prepare HuggingFace safetensors weights."""
+        try:
+            import os
+            from dotenv import load_dotenv
+            from huggingface_hub import hf_hub_download
+            from safetensors import safe_open
+            
+            load_dotenv()
+            
+            if 'HF_TOKEN' not in os.environ:
+                print("⚠️  No HF_TOKEN found in environment")
+                return False
+            
+            print(f"   Downloading weights from {hf_model_id}...")
+            model_path = hf_hub_download(
+                repo_id=hf_model_id,
+                filename='model.safetensors',
+                token=os.environ['HF_TOKEN']
+            )
+            
+            # Load and convert weights
+            converted_weights = {}
+            with safe_open(model_path, framework='pt', device='cpu') as f:
+                # This is a simplified conversion - we'd need proper mapping
+                # For now, let's see what keys we have
+                hf_keys = list(f.keys())
+                print(f"   Found {len(hf_keys)} parameters in HF model")
+                
+                # Store the safetensors file path for later use
+                self._hf_weights_path = model_path
+                
+            return True
+            
+        except Exception as e:
+            print(f"   Safetensors download failed: {e}")
+            return False
+    
+    def _apply_converted_weights(self, backbone, model_name):
+        """Apply HuggingFace weights to original DINOv3 architecture."""
+        try:
+            from safetensors import safe_open
+            import torch
+            import torch.nn as nn
+            
+            # Load HF weights
+            hf_weights = {}
+            with safe_open(self._hf_weights_path, framework='pt', device='cpu') as f:
+                for key in f.keys():
+                    hf_weights[key] = f.get_tensor(key)
+            
+            print(f"   Loaded {len(hf_weights)} HF parameters")
+            
+            # Create mapping from HF parameter names to DINOv3 parameter names
+            weight_mapping = self._create_weight_mapping(backbone, hf_weights)
+            
+            # Apply weights to backbone
+            applied_count = 0
+            total_count = 0
+            
+            for dinov3_name, param in backbone.named_parameters():
+                total_count += 1
+                if dinov3_name in weight_mapping:
+                    if isinstance(weight_mapping[dinov3_name], str):
+                        # Simple mapping
+                        hf_name = weight_mapping[dinov3_name]
+                        if hf_name in hf_weights:
+                            hf_weight = hf_weights[hf_name]
+                            if param.shape == hf_weight.shape:
+                                param.data.copy_(hf_weight)
+                                applied_count += 1
+                            elif dinov3_name == 'mask_token' and param.shape == torch.Size([1, 384]) and hf_weight.shape == torch.Size([1, 1, 384]):
+                                # Special case: reshape HF mask_token from [1, 1, 384] to [1, 384]
+                                param.data.copy_(hf_weight.squeeze(1))
+                                applied_count += 1
+                                print(f"   ✅ Reshaped mask_token from {hf_weight.shape} to {param.shape}")
+                            else:
+                                print(f"   ⚠️ Shape mismatch for {dinov3_name}: {param.shape} vs {hf_weight.shape}")
+                    elif isinstance(weight_mapping[dinov3_name], dict):
+                        # Special handling (e.g., QKV concatenation)
+                        special_mapping = weight_mapping[dinov3_name]
+                        if special_mapping['type'] == 'concat_qkv':
+                            q_name, k_name, v_name = special_mapping['hf_names']
+                            
+                            # Handle case where some bias terms might not exist (e.g., K bias is often disabled)
+                            available_tensors = []
+                            missing_names = []
+                            
+                            for name in [q_name, k_name, v_name]:
+                                if name in hf_weights:
+                                    available_tensors.append(hf_weights[name])
+                                else:
+                                    missing_names.append(name)
+                                    # Create zero tensor with same shape as the available ones
+                                    if available_tensors:
+                                        ref_tensor = available_tensors[0]
+                                        zero_tensor = torch.zeros_like(ref_tensor)
+                                    else:
+                                        # If this is the first tensor and it's missing, we need to determine shape
+                                        # For DINOv3 small, each head has 384 dimensions
+                                        if 'bias' in name:
+                                            zero_tensor = torch.zeros(384, device='cpu', dtype=torch.float32)
+                                        else:
+                                            # For weight matrices - this would need more logic
+                                            print(f"   ⚠️ Cannot determine shape for missing weight {name}")
+                                            continue
+                                    available_tensors.append(zero_tensor)
+                            
+                            if len(available_tensors) == 3:
+                                # Concatenate Q, K, V
+                                qkv_tensor = torch.cat(available_tensors, dim=0)
+                                
+                                if param.shape == qkv_tensor.shape:
+                                    param.data.copy_(qkv_tensor)
+                                    applied_count += 1
+                                    if missing_names:
+                                        print(f"   ✅ Concatenated QKV for {dinov3_name} (missing: {missing_names})")
+                                    else:
+                                        print(f"   ✅ Concatenated QKV for {dinov3_name}")
+                                else:
+                                    print(f"   ⚠️ QKV concat shape mismatch for {dinov3_name}: {param.shape} vs {qkv_tensor.shape}")
+            
+            print(f"   ✅ Applied {applied_count}/{total_count} weights from HuggingFace model")
+            
+            # Debug: show some unmapped parameters
+            unmapped_params = []
+            for dinov3_name, param in backbone.named_parameters():
+                if dinov3_name not in weight_mapping:
+                    unmapped_params.append(dinov3_name)
+            
+            if unmapped_params:
+                print(f"   ⚠️ Unmapped parameters ({len(unmapped_params)}):")
+                for name in unmapped_params[:10]:
+                    print(f"     - {name}")
+                if len(unmapped_params) > 10:
+                    print(f"     ... and {len(unmapped_params) - 10} more")
+            
+            if applied_count > total_count * 0.5:  # At least 50% of weights applied
+                print("   ✅ Successfully loaded most weights from HuggingFace")
+                return True
+            else:
+                print(f"   ❌ Only {applied_count/total_count:.1%} of weights applied - insufficient")
+                return False
+                
+        except Exception as e:
+            print(f"   Weight application failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _fix_linear_k_masked_bias(self, backbone):
+        """Fix LinearKMaskedBias layers that have NaN bias_mask initialization."""
+        try:
+            import torch
+            fixed_count = 0
+            
+            for name, module in backbone.named_modules():
+                if hasattr(module, 'bias_mask') and module.bias_mask is not None:
+                    if torch.isnan(module.bias_mask).any():
+                        # The bias_mask should mask out the K (middle third) bias terms
+                        # Create proper mask: [1, 1, 1, 0, 0, 0, 1, 1, 1] for Q, K, V
+                        bias_size = module.bias_mask.shape[0]
+                        third_size = bias_size // 3
+                        
+                        # Create mask: Q and V get 1.0, K gets 0.0 (or NaN for masking)
+                        new_mask = torch.ones_like(module.bias_mask)
+                        new_mask[third_size:2*third_size] = 0.0  # Mask K bias
+                        
+                        module.bias_mask.data.copy_(new_mask)
+                        fixed_count += 1
+            
+            if fixed_count > 0:
+                print(f"   ✅ Fixed {fixed_count} LinearKMaskedBias layers")
+            
+        except Exception as e:
+            print(f"   ⚠️ Error fixing LinearKMaskedBias: {e}")
+    
+    def _create_weight_mapping(self, backbone, hf_weights):
+        """Create mapping from DINOv3 parameter names to HuggingFace parameter names."""
+        
+        # Get all DINOv3 parameter names
+        dinov3_params = {name: param.shape for name, param in backbone.named_parameters()}
+        
+        print("   Creating weight mapping...")
+        print(f"   DINOv3 has {len(dinov3_params)} parameters")
+        
+        # Common parameter mapping patterns
+        mapping = {}
+        
+        # Patch embedding
+        if 'patch_embed.proj.weight' in dinov3_params:
+            mapping['patch_embed.proj.weight'] = 'embeddings.patch_embeddings.weight'
+            mapping['patch_embed.proj.bias'] = 'embeddings.patch_embeddings.bias'
+        
+        # CLS token and positional embeddings  
+        if 'cls_token' in dinov3_params:
+            mapping['cls_token'] = 'embeddings.cls_token'
+        if 'storage_tokens' in dinov3_params:  # DINOv3 calls these storage_tokens, HF calls them register_tokens
+            mapping['storage_tokens'] = 'embeddings.register_tokens'  
+        if 'mask_token' in dinov3_params:
+            # HF mask_token has shape [1, 1, 384], DINOv3 has [1, 384] - need reshape
+            mapping['mask_token'] = 'embeddings.mask_token'
+        
+        # Transformer blocks
+        # DINOv3 uses 'blocks.{i}.' while HF uses 'layer.{i}.'
+        for dinov3_name in dinov3_params:
+            if dinov3_name.startswith('blocks.'):
+                # Extract block number and rest of the path
+                parts = dinov3_name.split('.')
+                if len(parts) >= 3:
+                    block_num = parts[1]
+                    rest = '.'.join(parts[2:])
+                    
+                    # Map transformer components based on actual HF structure
+                    if rest == 'norm1.weight':
+                        mapping[dinov3_name] = f'layer.{block_num}.norm1.weight'
+                    elif rest == 'norm1.bias':
+                        mapping[dinov3_name] = f'layer.{block_num}.norm1.bias'
+                    elif rest == 'attn.qkv.weight':
+                        # HF splits QKV into separate q_proj, k_proj, v_proj - concatenate them
+                        mapping[dinov3_name] = {
+                            'type': 'concat_qkv',
+                            'hf_names': [
+                                f'layer.{block_num}.attention.q_proj.weight',
+                                f'layer.{block_num}.attention.k_proj.weight', 
+                                f'layer.{block_num}.attention.v_proj.weight'
+                            ]
+                        }
+                    elif rest == 'attn.qkv.bias':
+                        # Same for biases
+                        mapping[dinov3_name] = {
+                            'type': 'concat_qkv',
+                            'hf_names': [
+                                f'layer.{block_num}.attention.q_proj.bias',
+                                f'layer.{block_num}.attention.k_proj.bias',
+                                f'layer.{block_num}.attention.v_proj.bias'
+                            ]
+                        }
+                    elif rest == 'attn.proj.weight':
+                        mapping[dinov3_name] = f'layer.{block_num}.attention.o_proj.weight'
+                    elif rest == 'attn.proj.bias':
+                        mapping[dinov3_name] = f'layer.{block_num}.attention.o_proj.bias'
+                    elif rest == 'norm2.weight':
+                        mapping[dinov3_name] = f'layer.{block_num}.norm2.weight'
+                    elif rest == 'norm2.bias':
+                        mapping[dinov3_name] = f'layer.{block_num}.norm2.bias'
+                    elif rest == 'mlp.fc1.weight':
+                        mapping[dinov3_name] = f'layer.{block_num}.mlp.fc1.weight'
+                    elif rest == 'mlp.fc1.bias':
+                        mapping[dinov3_name] = f'layer.{block_num}.mlp.fc1.bias'
+                    elif rest == 'mlp.fc2.weight':
+                        mapping[dinov3_name] = f'layer.{block_num}.mlp.fc2.weight'
+                    elif rest == 'mlp.fc2.bias':
+                        mapping[dinov3_name] = f'layer.{block_num}.mlp.fc2.bias'
+        
+        # Final layer norm
+        if 'norm.weight' in dinov3_params:
+            mapping['norm.weight'] = 'norm.weight'
+        if 'norm.bias' in dinov3_params:
+            mapping['norm.bias'] = 'norm.bias'
+        
+        print(f"   Created {len(mapping)} parameter mappings")
+        
+        # Debug: show some mappings
+        print("   Sample mappings:")
+        for i, (dinov3_name, hf_name) in enumerate(mapping.items()):
+            if i < 5:
+                dinov3_shape = dinov3_params.get(dinov3_name, "Unknown")
+                hf_exists = hf_name in hf_weights
+                print(f"     {dinov3_name} -> {hf_name} ({dinov3_shape}) {'✓' if hf_exists else '✗'}")
+        
+        return mapping
+    
+    def _create_hf_wrapper(self, weights_path):
+        """Create custom wrapper for HuggingFace weights."""
+        import torch
+        import torch.nn as nn
+        from safetensors import safe_open
+        
+        class HFDINOv3Wrapper(nn.Module):
+            def __init__(self, weights_path):
+                super().__init__()
+                self.weights = {}
+                
+                # Load all weights
+                with safe_open(weights_path, framework='pt', device='cpu') as f:
+                    for key in f.keys():
+                        self.weights[key] = f.get_tensor(key)
+            
+            def forward_features(self, x):
+                """Custom forward pass using HF weights."""
+                batch_size = x.shape[0]
+                device = x.device
+                
+                # Move weights to same device as input
+                patch_weight = self.weights['embeddings.patch_embeddings.weight'].to(device)
+                patch_bias = self.weights['embeddings.patch_embeddings.bias'].to(device)
+                
+                # Apply patch embedding
+                patches = torch.nn.functional.conv2d(x, patch_weight, patch_bias, stride=16)
+                
+                # Flatten and transpose: B, C, H, W -> B, N, C
+                B, C, H, W = patches.shape
+                patches = patches.view(B, C, H*W).transpose(1, 2)
+                
+                # Add CLS token
+                cls_token = self.weights['embeddings.cls_token'].to(device).expand(B, -1, -1)
+                full_sequence = torch.cat([cls_token, patches], dim=1)
+                
+                # Create register tokens (storage tokens)
+                register_tokens = self.weights['embeddings.register_tokens'].to(device).expand(B, -1, -1)
+                
+                # Return dict matching DINOv3 format
+                return {
+                    'x_norm_patchtokens': patches,  # Patch tokens without CLS
+                    'x_prenorm': full_sequence,     # Full sequence with CLS
+                    'x_norm_clstoken': cls_token,   # CLS token only
+                    'x_storage_tokens': register_tokens,  # Register tokens
+                    'masks': None
+                }
+        
+        return HFDINOv3Wrapper(weights_path)
     
     def _get_image_patches_info(self, image_height: int, image_width: int) -> Dict[str, int]:
         """Calculate patch grid dimensions."""
