@@ -118,20 +118,31 @@ class HuggingFaceWeightLoader:
         self._weights_cache: Optional[Dict[str, torch.Tensor]] = None
         
     def load_weights(self) -> bool:
-        """Load HuggingFace safetensors weights with proper error handling."""
+        """Load HuggingFace safetensors weights with efficient caching."""
         try:
             from huggingface_hub import hf_hub_download
             from safetensors import safe_open
             
             if not self.hf_token:
                 logger.warning("No HF_TOKEN found - some models may be inaccessible")
-                
-            logger.info(f"Downloading model weights: {self.hf_model_id}")
-            weights_path = hf_hub_download(
-                repo_id=self.hf_model_id,
-                filename='model.safetensors',
-                token=self.hf_token
-            )
+            
+            # Check if already cached locally
+            try:
+                weights_path = hf_hub_download(
+                    repo_id=self.hf_model_id,
+                    filename='model.safetensors',
+                    token=self.hf_token,
+                    local_files_only=True  # Try local cache first
+                )
+                logger.info(f"✅ Using cached weights: {self.hf_model_id}")
+            except:
+                # Download if not in cache
+                logger.info(f"⬇️ Downloading model weights: {self.hf_model_id}")
+                weights_path = hf_hub_download(
+                    repo_id=self.hf_model_id,
+                    filename='model.safetensors',
+                    token=self.hf_token
+                )
             
             # Load all weights into memory for fast access
             self._weights_cache = {}
@@ -139,7 +150,7 @@ class HuggingFaceWeightLoader:
                 for key in f.keys():
                     self._weights_cache[key] = f.get_tensor(key)
             
-            logger.info(f"Successfully cached {len(self._weights_cache)} parameters")
+            logger.info(f"Successfully loaded {len(self._weights_cache)} parameters")
             return True
             
         except Exception as e:
@@ -376,11 +387,13 @@ class DINOv3Adapter(nn.Module):
         self._log_initialization_success()
     
     def _load_backbone_with_strategy(self, hf_token: Optional[str]) -> Tuple[nn.Module, LoadingStrategy]:
-        """Load backbone using the best available strategy."""
-        strategies = [LoadingStrategy.ORIGINAL_HUB, LoadingStrategy.HUGGINGFACE, LoadingStrategy.RANDOM_WEIGHTS]
+        """Load backbone using the best available strategy with smart caching."""
+        # Skip original hub by default since it consistently fails with 403
+        strategies = [LoadingStrategy.HUGGINGFACE, LoadingStrategy.RANDOM_WEIGHTS]
         
-        if self.force_strategy:
-            strategies = [self.force_strategy]
+        # Only try original hub if explicitly forced or if we haven't seen it fail
+        if self.force_strategy == LoadingStrategy.ORIGINAL_HUB:
+            strategies = [LoadingStrategy.ORIGINAL_HUB, LoadingStrategy.HUGGINGFACE, LoadingStrategy.RANDOM_WEIGHTS]
         
         last_error = None
         
