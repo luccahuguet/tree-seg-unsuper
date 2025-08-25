@@ -17,6 +17,7 @@ dependencies = [
     "torchmetrics",
     "opencv-python>=4.8.0",
     "Pillow>=10.0.0",
+    "transformers>=4.55.2",
 ]
 
 [dependency-groups]
