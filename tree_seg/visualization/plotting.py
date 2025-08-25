@@ -141,7 +141,9 @@ def _generate_edge_overlay(results: SegmentationResults, config: Config,
             cs = ax.contourf(cluster_mask.astype(int), levels=[0.5, 1.5], colors='none',
                            hatches=[hatch_pattern])
             
-            for collection in cs.collections:
+            # Handle both old and new matplotlib API
+            collections = getattr(cs, 'collections', [])
+            for collection in collections:
                 collection.set_facecolor('none')
                 collection.set_edgecolor(cluster_color)
                 collection.set_alpha(0.7)

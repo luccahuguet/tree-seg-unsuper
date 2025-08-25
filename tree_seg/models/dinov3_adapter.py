@@ -71,7 +71,7 @@ class DINOv3Adapter(nn.Module):
         print(f"   Stride: {stride}")
     
     def _load_backbone(self, model_name: str) -> nn.Module:
-        """Load DINOv3 backbone model."""
+        """Load DINOv3 backbone model with transformers fallback."""
         # Map model names to DINOv3 hub functions
         model_map = {
             "dinov3_vits16": dinov3_backbones.dinov3_vits16,
@@ -81,38 +81,73 @@ class DINOv3Adapter(nn.Module):
             "dinov3_vit7b16": dinov3_backbones.dinov3_vit7b16,
         }
         
+        # Map model names to Hugging Face model IDs for transformers fallback
+        hf_model_map = {
+            "dinov3_vits16": "facebook/dinov3-vits16-pretrain-lvd1689m",
+            "dinov3_vitb16": "facebook/dinov3-vitb16-pretrain-lvd1689m", 
+            "dinov3_vitl16": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+            "dinov3_vith16plus": "facebook/dinov3-vith16plus-pretrain-lvd1689m",
+            "dinov3_vit7b16": "facebook/dinov3-vit7b16-pretrain-lvd1689m",
+            # Plus variants (enhanced models with better architecture)
+            "dinov3_vits16plus": "facebook/dinov3-vits16plus-pretrain-lvd1689m",
+            "dinov3_vitl16plus": "facebook/dinov3-vitl16plus-pretrain-lvd1689m",
+            # Satellite-optimized variants
+            "dinov3_vitl16_sat": "facebook/dinov3-vitl16-pretrain-sat493m",
+            "dinov3_vit7b16_sat": "facebook/dinov3-vit7b16-pretrain-sat493m",
+        }
+        
         if model_name not in model_map:
             raise ValueError(f"Unknown DINOv3 model: {model_name}. Available: {list(model_map.keys())}")
         
-        # Load model using the hub function
+        # Try 1: Load using original DINOv3 hub
         model_fn = model_map[model_name]
         try:
-            # Try to load with pretrained weights
             backbone = model_fn(pretrained=True)
-            print(f"📥 Loaded DINOv3 model: {model_name} (pretrained weights)")
+            print(f"📥 Loaded DINOv3 model: {model_name} (DINOv3 hub, pretrained)")
             return backbone
         except Exception as e:
-            print(f"⚠️  Pretrained weights unavailable: {e}")
-            print(f"🔄 Loading model architecture only (random weights)...")
+            print(f"⚠️  DINOv3 hub loading failed: {e}")
+        
+        # Try 2: Load using transformers library (if available and model is in HF)
+        if model_name in hf_model_map:
             try:
-                # Fallback: load without pretrained weights
-                backbone = model_fn(pretrained=False)
-                print(f"📥 Loaded DINOv3 model: {model_name} (random initialization)")
-                print(f"⚠️  Note: Using random weights - performance will be limited")
+                from transformers import AutoModel
+                print(f"🔄 Trying transformers fallback...")
+                hf_model_id = hf_model_map[model_name]
+                backbone = AutoModel.from_pretrained(hf_model_id)
+                print(f"📥 Loaded DINOv3 model: {model_name} (transformers, pretrained)")
+                print(f"   Hugging Face model: {hf_model_id}")
                 return backbone
-            except Exception as e2:
-                print(f"❌ Failed to load DINOv3 model architecture: {e2}")
-                raise
+            except ImportError:
+                print(f"⚠️  transformers library not available")
+            except Exception as e:
+                print(f"⚠️  Transformers loading failed: {e}")
+        
+        # Try 3: Load architecture only (random weights)
+        try:
+            print(f"🔄 Loading model architecture only (random weights)...")
+            backbone = model_fn(pretrained=False)
+            print(f"📥 Loaded DINOv3 model: {model_name} (random initialization)")
+            print(f"⚠️  Note: Using random weights - performance will be limited")
+            return backbone
+        except Exception as e2:
+            print(f"❌ Failed to load DINOv3 model architecture: {e2}")
+            raise
     
     def _get_feature_dim(self, model_name: str) -> int:
         """Get feature dimension for the model."""
         # DINOv3 feature dimensions
         dim_map = {
             "dinov3_vits16": 384,      # Small
+            "dinov3_vits16plus": 384,  # Small+ (same dim as small)
             "dinov3_vitb16": 768,      # Base
             "dinov3_vitl16": 1024,     # Large
+            "dinov3_vitl16plus": 1024, # Large+ (same dim as large)
             "dinov3_vith16plus": 1280, # Huge+
             "dinov3_vit7b16": 1536,    # 7B
+            # Satellite variants have same dimensions as base models
+            "dinov3_vitl16_sat": 1024, # Large (satellite)
+            "dinov3_vit7b16_sat": 1536, # 7B (satellite)
         }
         return dim_map.get(model_name, 768)  # Default to base
     
@@ -161,9 +196,29 @@ class DINOv3Adapter(nn.Module):
             # Get patch tokens (excluding CLS token)
             features = self.backbone.forward_features(x)
             
-            # DINOv3 returns features in format (B, N+1, D) where N is num_patches, +1 for CLS
-            # We want just the patch tokens
-            patch_features = features[:, 1:, :]  # Remove CLS token
+            # Handle different DINOv3 output formats
+            if isinstance(features, dict):
+                # If features is a dictionary, extract the main feature tensor
+                if 'x_norm_patchtokens' in features:
+                    patch_features = features['x_norm_patchtokens']
+                elif 'x_prenorm' in features:
+                    patch_features = features['x_prenorm'][:, 1:, :]  # Remove CLS token
+                elif 'last_hidden_state' in features:
+                    patch_features = features['last_hidden_state'][:, 1:, :]  # Remove CLS token
+                else:
+                    # Fallback: try to find the main tensor
+                    main_key = list(features.keys())[0]
+                    tensor_features = features[main_key]
+                    if tensor_features.dim() == 3:
+                        patch_features = tensor_features[:, 1:, :]  # Remove CLS token
+                    else:
+                        patch_features = tensor_features
+            elif torch.is_tensor(features):
+                # DINOv3 returns features in format (B, N+1, D) where N is num_patches, +1 for CLS
+                # We want just the patch tokens
+                patch_features = features[:, 1:, :]  # Remove CLS token
+            else:
+                raise ValueError(f"Unexpected features type: {type(features)}. Expected torch.Tensor or dict.")
             
             # Reshape to spatial format
             patch_info = self._get_image_patches_info(img_h, img_w)

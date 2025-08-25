@@ -78,7 +78,8 @@ class TreeSegmentation:
             k_range=self.config.k_range,
             elbow_threshold=self.config.elbow_threshold_decimal,
             use_pca=self.config.use_pca,
-            model_name=self.config.model_display_name
+            model_name=self.config.model_display_name,
+            output_dir=self.config.output_dir
         )
         
         if result[0] is None:

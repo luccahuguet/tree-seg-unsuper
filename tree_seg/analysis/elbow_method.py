@@ -26,6 +26,19 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.5):
     k_values = list(range(min_k, max_k + 1))
     wcss = []
 
+    # Check for NaN values and clean if necessary
+    if np.isnan(features_flat).any():
+        print("⚠️  Warning: Features contain NaN values (likely from random weights)")
+        print("🧹 Cleaning NaN values for clustering...")
+        
+        # Replace NaN with zeros or mean values
+        features_flat = np.nan_to_num(features_flat, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # If all features are zeros, add some small random noise for clustering
+        if np.all(features_flat == 0):
+            print("🎲 Adding small random noise to zero features...")
+            features_flat += np.random.normal(0, 0.001, features_flat.shape)
+
     print(f"🔍 Testing K values from {min_k} to {max_k} using elbow method...")
 
     # Calculate WCSS for each K

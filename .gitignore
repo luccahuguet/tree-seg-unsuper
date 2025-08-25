@@ -12,6 +12,11 @@ input/*.jpg
 input/*.jpeg
 input/*.png
 
+# Environment variables and secrets
+.env
+.env.local
+*.env
+
 # OS files
 .DS_Store
 .aider*

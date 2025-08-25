@@ -14,7 +14,8 @@ from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
 
 def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                 auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, model_name=None):
+                 auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, model_name=None,
+                 output_dir="/kaggle/working/output"):
     """
     Process a single image for tree segmentation.
     
@@ -121,7 +122,6 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             print(f"Selected optimal K = {optimal_k}")
 
             # Save K selection analysis plot
-            output_dir = "/kaggle/working/output"
             output_prefix = os.path.splitext(os.path.basename(image_path))[0]
             plot_elbow_analysis(k_scores, output_dir, output_prefix, elbow_threshold * 100,
                                model_name, version, stride, optimal_k, auto_k, image_path)
@@ -129,6 +129,16 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             n_clusters = optimal_k
         else:
             print(f"Using fixed K = {n_clusters}")
+
+        # Clean features for main clustering (same as elbow method)
+        if np.isnan(features_flat).any():
+            print("⚠️  Warning: Features contain NaN values for main clustering")
+            print("🧹 Cleaning NaN values...")
+            features_flat = np.nan_to_num(features_flat, nan=0.0, posinf=0.0, neginf=0.0)
+            
+            if np.all(features_flat == 0):
+                print("🎲 Adding small random noise to zero features...")
+                features_flat += np.random.normal(0, 0.001, features_flat.shape)
 
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         labels = kmeans.fit_predict(features_flat)
