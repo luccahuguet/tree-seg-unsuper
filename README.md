@@ -99,6 +99,8 @@ Flags:
 - `--refine-slic-compactness FLOAT`: SLIC compactness (higher=smoother, lower=hugs edges). Default 10.0
 - `--refine-slic-sigma FLOAT`: Gaussian smoothing for SLIC pre-processing. Default 1.0
 - `--metrics`: print timing and VRAM stats (also included in result stats)
+ - `--sweep PATH`: run multiple configurations from a JSON/YAML list; outputs saved under `output/<sweeps>/<name>`
+ - `--sweep-prefix STR`: subfolder under `output/` to place sweep runs (default: `sweeps`)
 
 Profiles (set sensible defaults; flags still override; default profile is balanced):
 
@@ -376,3 +378,27 @@ This is a research project. For questions or issues, please refer to the paper o
 - Satellite optimization: WRI forestry applications with 70% accuracy improvement
 - NEON AOP: https://data.neonscience.org/data-products/DP3.30010.001
 - Previous work: DINOv2 - https://github.com/facebookresearch/dinov2
+# Sweeps
+
+Provide a JSON or YAML array of config overrides to iterate. Each item can override any CLI flag (e.g., `model`, `image_size`, `feature_upsample_factor`, `pca_dim`, `refine`, `refine_slic_*`, `profile`). Optionally include `name` to name the run folder.
+
+Example `sweep.yaml`:
+
+```yaml
+- name: q1280
+  profile: quality
+  model: large
+- name: b1024
+  profile: balanced
+  model: base
+- name: s896
+  profile: speed
+  model: small
+  refine: none
+```
+
+Run the sweep:
+
+```bash
+uv run python run_segmentation.py input giant output --sweep sweep.yaml --metrics
+```

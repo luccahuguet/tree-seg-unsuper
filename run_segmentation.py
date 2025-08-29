@@ -34,6 +34,10 @@ def main():
     parser.add_argument("--profile", choices=["quality", "balanced", "speed"], default="balanced",
                         help="Preset quality/speed profile (default: balanced); explicit flags override")
     parser.add_argument("--metrics", action="store_true", help="Collect and print timing/VRAM metrics")
+    parser.add_argument("--sweep", type=str, default=None,
+                        help="Path to JSON/YAML file with a list of config overrides to run in sequence")
+    parser.add_argument("--sweep-prefix", type=str, default="sweeps",
+                        help="Subfolder under output/ for sweep runs (default: sweeps)")
 
     args = parser.parse_args()
     # Apply performance presets (profile) unless explicitly overridden on CLI
@@ -89,6 +93,127 @@ def main():
     # Import after loading env vars
     from tree_seg import segment_trees
     import shutil
+
+    # Helper to run one case (clears its output dir)
+    def _run_case(img_path, mdl, out_dir, overrides: dict | None = None):
+        # Clear output directory before processing
+        if os.path.exists(out_dir):
+            existing_files = []
+            for root, dirs, files in os.walk(out_dir):
+                existing_files.extend([f for f in files if f.endswith(('.png', '.jpg', '.jpeg'))])
+            if existing_files:
+                print(f"🗂️  Found {len(existing_files)} existing output file(s) in {out_dir}")
+                print(f"🧹 Clearing output directory: {out_dir}")
+            shutil.rmtree(out_dir)
+        os.makedirs(out_dir, exist_ok=True)
+        print(f"📁 Output directory ready: {out_dir}")
+        print()
+
+        cfg = dict(
+            image_size=args.image_size,
+            feature_upsample_factor=args.feature_upsample_factor,
+            pca_dim=args.pca_dim,
+            refine=(None if args.refine == "none" else args.refine),
+            refine_slic_compactness=args.refine_slic_compactness,
+            refine_slic_sigma=args.refine_slic_sigma,
+            metrics=args.metrics,
+        )
+        if overrides:
+            cfg.update({k: v for k, v in overrides.items() if v is not None})
+
+        # Directory or single image
+        if os.path.isdir(img_path):
+            import glob
+            image_files = []
+            for ext in ['*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff']:
+                image_files.extend(glob.glob(os.path.join(img_path, ext)))
+                image_files.extend(glob.glob(os.path.join(img_path, ext.upper())))
+            if not image_files:
+                print(f"❌ No image files found in {img_path}")
+                return
+            print(f"🖼️ Found {len(image_files)} image(s) in {img_path}")
+            for p in sorted(image_files):
+                print(f"\n🚀 Processing: {os.path.basename(p)}")
+                try:
+                    results = segment_trees(
+                        p,
+                        model=mdl,
+                        auto_k=True,
+                        output_dir=out_dir,
+                        **cfg,
+                    )
+                    if args.metrics and isinstance(results, list) and results:
+                        res, _paths = results[0]
+                        stats = getattr(res, 'processing_stats', {})
+                        print(
+                            f"⏱️  total={stats.get('time_total_s')}s, features={stats.get('time_features_s')}s, "
+                            f"kselect={stats.get('time_kselect_s')}s, kmeans={stats.get('time_kmeans_s')}s, refine={stats.get('time_refine_s')}s, "
+                            f"peak_vram={stats.get('peak_vram_mb')}MB, device={stats.get('device_actual') or stats.get('device_requested')}"
+                        )
+                    print(f"✅ Completed: {os.path.basename(p)}")
+                except Exception as e:
+                    print(f"❌ Failed: {os.path.basename(p)} - {e}")
+        else:
+            if not os.path.exists(img_path):
+                print(f"❌ Image not found: {img_path}")
+                return
+            print(f"🚀 Processing: {os.path.basename(img_path)}")
+            try:
+                results = segment_trees(
+                    img_path,
+                    model=mdl,
+                    auto_k=True,
+                    output_dir=out_dir,
+                    **cfg,
+                )
+                if args.metrics and isinstance(results, list) and results:
+                    res, _paths = results[0]
+                    stats = getattr(res, 'processing_stats', {})
+                    print(
+                        f"⏱️  total={stats.get('time_total_s')}s, features={stats.get('time_features_s')}s, "
+                        f"kselect={stats.get('time_kselect_s')}s, kmeans={stats.get('time_kmeans_s')}s, refine={stats.get('time_refine_s')}s, "
+                        f"peak_vram={stats.get('peak_vram_mb')}MB, device={stats.get('device_actual') or stats.get('device_requested')}"
+                    )
+                print(f"✅ Tree segmentation completed!")
+            except Exception as e:
+                print(f"❌ Error: {e}")
+
+    # Sweep mode: read list of configs and iterate
+    if getattr(args, 'sweep', None):
+        sweep_path = args.sweep
+        if not os.path.exists(sweep_path):
+            print(f"❌ Sweep file not found: {sweep_path}")
+            return
+        # Load as JSON or YAML
+        cfg_list = None
+        try:
+            import json
+            with open(sweep_path, 'r') as f:
+                cfg_list = json.load(f)
+        except Exception:
+            try:
+                import yaml
+                with open(sweep_path, 'r') as f:
+                    cfg_list = yaml.safe_load(f)
+            except Exception as e:
+                print(f"❌ Failed to parse sweep file: {e}")
+                return
+        if not isinstance(cfg_list, list):
+            print("❌ Sweep file must contain a list of configurations")
+            return
+
+        base_out = output_dir
+        for idx, item in enumerate(cfg_list):
+            if not isinstance(item, dict):
+                print(f"⚠️ Skipping non-dict sweep item at idx {idx}")
+                continue
+            name = item.get('name') or f"cfg{idx:02d}"
+            mdl = item.get('model') or model
+            out_dir = os.path.join(base_out, args.sweep_prefix, name)
+            print(f"\n=== Sweep '{name}' (model={mdl}) ===")
+            overrides = {k: v for k, v in item.items() if k not in {'name', 'model'}}
+            _run_case(image_path, mdl, out_dir, overrides)
+        return
     
     # Clear output directory before processing
     if os.path.exists(output_dir):
