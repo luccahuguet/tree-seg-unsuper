@@ -1,6 +1,6 @@
-# Tree Segmentation with DINOv3
+# Tree Segmentation with DINOv2
 
-Modern unsupervised tree segmentation using DINOv3 Vision Transformers and K-means clustering for aerial drone imagery.
+Modern unsupervised tree segmentation using DINOv2 Vision Transformers and K-means clustering for aerial drone imagery.
 
 ## 🚀 What's New - Modern Architecture
 
@@ -14,40 +14,27 @@ Modern unsupervised tree segmentation using DINOv3 Vision Transformers and K-mea
 ## 🌳 Project Overview
 
 This project implements an unsupervised tree segmentation pipeline that:
-- Uses DINOv3 Vision Transformers to extract deep features from aerial images  
+- Uses DINOv2 Vision Transformers to extract deep features from aerial images  
 - Applies K-means clustering for segmentation
-- Supports v3 (satellite-optimized features) with automatic K-selection
+- Supports automatic K-selection using elbow method
 - Generates high-quality visualization outputs with config-based naming
 
 ## 📁 Project Structure
 
 ```
-final-paper/
-├── src/                       # Core modules
-│   ├── __init__.py
-│   ├── kmeans_segmentation.py
-│   ├── patch.py
-│   ├── transform.py
-│   └── upsampler.py
+tree-seg-unsuper/
+├── tree_seg/                  # Core package
+│   ├── core/                  # Core segmentation logic
+│   ├── visualization/         # Plotting and visualization
+│   ├── utils/                 # Utilities and helpers
+│   └── api.py                 # Main API interface
 │
-├── notebooks/                 # Cloud-ready notebooks
-│   ├── tree_seg_kaggle.ipynb  # Kaggle notebook
-│   └── tree_seg_colab.ipynb   # Google Colab notebook
-│
-├── deployment/                # Cloud deployment package
-│   ├── tree_seg_deployment.zip
-│   ├── run.sh                 # Cloud execution script
-│   ├── requirements.txt       # Dependencies
-│   ├── tree_seg_local.py      # Main script
-│   ├── config.yaml           # Configuration
-│   ├── README.md             # Deployment instructions
-│   └── src/                  # Source code copy
-│
-├── input/                     # Input images (local runs)
+├── docs/                      # Documentation (GitHub Pages)
+├── sweeps/                    # Sweep configurations
+├── input/                     # Input images
 ├── output/                    # Output results
-├── tree_seg_local.py          # Main script for local execution
-├── deploy_to_cloud.py         # Deployment automation
-├── config.yaml               # Configuration
+├── run_segmentation.py        # Main CLI script
+├── generate_docs_images.py    # Documentation image generation
 ├── pyproject.toml            # Project metadata
 └── README.md                 # This file
 ```
@@ -127,7 +114,7 @@ from tree_seg import segment_trees
 
 # Process single image with smart defaults
 results = segment_trees(
-    "/kaggle/input/drone-imagery/image.jpg",
+    "input/forest2.jpeg",
     model="base",
     auto_k=True
 )
@@ -168,28 +155,15 @@ print(f"Files: {paths.all_paths()}")
 ```
 
 
-### Cloud GPU Execution
+### Generate Documentation Images
 
-#### Option 1: Kaggle
-1. Go to [Kaggle Notebooks](https://www.kaggle.com/code)
-2. Upload `notebooks/tree_seg_kaggle.ipynb`
-3. Attach your dataset or upload images
-4. Run on Kaggle GPU
+To generate all documentation images with comprehensive parameter analysis:
 
-#### Option 2: Google Colab
-1. Go to [Google Colab](https://colab.research.google.com/)
-2. Upload `notebooks/tree_seg_colab.ipynb`
-3. Upload your images when prompted
-4. Run on Colab GPU
+```bash
+python generate_docs_images.py input/forest2.jpeg
+```
 
-#### Option 3: Any Cloud GPU VM
-1. Upload `deployment/tree_seg_deployment.zip` to your VM
-2. Unzip and run:
-   ```bash
-   unzip tree_seg_deployment.zip
-   chmod +x run.sh
-   ./run.sh
-   ```
+This runs 12 different configurations and organizes results for the GitHub Pages documentation.
 
 ## ⚙️ Configuration
 
@@ -200,8 +174,8 @@ from tree_seg import Config
 
 config = Config(
     # Input/Output
-    input_dir="/kaggle/input/drone-imagery",
-    output_dir="/kaggle/working/output",
+    input_dir="input",
+    output_dir="output",
     filename=None,
 
     # Model settings
@@ -236,11 +210,10 @@ config.validate()  # Raises ValueError if invalid
 - `0.2-0.3`: Conservative (fewer clusters)
 
 **Model Sizes:**
-- `small`: ViT-S/16 (21M params) - Fast, good for testing
-- `base`: ViT-B/16 (86M params) - Best balance (recommended)
-- `large`: ViT-L/16 (300M params) - Higher quality, slower  
-- `giant`: ViT-H+/16 (840M params) - Maximum quality, very slow
-- `mega`: ViT-7B/16 (6.7B params) - Satellite-optimized, ultimate quality
+- `small`: DINOv2 Small (21M params) - Fast, good for testing
+- `base`: DINOv2 Base (86M params) - Best balance (recommended)
+- `large`: DINOv2 Large (300M params) - Higher quality, slower  
+- `giant`: DINOv2 Giant (1.1B params) - Maximum quality, very slow
 
 ## 📊 Output Files
 
@@ -253,17 +226,17 @@ Files now use **config-based naming** for easy identification:
 ```
 
 **Examples:**
-- `a3f7_v3_base_str4_et0-1_segmentation_legend.png`
-- `a3f7_v3_base_str4_et0-1_edge_overlay.png`
-- `a3f7_v3_base_str4_et0-1_side_by_side.png`
-- `a3f7_v3_base_str4_et0-1_elbow_analysis.png`
+- `a3f7_v1-5_base_str4_et3-5_segmentation_legend.png`
+- `a3f7_v1-5_base_str4_et3-5_edge_overlay.png`
+- `a3f7_v1-5_base_str4_et3-5_side_by_side.png`
+- `a3f7_v1-5_base_str4_et3-5_elbow_analysis.png`
 
 **Filename Components:**
 - `a3f7`: 4-char hash of original filename (prevents collisions)
-- `v3`: DINOv3 version used
-- `base`: Model size (small/base/large/giant/mega)
+- `v1-5`: DINOv2 version used
+- `base`: Model size (small/base/large/giant)
 - `str4`: Stride value
-- `et0-1`: Elbow threshold (or `k6` for fixed K)
+- `et3-5`: Elbow threshold (or `k6` for fixed K)
 
 **File Types:**
 - `segmentation_legend.png`: Colored map with cluster legend
@@ -285,8 +258,8 @@ Files now use **config-based naming** for easy identification:
 
 ## 🎯 Model Variants
 
-- **v3 (default)**: Uses DINOv3 features with enhanced performance
-- Previous: v1 (patch only), v1.5 (patch + attention)
+- **v1.5 (current)**: Uses DINOv2 features with elbow method K-selection
+- Previous: v1 (patch only), v2 (curvature method)
 
 ## 🖼️ Supported Image Formats
 
@@ -294,43 +267,38 @@ Files now use **config-based naming** for easy identification:
 - PNG (.png)
 - TIFF (.tif, .tiff)
 
-## 🚀 Deployment Automation
+## 📊 Documentation
 
-Use the deployment script to generate cloud-ready files:
-
-```bash
-python deploy_to_cloud.py
-```
-
-This creates:
-- Kaggle notebook in `notebooks/`
-- Colab notebook in `notebooks/`
-- Deployment package in `deployment/`
+Comprehensive documentation is available at the GitHub Pages site, including:
+- Methodology and pipeline details
+- Complete workflow examples
+- Parameter analysis and comparisons
+- Performance benchmarks
 
 ## 📝 Usage Examples
 
 ### Process a single image:
 ```python
-from tree_seg_local import tree_seg
+from tree_seg import TreeSegmentation, Config
 
-tree_seg(
-    input_dir="input",
-    output_dir="output", 
-    filename="drone_image.jpg",
-    n_clusters=6,
-    version="v1.5"
+config = Config(
+    model_name="base",
+    auto_k=True,
+    elbow_threshold=3.5
 )
+
+segmenter = TreeSegmentation(config)
+results, paths = segmenter.process_and_visualize("input/forest2.jpeg")
 ```
 
-### Process all images in directory:
-```python
-tree_seg(
-    input_dir="input",
-    output_dir="output",
-    filename=None,  # Process all images
-    n_clusters=8,
-    stride=2  # Higher resolution
-)
+### Process with CLI:
+```bash
+# Basic usage
+uv run python run_segmentation.py input/forest2.jpeg base output
+
+# With custom parameters
+uv run python run_segmentation.py input/forest2.jpeg giant output \
+  --stride 2 --elbow-threshold 1.5 --profile quality
 ```
 
 ## 🔍 Troubleshooting
@@ -358,11 +326,11 @@ This is a research project. For questions or issues, please refer to the paper o
 
 ## 🗺️ Roadmap
 
-- **V1.5 (Current):** DINOv3 satellite features, K-Means clustering, PCA cluster visualization.
-- **V2:** U2Seg (advanced unsupervised segmentation).
-- **V3:** DynaSeg (dynamic fusion segmentation).
-- **V4:** Multispectral extension.
-- **Previous:** V1 (patch only), V1.5 (DINOv2 patch + attention) - now superseded
+- **V1.5 (Current):** DINOv2 features with elbow method K-selection
+- **V2:** U2Seg (advanced unsupervised segmentation)
+- **V3:** DynaSeg (dynamic fusion segmentation)
+- **V4:** Multispectral extension
+- **Previous:** V1 (patch only), V2 (curvature method)
 
 ## 🔜 Next Steps
 
@@ -373,11 +341,9 @@ This is a research project. For questions or issues, please refer to the paper o
 
 ## 📚 References
 
-- DINOv3: Meta AI (2025). Self-supervised learning for vision at unprecedented scale
-- DINOv3 GitHub: https://github.com/facebookresearch/dinov3
-- Satellite optimization: WRI forestry applications with 70% accuracy improvement
+- DINOv2: Meta AI (2023). DINOv2: Learning Robust Visual Features without Supervision
+- DINOv2 GitHub: https://github.com/facebookresearch/dinov2
 - NEON AOP: https://data.neonscience.org/data-products/DP3.30010.001
-- Previous work: DINOv2 - https://github.com/facebookresearch/dinov2
 # Sweeps
 
 Provide a JSON or YAML array of config overrides to iterate. Each item can override any CLI flag (e.g., `model`, `image_size`, `feature_upsample_factor`, `pca_dim`, `refine`, `refine_slic_*`, `profile`). Optionally include `name` to name the run folder.
