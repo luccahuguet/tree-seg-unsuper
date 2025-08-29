@@ -66,6 +66,7 @@ Defaults favor high quality:
 - Model: `base` (ViT-B/16)
 - Image size: 1024×1024
 - Feature upsample factor: 2 (clusters on a 128×128 grid)
+- Edge refinement: SLIC superpixels (aligns boundaries to image edges)
 
 CLI flags allow tuning quality/performance:
 
@@ -87,14 +88,16 @@ uv run python run_segmentation.py input/forest.jpg base output
 
 # Edge-aware refinement (SLIC superpixels):
 uv run python run_segmentation.py input base output \
-  --refine slic
+  --refine slic --refine-slic-compactness 12 --refine-slic-sigma 1.5
 ```
 
 Flags:
 - `--image-size INT`: square resize used before feature extraction (default 1024)
 - `--feature-upsample INT`: bilinear upsample of H×W feature grid before K-Means (default 2)
 - `--pca-dim INT`: optional PCA target dimension (e.g., 128) for faster clustering
-- `--refine {none,slic}`: optional edge-aware smoothing using SLIC superpixels
+- `--refine {none,slic}`: edge-aware smoothing (default: slic)
+- `--refine-slic-compactness FLOAT`: SLIC compactness (higher=smoother, lower=hugs edges). Default 10.0
+- `--refine-slic-sigma FLOAT`: Gaussian smoothing for SLIC pre-processing. Default 1.0
 
 ### API Usage
 

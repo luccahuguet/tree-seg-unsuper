@@ -34,7 +34,7 @@ class Config:
     feature_upsample_factor: int = 2  # Upsample HxW feature grid before K-Means
     
     # Refinement settings
-    refine: Optional[str] = None  # None or "slic"
+    refine: Optional[str] = "slic"  # Default to SLIC refinement
     refine_slic_compactness: float = 10.0
     refine_slic_sigma: float = 1.0
     

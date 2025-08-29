@@ -28,7 +28,9 @@ def main():
     parser.add_argument("--image-size", type=int, default=1024, dest="image_size", help="Preprocess resize (square)")
     parser.add_argument("--feature-upsample", type=int, default=2, dest="feature_upsample_factor", help="Upsample feature grid before K-Means")
     parser.add_argument("--pca-dim", type=int, default=None, dest="pca_dim", help="Optional PCA target dimension (e.g., 128)")
-    parser.add_argument("--refine", choices=["none", "slic"], default="none", help="Optional edge-aware refinement")
+    parser.add_argument("--refine", choices=["none", "slic"], default="slic", help="Edge-aware refinement mode (default: slic)")
+    parser.add_argument("--refine-slic-compactness", type=float, default=10.0, dest="refine_slic_compactness", help="SLIC compactness (higher=smoother, lower=edges)")
+    parser.add_argument("--refine-slic-sigma", type=float, default=1.0, dest="refine_slic_sigma", help="SLIC Gaussian smoothing sigma")
 
     args = parser.parse_args()
     image_path = args.image_path
@@ -81,6 +83,8 @@ def main():
                     feature_upsample_factor=args.feature_upsample_factor,
                     pca_dim=args.pca_dim,
                     refine=(None if args.refine == "none" else args.refine),
+                    refine_slic_compactness=args.refine_slic_compactness,
+                    refine_slic_sigma=args.refine_slic_sigma,
                 )
                 print(f"✅ Completed: {os.path.basename(img_path)}")
             except Exception as e:
@@ -102,6 +106,8 @@ def main():
                 feature_upsample_factor=args.feature_upsample_factor,
                 pca_dim=args.pca_dim,
                 refine=(None if args.refine == "none" else args.refine),
+                refine_slic_compactness=args.refine_slic_compactness,
+                refine_slic_sigma=args.refine_slic_sigma,
             )
             print(f"✅ Tree segmentation completed!")
         except Exception as e:
