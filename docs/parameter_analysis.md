@@ -11,71 +11,39 @@ nav_order: 4
 
 This section provides comprehensive analysis of all parameters affecting tree segmentation quality, including model sizes, stride values, elbow thresholds, and refinement options.
 
-## Overview: 12-Configuration Sweep
+## Overview: 13-Configuration Sweep
 
 Our systematic analysis covers:
 - **1 Basic Example**: Core pipeline demonstration
 - **2 Stride Comparisons**: Quality vs speed trade-offs
 - **4 Model Size Comparisons**: Feature dimensionality impact
-- **3 Elbow Threshold Comparisons**: Clustering sensitivity
+- **4 Elbow Threshold Comparisons**: Clustering sensitivity (2x2 grid)
 - **2 Refinement Comparisons**: Post-processing effects
 
 ---
 
-## Complete Sweep Results Gallery
+## Basic Example: Pipeline Demonstration
 
-All 12 configurations from our systematic parameter study, showing edge overlay visualizations for direct comparison:
-
-### Basic Example (Methodology Baseline)
 ![Basic Example]({{ site.baseurl }}/results/methodology/basic_example_edge_overlay.jpg)
 *Configuration: Base model, stride 4, 3.5% threshold, SLIC refinement*
 
-### Stride Comparison Series
-
-| Stride 2 (Higher Quality) | Stride 4 (Faster Processing) |
-|----------------------------|-------------------------------|
-| ![Stride 2]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str2_edge_overlay.jpg) | ![Stride 4]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str4_edge_overlay.jpg) |
-| Giant model, stride 2 | Giant model, stride 4 |
-
-### Model Size Progression
-
-**Small vs Base Models**
-| Small (21M) | Base (86M) |
-|-------------|------------|
-| ![Small]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_small_edge_overlay.jpg) | ![Base]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_base_edge_overlay.jpg) |
-| Fast, good quality | Balanced performance |
-
-**Large vs Giant Models**
-| Large (304M) | Giant (1.1B) |
-|--------------|--------------|
-| ![Large]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_large_edge_overlay.jpg) | ![Giant]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_giant_edge_overlay.jpg) |
-| High quality | Maximum quality |
-
-### Elbow Threshold Sensitivity
-
-| Conservative (7.0%) | Balanced (3.5%) | Sensitive (1.5%) |
-|---------------------|-----------------|------------------|
-| ![7.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_7_0_edge_overlay.jpg) | ![3.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_3_5_edge_overlay.jpg) | ![1.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_1_5_edge_overlay.jpg) |
-| Fewer, broader clusters | Optimal clustering | More, finer clusters |
-
-### Refinement Impact
-
-| With SLIC Refinement | Without Refinement |
-|----------------------|---------------------|
-| ![With SLIC]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_with_slic_edge_overlay.jpg) | ![No Refinement]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_none_edge_overlay.jpg) |
-| Smoother boundaries | Faster processing |
-
-**Configuration Details:**
-- **Stride Comparison**: Giant model, stride 2 vs 4, quality profile
-- **Model Size**: All models at stride 2, quality profile, 3.5% threshold
-- **Elbow Threshold**: Giant model, stride 2, varying thresholds
-- **Refinement**: Giant model, stride 2, 3.5% threshold, SLIC on/off
+This baseline configuration demonstrates the complete pipeline using balanced settings suitable for most forestry applications. The base model provides good quality with reasonable processing time, making it ideal for methodology demonstration.
 
 ---
 
 ## Model Size Comparison
 
 ### DINOv3 Model Variants
+
+| Small (21M) | Base (86M) |
+|-------------|------------|
+| ![Small]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_small_edge_overlay.jpg) | ![Base]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_base_edge_overlay.jpg) |
+| Fast, good quality | Balanced performance |
+
+| Large (304M) | Giant (1.1B) |
+|--------------|--------------|
+| ![Large]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_large_edge_overlay.jpg) | ![Giant]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_giant_edge_overlay.jpg) |
+| High quality | Maximum quality |
 
 | Model | Features | Parameters | Speed | Quality | Use Case |
 |-------|----------|------------|-------|---------|----------|
@@ -95,6 +63,7 @@ All 12 configurations from our systematic parameter study, showing edge overlay 
 | Stride 2 (Higher Quality) | Stride 4 (Faster Processing) |
 |---------------------------|-------------------------------|
 | ![Stride 2]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str2_edge_overlay.jpg) | ![Stride 4]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str4_edge_overlay.jpg) |
+| Giant model, stride 2 | Giant model, stride 4 |
 
 **Analysis**: 
 - **Stride 2**: Superior boundary precision, 2x processing time
@@ -105,21 +74,22 @@ All 12 configurations from our systematic parameter study, showing edge overlay 
 
 ## Elbow Threshold Sensitivity
 
-### Clustering Granularity Control
+### Clustering Granularity Control (2x2 Grid)
 
-![Conservative (7.0%)]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_7_0_edge_overlay.jpg)
-*Conservative Threshold (7.0%): Fewer clusters, broader regions*
+| Conservative (1.5%) | Balanced (3.5%) |
+|---------------------|-----------------|
+| ![1.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_1_5_edge_overlay.jpg) | ![3.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_3_5_edge_overlay.jpg) |
+| More clusters, finer segmentation | Optimal clustering - recommended default |
 
-![Balanced (3.5%)]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_3_5_edge_overlay.jpg)
-*Balanced Threshold (3.5%): Moderate clustering - recommended default*
-
-![Sensitive (1.5%)]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_1_5_edge_overlay.jpg)
-*Sensitive Threshold (1.5%): More clusters, finer segmentation*
+| Moderate (5.0%) | Conservative (7.0%) |
+|-----------------|---------------------|
+| ![5.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_5_0_edge_overlay.jpg) | ![7.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_7_0_edge_overlay.jpg) |
+| Balanced clustering | Fewer clusters, broader regions |
 
 **Threshold Guidelines**:
-- **Conservative (5-10%)**: Broad regions, major tree groups
-- **Balanced (3-5%)**: Optimal for most forestry applications  
 - **Sensitive (1-3%)**: Fine-grained species differentiation
+- **Balanced (3-5%)**: Optimal for most forestry applications  
+- **Conservative (5-10%)**: Broad regions, major tree groups
 
 ---
 
@@ -130,6 +100,7 @@ All 12 configurations from our systematic parameter study, showing edge overlay 
 | With SLIC Refinement | Without Refinement |
 |----------------------|---------------------|
 | ![With SLIC]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_with_slic_edge_overlay.jpg) | ![No Refinement]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_none_edge_overlay.jpg) |
+| Smoother boundaries, publication-ready | Faster processing, development use |
 
 **Analysis**:
 - **With SLIC**: Smoother boundaries, ~15% processing overhead, publication-ready
@@ -209,18 +180,16 @@ config = Config(
 
 ---
 
-## Generate Results
-
 ## Reproducing All Results
 
-To generate all 12 configurations shown above:
+To generate all 13 configurations shown above:
 
 ```bash
 python generate_docs_images.py input/forest2.jpeg
 ```
 
 This script:
-1. **Runs 12 configurations** systematically with different parameters
+1. **Runs 13 configurations** systematically with different parameters
 2. **Generates web-optimized images** for GitHub Pages
 3. **Organizes results** into the documentation structure
 4. **Creates consistent naming** for easy reference
@@ -238,6 +207,7 @@ This script:
 | model_comparison_giant | giant | 2 | 3.5% | slic | Model size study |
 | elbow_threshold_1_5 | giant | 2 | 1.5% | slic | Sensitivity study |
 | elbow_threshold_3_5 | giant | 2 | 3.5% | slic | Sensitivity study |
+| elbow_threshold_5_0 | giant | 2 | 5.0% | slic | Sensitivity study |
 | elbow_threshold_7_0 | giant | 2 | 7.0% | slic | Sensitivity study |
 | refine_with_slic | giant | 2 | 3.5% | slic | Refinement study |
 | refine_none | giant | 2 | 3.5% | none | Refinement study |

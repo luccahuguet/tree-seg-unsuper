@@ -74,6 +74,15 @@
     "verbose": true
   },
   {
+    "name": "elbow_threshold_5_0",
+    "model": "giant",
+    "profile": "quality",
+    "stride": 2,
+    "elbow_threshold": 5.0,
+    "web_optimize": true,
+    "verbose": true
+  },
+  {
     "name": "elbow_threshold_7_0",
     "model": "giant",
     "profile": "quality",
