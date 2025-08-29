@@ -1,171 +1,165 @@
-# DINOv3 Models and Weights
+---
+layout: default
+title: "Model Comparison"
+nav_order: 6
+---
 
-## Overview
+{% include navbar.html %}
+{% include navbar-styles.html %}
 
-This document provides comprehensive information about DINOv3 model variants, their Hugging Face weights, and how they map to our project's configuration.
-
-## Quick Model Selection
-
-```python
-config = Config(
-    model_name="base",        # Recommended default
-    # Options:
-    # "small"  → ViT-S/16 (21M params)    - Fast
-    # "base"   → ViT-B/16 (86M params)    - Balanced ⭐
-    # "large"  → ViT-L/16 (300M params)   - High quality
-    # "giant"  → ViT-H+/16 (840M params)  - Maximum quality
-    # "mega"   → ViT-7B/16 (6.7B params)  - Satellite optimized
-)
-```
-
-## Model Access Requirements
-
-⚠️ **Important**: DINOv3 models require manual access approval from Meta AI:
-- Visit [Meta AI Model Access Form](https://ai.meta.com/llama/)
-- Fill out the access request form 
-- Wait for approval email (usually within a few hours)
-- Once approved, you can download weights from Hugging Face
+# DINOv3 Model Comparison
 
 ## Available Models
 
-### Essential Models (Priority 1)
+Our pipeline supports four DINOv3 Vision Transformer variants, each offering different trade-offs between computational cost and segmentation quality.
 
-| Project Name | DINOv3 Model | Parameters | Hugging Face ID | Description |
-|--------------|--------------|------------|-----------------|-------------|
-| `base` | `dinov3_vitb16` | 86M | `facebook/dinov3-vitb16-pretrain-lvd1689m` | **Recommended** - Best balance of quality vs speed |
-| `small` | `dinov3_vits16` | 21M | `facebook/dinov3-vits16-pretrain-lvd1689m` | Fast model for testing and development |
+### Model Specifications
 
-### Enhanced "Plus" Models (Priority 2)
+| Model | Parameters | Feature Dim | Patch Size | Recommended Use |
+|-------|------------|-------------|------------|-----------------|
+| **Small** | 22M | 384 | 14×14 | Fast prototyping, resource-constrained |
+| **Base** | 86M | 768 | 14×14 | **Recommended default** - best balance |
+| **Large** | 307M | 1024 | 14×14 | High-quality applications |
+| **Giant** | 1.1B | 1536 | 14×14 | Maximum quality, research use |
 
-| Project Name | DINOv3 Model | Parameters | Hugging Face ID | Description |
-|--------------|--------------|------------|-----------------|-------------|
-| `small` | `dinov3_vits16plus` | 29M | `facebook/dinov3-vits16plus-pretrain-lvd1689m` | **Enhanced small** - Uses SwiGLU FFN, better performance |
-| `giant` | `dinov3_vith16plus` | 840M | `facebook/dinov3-vith16plus-pretrain-lvd1689m` | **Enhanced huge** - Maximum quality for critical applications |
+## Performance Characteristics
 
-### High-End Models (Priority 3)
+### Computational Requirements
 
-| Project Name | DINOv3 Model | Parameters | Hugging Face ID | Description |
-|--------------|--------------|------------|-----------------|-------------|
-| `large` | `dinov3_vitl16` | 300M | `facebook/dinov3-vitl16-pretrain-lvd1689m` | High quality, slower processing |
-| `mega` | `dinov3_vit7b16` | 6.7B | `facebook/dinov3-vit7b16-pretrain-lvd1689m` | **Satellite-optimized** - Ultimate quality for aerial imagery |
+**Processing Time** (approximate, for 1024×1024 image):
+- **Small**: ~2-3 seconds
+- **Base**: ~4-6 seconds  
+- **Large**: ~12-15 seconds
+- **Giant**: ~25-35 seconds
 
-### Satellite-Optimized Variants
+**Memory Usage**:
+- **Small**: ~2GB VRAM
+- **Base**: ~4GB VRAM
+- **Large**: ~8GB VRAM
+- **Giant**: ~12GB VRAM
 
-| Model | Parameters | Hugging Face ID | Description |
-|-------|------------|-----------------|-------------|
-| `dinov3_vitl16` (SAT) | 300M | `facebook/dinov3-vitl16-pretrain-sat493m` | Large model trained on satellite data |
-| `dinov3_vit7b16` (SAT) | 6.7B | `facebook/dinov3-vit7b16-pretrain-sat493m` | 7B model trained on satellite data |
+### Segmentation Quality
 
-### ConvNext Models (Not Used)
+**Typical K-Selection Results** (automatic elbow method):
+- **Small**: K=4-6 clusters
+- **Base**: K=5-7 clusters
+- **Large**: K=6-8 clusters  
+- **Giant**: K=7-9 clusters
 
-These models are available but not used in our Vision Transformer-based pipeline:
-- `facebook/dinov3-convnext-tiny-pretrain-lvd1689m` (28M params)
-- `facebook/dinov3-convnext-small-pretrain-lvd1689m` (50M params)  
-- `facebook/dinov3-convnext-base-pretrain-lvd1689m` (89M params)
-- `facebook/dinov3-convnext-large-pretrain-lvd1689m` (198M params)
+*Higher-dimensional feature spaces tend to discover more granular tree species distinctions*
 
-## Architecture Differences
+## Model Selection Guidelines
 
-### Standard vs "Plus" Variants
+### 🚀 **Small Model** - Fast Prototyping
+**Best for:**
+- Initial testing and development
+- Resource-constrained environments
+- Real-time applications
+- Educational demonstrations
 
-**Standard Models** (vits16, vitb16, vitl16):
-- Traditional MLP FFN (Feed-Forward Network)
-- Standard parameter counts
-- Good baseline performance
+**Limitations:**
+- Lower feature dimensionality may miss subtle tree distinctions
+- Less robust to varying lighting conditions
 
-**"Plus" Models** (vits16plus, vith16plus):
-- **SwiGLU FFN** - More sophisticated feed-forward network
-- **More parameters** (e.g., ViT-S+: 29M vs ViT-S: 21M)
-- **Better performance** (e.g., 68.8% vs 60.4% on ImageNet-R)
+### ⭐ **Base Model** - Recommended Default
+**Best for:**
+- Most production applications
+- Balanced quality/performance needs
+- Standard forestry analysis
+- General-purpose tree segmentation
 
-### Satellite-Optimized Models
+**Advantages:**
+- Excellent quality-to-cost ratio
+- Robust across different forest types
+- Reasonable computational requirements
 
-Models with `-sat493m` suffix are specifically trained on satellite imagery:
-- Optimized for aerial/satellite data
-- Better performance on remote sensing tasks
-- Ideal for tree segmentation from drone imagery
+### 🎯 **Large Model** - High Quality
+**Best for:**
+- High-precision forestry research
+- Detailed species classification needs
+- Applications where quality is critical
+- Sufficient computational resources available
 
-## Usage in Project
+**Trade-offs:**
+- 3x computational cost vs Base
+- Marginal quality improvements in many cases
 
-### Configuration Mapping
+### 🔬 **Giant Model** - Maximum Quality
+**Best for:**
+- Research applications
+- Benchmark comparisons
+- Maximum possible segmentation quality
+- Computational resources not a constraint
 
-```python
-from tree_seg import Config
+**Considerations:**
+- 6-8x computational cost vs Base
+- Diminishing returns for many practical applications
+- Requires significant GPU memory
 
-# Map project names to actual models
-config = Config(
-    model_name="base",      # Uses dinov3_vitb16
-    model_name="small",     # Uses dinov3_vits16  
-    model_name="large",     # Uses dinov3_vitl16
-    model_name="giant",     # Uses dinov3_vith16plus
-    model_name="mega",      # Uses dinov3_vit7b16
-)
+## Configuration Examples
+
+### Quick Start (Base Model)
+```bash
+python run_segmentation.py input/forest.jpg base output --verbose
 ```
 
-### Automatic Model Selection
+### High Quality (Giant Model)
+```bash
+python run_segmentation.py input/forest.jpg giant output --stride 2 --verbose
+```
 
-The project automatically selects the best available model:
-1. Tries "plus" variant first (if available)
-2. Falls back to standard variant
-3. Uses random initialization if weights unavailable
+### Fast Processing (Small Model)
+```bash
+python run_segmentation.py input/forest.jpg small output --stride 4 --verbose
+```
 
-### Performance Characteristics
+### Research Comparison (All Models)
+```bash
+# Use sweep configuration for systematic comparison
+python run_segmentation.py input/forest.jpg base output --sweep model_comparison.json
+```
 
-| Model Size | Speed | Quality | Memory | Use Case |
-|------------|-------|---------|--------|----------|
-| Small | ⚡⚡⚡ | ⭐⭐ | 🔋🔋🔋 | Development, testing |
-| Small+ | ⚡⚡ | ⭐⭐⭐ | 🔋🔋 | Production (light) |
-| Base | ⚡⚡ | ⭐⭐⭐⭐ | 🔋🔋 | **Recommended** |
-| Large | ⚡ | ⭐⭐⭐⭐⭐ | 🔋 | High quality needs |
-| Giant+ | 🐌 | ⭐⭐⭐⭐⭐ | 💾💾 | Critical applications |
-| Mega | 🐌🐌 | ⭐⭐⭐⭐⭐⭐ | 💾💾💾 | Ultimate quality |
+## Technical Implementation
 
-## Recommendations
+### Feature Extraction
+All models use the same DINOv3 architecture with different scales:
+- **Patch Embeddings**: 14×14 pixel patches
+- **Attention Features**: Multi-head self-attention outputs
+- **Feature Fusion**: Concatenated patch + attention representations
 
-### For Development
-Start with: `facebook/dinov3-vitb16-pretrain-lvd1689m` (base model)
+### Clustering Adaptation
+The elbow method automatically adapts to different feature dimensionalities:
+- **Threshold**: 3.5% (consistent across models)
+- **K Range**: 3-10 clusters (forest-optimized)
+- **Safety Bounds**: Prevents unrealistic cluster counts
 
-### For Production
-- **Balanced**: `facebook/dinov3-vitb16-pretrain-lvd1689m`
-- **Fast**: `facebook/dinov3-vits16plus-pretrain-lvd1689m` 
-- **Quality**: `facebook/dinov3-vitl16-pretrain-lvd1689m`
-- **Ultimate**: `facebook/dinov3-vit7b16-pretrain-lvd1689m`
+### Performance Optimization
+- **Stride Parameter**: Adjustable feature resolution (2 or 4)
+- **Web Optimization**: Automatic JPEG conversion for documentation
+- **Memory Management**: Efficient batch processing for large images
 
-### For Aerial Imagery
-Prefer satellite-optimized variants when available:
-- `facebook/dinov3-vitl16-pretrain-sat493m`
-- `facebook/dinov3-vit7b16-pretrain-sat493m`
+## Recommendations by Use Case
 
-## Download Instructions
+### 📊 **Research & Benchmarking**
+- **Primary**: Giant model (stride 2)
+- **Comparison**: All models for systematic evaluation
+- **Focus**: Maximum quality and comprehensive analysis
 
-1. **Get access**: Fill out Meta AI access form
-2. **Install dependencies**: `pip install huggingface_hub`
-3. **Login**: `huggingface-cli login`
-4. **Download**: Models download automatically on first use
+### 🏭 **Production Applications**
+- **Primary**: Base model (stride 4)
+- **Alternative**: Large model if quality critical
+- **Focus**: Reliable performance with reasonable costs
 
-## Model Storage
+### 🎓 **Educational & Demos**
+- **Primary**: Small model (stride 4)
+- **Benefits**: Fast results, low resource requirements
+- **Focus**: Understanding methodology over maximum quality
 
-Downloaded models are cached in:
-- `~/.cache/torch/hub/checkpoints/` (PyTorch Hub)
-- `~/.cache/huggingface/transformers/` (Hugging Face)
+### 🌲 **Forestry Operations**
+- **Primary**: Base or Large model (stride 4)
+- **Considerations**: Balance accuracy needs with processing time
+- **Focus**: Practical tree boundary detection
 
-## Troubleshooting
+---
 
-### HTTP 403 Forbidden
-- **Cause**: No access approval from Meta AI
-- **Solution**: Fill out access form and wait for approval
-
-### CUDA Out of Memory
-- **Solution**: Use smaller model or reduce stride parameter
-- **Order**: small → base → large → giant → mega
-
-### Slow Performance
-- **Solution**: Use smaller model or increase stride parameter
-- **Fast models**: small, small+, base
-
-## References
-
-- [DINOv3 Paper](https://arxiv.org/abs/2304.07193)
-- [DINOv3 GitHub](https://github.com/facebookresearch/dinov3)
-- [Meta AI Model Access](https://ai.meta.com/llama/)
-- [Hugging Face Collection](https://huggingface.co/collections/facebook/dinov3-68924841bd6b561778e31009)
+*Model selection should consider your specific quality requirements, computational constraints, and processing time needs. The Base model provides the best starting point for most applications.*

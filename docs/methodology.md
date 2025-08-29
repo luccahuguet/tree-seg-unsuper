@@ -31,10 +31,10 @@ Our tree segmentation pipeline consists of four main stages:
 ### 2. Automatic K-Selection
 
 **Elbow Method** with intelligent thresholding:
-- **K Range**: 3-8 clusters (narrower range optimized for trees)
-- **Threshold**: 0.15 (slightly conservative for stable results)
+- **K Range**: 3-10 clusters (optimized for tree species diversity)
+- **Threshold**: 3.5% (percentage decrease threshold for diminishing returns)
 - **Metric**: Within-Cluster Sum of Squares (WCSS)
-- **Optimization**: Percentage decrease analysis
+- **Optimization**: Percentage decrease analysis with safety bounds
 
 ### 3. Clustering Algorithm
 
@@ -54,15 +54,15 @@ Our tree segmentation pipeline consists of four main stages:
 
 ```python
 config = Config(
-    model_name="base",          # DINOv2 variant
-    version="v1.5",             # Algorithm version
+    model_name="base",          # DINOv2 variant  
+    version="v3",               # Current algorithm version
     stride=4,                   # Feature resolution
     auto_k=True,                # Automatic K selection
-    elbow_threshold=0.15,       # Slightly conservative
-    k_range=(3, 8),             # Narrower range for trees
+    elbow_threshold=3.5,        # 3.5% threshold for diminishing returns
+    k_range=(3, 10),            # Extended range for tree species
     use_pca=False,              # Keep full feature space
     edge_width=2,               # Visualization parameter
-    use_hatching=True           # Visual distinction
+    web_optimize=True           # Generate web-optimized outputs
 )
 ```
 
@@ -87,20 +87,20 @@ config = Config(
 ### Segmentation Result with Legend
 *Complete segmentation output showing cluster regions and configuration*
 
-![Methodology Segmentation]({{ site.baseurl }}/results/methodology/basic_example_segmentation_legend.jpg)
+![Methodology Segmentation]({{ site.baseurl }}/results/methodology/2326_v3_base_str4_et3-5_k6_segmentation_legend.jpg)
 
 ### Edge Overlay Visualization  
 *Original image with colored boundaries showing segmentation accuracy*
 
-![Methodology Edge Overlay]({{ site.baseurl }}/results/methodology/basic_example_edge_overlay.jpg)
+![Methodology Edge Overlay]({{ site.baseurl }}/results/methodology/2326_v3_base_str4_et3-5_k6_edge_overlay.jpg)
 
 ### Side-by-Side Comparison
 *Original image alongside segmentation result for direct comparison*
 
-![Methodology Side by Side]({{ site.baseurl }}/results/methodology/basic_example_side_by_side.jpg)
+![Methodology Side by Side]({{ site.baseurl }}/results/methodology/2326_v3_base_str4_et3-5_k6_side_by_side.jpg)
 
 ### Automatic K-Selection Process
-*Elbow method analysis showing optimal cluster selection*
+*Elbow method analysis showing optimal cluster selection (K=6)*
 
-![Methodology Elbow Analysis]({{ site.baseurl }}/results/methodology/basic_example_elbow_analysis.jpg)
+![Methodology Elbow Analysis]({{ site.baseurl }}/results/methodology/2326_v3_base_str4_et3-5_k6_elbow_analysis.jpg)
 

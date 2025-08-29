@@ -11,12 +11,9 @@ nav_order: 4
 
 This section compares the impact of different DINOv2 model sizes and stride parameters on tree segmentation quality. Results are organized by K-selection method used.
 
-## K-Selection Method Comparison
+## Current Results
 
-Two different automatic K-selection methods have been used in this project:
-
-### 🔄 [Curvature Method Results](parameter_comparison_curvature.html)
-**Status**: ✅ Complete - Existing results from curvature-based K-selection
+All results use the elbow method for automatic K-selection with optimized thresholds for tree segmentation:
 
 - **Method**: Curvature analysis of WCSS curve
 - **Threshold**: 0.15 (decimal-based)

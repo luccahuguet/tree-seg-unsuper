@@ -26,24 +26,24 @@ This research presents a systematic study of unsupervised tree segmentation usin
 
 ## Research Objectives
 
-1. **Evaluate DINOv2 effectiveness** for forestry applications across multiple model sizes
-2. **Develop automatic K-selection** methodology for optimal cluster number determination  
+1. **Evaluate DINOv3 effectiveness** for forestry applications across multiple model sizes
+2. **Develop automatic K-selection** using elbow method for optimal cluster determination  
 3. **Establish performance benchmarks** across computational vs. quality trade-offs
 4. **Create reproducible pipeline** for systematic tree segmentation analysis
 
 ## Key Contributions
 
-- **🔬 Empirical Analysis**: Systematic comparison of Small, Base, Large, and Giant DINOv2 models
-- **📊 K-Selection Discovery**: Higher-dimensional features lead to more granular clustering (K=4→5→5→6)
-- **⚖️ Performance Trade-offs**: Quantified diminishing returns beyond Base model for most applications
-- **🛠️ Methodological Framework**: Production-ready pipeline with automatic parameter optimization
+- **🔬 Empirical Analysis**: Systematic comparison of Small, Base, Large, and Giant DINOv3 models
+- **📊 Elbow Method Optimization**: Automatic K-selection with forest-specific thresholds
+- **⚖️ Performance Trade-offs**: Quantified model size vs. quality relationships
+- **🛠️ Production Pipeline**: Ready-to-use framework with web optimization
 
 ## Technical Innovation
 
 **Self-Supervised Features**: DINOv3 Vision Transformers eliminate manual annotation requirements  
-**Intelligent Clustering**: Elbow method with optimized thresholds for forest imagery  
+**Intelligent Clustering**: Elbow method with forest-optimized thresholds (3.5% default)  
 **Multi-Scale Analysis**: Comprehensive evaluation across four model architectures  
-**Professional Visualization**: Publication-ready outputs with systematic naming conventions
+**Professional Visualization**: Web-optimized outputs with systematic naming conventions
 
 ## Research Impact
 
@@ -53,6 +53,6 @@ This work demonstrates how modern self-supervised learning can advance forestry 
 - **Providing quantitative guidance** for model selection in resource-constrained environments
 - **Establishing baseline performance** for future algorithmic development
 
-The systematic model comparison reveals that Base DINOv3 provides optimal balance for most forestry applications, while larger models offer marginal improvements at significant computational cost.
+The systematic model comparison reveals optimal configurations for different use cases, with automatic K-selection ensuring consistent results across varying forest imagery.
 
 
