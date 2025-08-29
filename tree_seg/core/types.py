@@ -22,7 +22,7 @@ class Config:
     model_name: str = "base"  # small/base/large/giant/mega or full DINOv3 name
     version: str = "v3"  # Now using DINOv3
     stride: int = 4
-    image_size: int = 518  # Preprocess resize (square)
+    image_size: int = 1024  # Preprocess resize (square)
     
     # Clustering settings
     auto_k: bool = True
@@ -31,7 +31,7 @@ class Config:
     elbow_threshold: float = 3.5  # Percentage (will be converted to decimal)
     use_pca: bool = False
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
-    feature_upsample_factor: int = 1  # Upsample HxW feature grid before K-Means
+    feature_upsample_factor: int = 2  # Upsample HxW feature grid before K-Means
     
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent

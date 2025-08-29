@@ -15,7 +15,7 @@ load_dotenv()
 def main():
     # Default values
     image_path = "input/"
-    model = "small"
+    model = "base"
     output_dir = "output"
     
     # Parse command line arguments
