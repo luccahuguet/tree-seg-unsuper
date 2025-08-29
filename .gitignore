@@ -33,3 +33,7 @@ weights/*
 *.safetensors
 *.onnx
 *.h5
+ 
+# Local benchmark outputs
+output_bench_*/
+bench_models.csv
