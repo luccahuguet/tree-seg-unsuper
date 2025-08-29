@@ -31,8 +31,56 @@ def main():
     parser.add_argument("--refine", choices=["none", "slic"], default="slic", help="Edge-aware refinement mode (default: slic)")
     parser.add_argument("--refine-slic-compactness", type=float, default=10.0, dest="refine_slic_compactness", help="SLIC compactness (higher=smoother, lower=edges)")
     parser.add_argument("--refine-slic-sigma", type=float, default=1.0, dest="refine_slic_sigma", help="SLIC Gaussian smoothing sigma")
+    parser.add_argument("--profile", choices=["quality", "balanced", "speed"], default=None,
+                        help="Preset quality/speed profile (applies defaults unless overridden)")
 
     args = parser.parse_args()
+    # Apply performance presets (profile) unless explicitly overridden on CLI
+    def _flag_provided(names: list[str]) -> bool:
+        return any(name in sys.argv for name in names)
+
+    if args.profile:
+        prof = args.profile
+        if prof == "quality":
+            if not _flag_provided(["--image-size"]):
+                args.image_size = 1280
+            if not _flag_provided(["--feature-upsample"]):
+                args.feature_upsample_factor = 2
+            if not _flag_provided(["--pca-dim"]):
+                args.pca_dim = None
+            if not _flag_provided(["--refine"]):
+                args.refine = "slic"
+            if not _flag_provided(["--refine-slic-compactness"]):
+                args.refine_slic_compactness = 12.0
+            if not _flag_provided(["--refine-slic-sigma"]):
+                args.refine_slic_sigma = 1.5
+        elif prof == "balanced":
+            if not _flag_provided(["--image-size"]):
+                args.image_size = 1024
+            if not _flag_provided(["--feature-upsample"]):
+                args.feature_upsample_factor = 2
+            if not _flag_provided(["--pca-dim"]):
+                args.pca_dim = None
+            if not _flag_provided(["--refine"]):
+                args.refine = "slic"
+            if not _flag_provided(["--refine-slic-compactness"]):
+                args.refine_slic_compactness = 10.0
+            if not _flag_provided(["--refine-slic-sigma"]):
+                args.refine_slic_sigma = 1.0
+        elif prof == "speed":
+            if not _flag_provided(["--image-size"]):
+                args.image_size = 896
+            if not _flag_provided(["--feature-upsample"]):
+                args.feature_upsample_factor = 1
+            if not _flag_provided(["--pca-dim"]):
+                args.pca_dim = 128
+            if not _flag_provided(["--refine"]):
+                args.refine = "slic"
+            if not _flag_provided(["--refine-slic-compactness"]):
+                args.refine_slic_compactness = 20.0
+            if not _flag_provided(["--refine-slic-sigma"]):
+                args.refine_slic_sigma = 1.0
+
     image_path = args.image_path
     model = args.model
     output_dir = args.output_dir

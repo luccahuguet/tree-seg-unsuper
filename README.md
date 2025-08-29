@@ -99,6 +99,23 @@ Flags:
 - `--refine-slic-compactness FLOAT`: SLIC compactness (higher=smoother, lower=hugs edges). Default 10.0
 - `--refine-slic-sigma FLOAT`: Gaussian smoothing for SLIC pre-processing. Default 1.0
 
+Profiles (set sensible defaults; flags still override):
+
+```bash
+# Highest quality
+uv run python run_segmentation.py input base output --profile quality
+
+# Balanced (default-equivalent)
+uv run python run_segmentation.py input base output --profile balanced
+
+# Fast(er) runs / lower memory
+uv run python run_segmentation.py input base output --profile speed
+```
+
+- `quality`: `image_size=1280`, `feature_upsample=2`, `pca_dim=None`, `refine=slic`, `compactness=12`, `sigma=1.5`
+- `balanced`: `image_size=1024`, `feature_upsample=2`, `pca_dim=None`, `refine=slic`, `compactness=10`, `sigma=1.0`
+- `speed`: `image_size=896`, `feature_upsample=1`, `pca_dim=128`, `refine=slic`, `compactness=20`, `sigma=1.0`
+
 ### API Usage
 
 **Simple one-liner:**
