@@ -155,7 +155,9 @@ def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0,
         components = [file_hash, version_str, model_nick, f"str{stride}"]
         
         if auto_k and elbow_threshold is not None:
-            et_str = f"et{str(elbow_threshold).replace('.', '-')}"
+            # Format elbow threshold without float artifacts (e.g., 3.5)
+            et_clean = (f"{elbow_threshold:.2f}".rstrip('0').rstrip('.')).replace('.', '-')
+            et_str = f"et{et_clean}"
             components.append(et_str)
         
         # Always add the actual K value used

@@ -185,7 +185,10 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
 
             # Save K selection analysis plot
             output_prefix = os.path.splitext(os.path.basename(image_path))[0]
-            plot_elbow_analysis(k_scores, output_dir, output_prefix, elbow_threshold * 100,
+            # Use png subdirectory to match OutputManager expectations
+            png_output_dir = os.path.join(output_dir, "png")
+            os.makedirs(png_output_dir, exist_ok=True)
+            plot_elbow_analysis(k_scores, png_output_dir, output_prefix, elbow_threshold * 100,
                                model_name, version, stride, optimal_k, auto_k, image_path)
 
             n_clusters = optimal_k
