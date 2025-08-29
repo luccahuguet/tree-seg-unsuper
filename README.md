@@ -62,10 +62,34 @@ Using the simple CLI wrapper with uv:
 uv run python run_segmentation.py input base output
 ```
 
-Defaults now favor high quality:
+Defaults favor high quality:
 - Model: `base` (ViT-B/16)
 - Image size: 1024×1024
 - Feature upsample factor: 2 (clusters on a 128×128 grid)
+
+CLI flags allow tuning quality/performance:
+
+```bash
+# Higher quality (even smoother):
+uv run python run_segmentation.py input base output \
+  --image-size 1280 --feature-upsample 2
+
+# Faster / lower memory:
+uv run python run_segmentation.py input base output \
+  --image-size 896 --feature-upsample 1
+
+# Apply PCA to speed up clustering:
+uv run python run_segmentation.py input base output \
+  --pca-dim 128
+
+# Process a single image:
+uv run python run_segmentation.py input/forest.jpg base output
+```
+
+Flags:
+- `--image-size INT`: square resize used before feature extraction (default 1024)
+- `--feature-upsample INT`: bilinear upsample of H×W feature grid before K-Means (default 2)
+- `--pca-dim INT`: optional PCA target dimension (e.g., 128) for faster clustering
 
 ### API Usage
 
