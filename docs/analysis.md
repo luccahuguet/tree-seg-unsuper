@@ -91,17 +91,43 @@ This work demonstrates how modern self-supervised learning can be effectively ap
 3. **Research Foundation**: Platform for future algorithmic development
 4. **Educational Value**: Clear documentation and reproducible results
 
+## Performance Profile Comparison
+
+### Quality Profile Results
+*High-resolution processing with enhanced refinement*
+
+![Quality Profile]({{ site.baseurl }}/results/analysis/forest_v1-5_base_str4_et3-5_segmentation_legend.jpg)
+
+**Configuration**: 1280px, stride 4, SLIC compactness 12.0, no PCA
+- **Processing Time**: ~60-90 seconds
+- **Quality**: Maximum boundary precision
+- **Use Case**: Publication-ready results
+
+### Speed Profile Results  
+*Optimized processing for rapid iteration*
+
+![Speed Profile]({{ site.baseurl }}/results/analysis/forest_v1-5_base_str4_et3-5_edge_overlay.jpg)
+
+**Configuration**: 896px, stride 4, PCA 128D, SLIC compactness 20.0
+- **Processing Time**: ~20-30 seconds  
+- **Quality**: Good for development and testing
+- **Use Case**: Rapid prototyping and batch processing
+
+---
+
 ## Research Contributions
 
 This work advances unsupervised tree segmentation through:
 
 ### 1. Empirical Findings
 - **Feature Dimensionality Impact**: Higher-dimensional DINOv2 features lead to more granular clustering
-- **Automatic K-Selection**: Elbow method with 0.15 threshold works effectively across model sizes
+- **Automatic K-Selection**: Elbow method with 3.5% threshold works effectively across model sizes
 - **Model Performance Scaling**: Diminishing returns observed beyond Base model for most forestry applications
+- **Profile Optimization**: Clear quality vs. speed trade-offs with measurable performance characteristics
 
 ### 2. Methodological Innovation
 - **Self-Supervised Approach**: Eliminates need for manual tree boundary annotations
 - **Multi-Scale Analysis**: Systematic comparison across four DINOv2 model sizes
 - **Reproducible Pipeline**: Standardized configuration and output naming conventions
+- **Performance Profiles**: Pre-configured quality/balanced/speed settings for different use cases
 

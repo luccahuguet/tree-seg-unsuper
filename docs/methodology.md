@@ -80,3 +80,27 @@ config = Config(
 - **Performance**: Optimized numpy operations and memory management
 - **Maintainability**: Clean separation of concerns and modular design
 
+---
+
+## Pipeline Demonstration
+
+### Segmentation Result with Legend
+*Complete segmentation output showing cluster regions and configuration*
+
+![Methodology Segmentation]({{ site.baseurl }}/results/methodology/basic_example_segmentation_legend.jpg)
+
+### Edge Overlay Visualization  
+*Original image with colored boundaries showing segmentation accuracy*
+
+![Methodology Edge Overlay]({{ site.baseurl }}/results/methodology/basic_example_edge_overlay.jpg)
+
+### Side-by-Side Comparison
+*Original image alongside segmentation result for direct comparison*
+
+![Methodology Side by Side]({{ site.baseurl }}/results/methodology/basic_example_side_by_side.jpg)
+
+### Automatic K-Selection Process
+*Elbow method analysis showing optimal cluster selection*
+
+![Methodology Elbow Analysis]({{ site.baseurl }}/results/methodology/basic_example_elbow_analysis.jpg)
+

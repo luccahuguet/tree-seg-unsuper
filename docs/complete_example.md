@@ -29,7 +29,7 @@ This section showcases a complete tree segmentation run with all four output vis
 ### 1. Segmentation Legend
 *Colored segmentation map with comprehensive cluster legend*
 
-![Segmentation Legend]({{ site.baseurl }}/results/complete_example/d111_v1-5_base_str4_et0-15_segmentation_legend.jpg)
+![Segmentation Legend]({{ site.baseurl }}/results/complete_example/basic_example_segmentation_legend.jpg)
 
 **Purpose**: Shows the segmentation result with:
 - Color-coded cluster regions
@@ -42,7 +42,7 @@ This section showcases a complete tree segmentation run with all four output vis
 ### 2. Edge Overlay
 *Original image with colored boundaries overlaid*
 
-![Edge Overlay]({{ site.baseurl }}/results/complete_example/d111_v1-5_base_str4_et0-15_edge_overlay.jpg)
+![Edge Overlay]({{ site.baseurl }}/results/complete_example/basic_example_edge_overlay.jpg)
 
 **Purpose**: Demonstrates boundary accuracy by:
 - Overlaying colored edges on original imagery
@@ -55,7 +55,7 @@ This section showcases a complete tree segmentation run with all four output vis
 ### 3. Side-by-Side Comparison
 *Original image alongside segmentation result*
 
-![Side by Side]({{ site.baseurl }}/results/complete_example/d111_v1-5_base_str4_et0-15_side_by_side.jpg)
+![Side by Side]({{ site.baseurl }}/results/complete_example/basic_example_side_by_side.jpg)
 
 **Purpose**: Enables direct comparison between:
 - Original aerial drone imagery (left)
@@ -68,7 +68,7 @@ This section showcases a complete tree segmentation run with all four output vis
 ### 4. Elbow Analysis
 *K-selection methodology visualization*
 
-![Elbow Analysis]({{ site.baseurl }}/results/complete_example/d111_v1-5_base_str4_et0-15_elbow_analysis.jpg)
+![Elbow Analysis]({{ site.baseurl }}/results/complete_example/basic_example_elbow_analysis.jpg)
 
 **Purpose**: Shows automatic K-selection process:
 - WCSS (Within-Cluster Sum of Squares) curve
