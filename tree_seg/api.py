@@ -91,10 +91,11 @@ class TreeSegmentation:
             refine_slic_sigma=self.config.refine_slic_sigma,
             collect_metrics=self.config.metrics,
             model_name=self.config.model_display_name,
-            output_dir=self.config.output_dir
+            output_dir=self.config.output_dir,
+            verbose=getattr(self.config, 'verbose', True)
         )
         
-        # Support optional metrics tuple
+        # Support info tuple
         image_np = result[0] if isinstance(result, tuple) else result
         labels_resized = result[1] if isinstance(result, tuple) else None
 
@@ -117,14 +118,16 @@ class TreeSegmentation:
             'refine': self.config.refine,
         }
 
-        metrics = result[2] if isinstance(result, tuple) and len(result) > 2 else None
-        if isinstance(metrics, dict):
-            stats.update(metrics)
+        info = result[2] if isinstance(result, tuple) and len(result) > 2 else None
+        if isinstance(info, dict):
+            stats.update(info)
+        k_requested = stats.get('k_requested') if isinstance(info, dict) else None
 
         return SegmentationResults(
             image_np=image_np,
             labels_resized=labels_resized,
             n_clusters_used=n_clusters_used,
+            n_clusters_requested=k_requested,
             image_path=image_path,
             processing_stats=stats
         )
@@ -140,9 +143,10 @@ class TreeSegmentation:
             OutputPaths with generated file paths
         """
         output_paths = self.output_manager.generate_output_paths(
-            results.image_path, 
+            results.image_path,
             results.n_clusters_used,
-            include_elbow=self.config.auto_k
+            requested_k=results.n_clusters_requested,
+            include_elbow=self.config.auto_k,
         )
         
         # Generate visualizations using OutputManager paths

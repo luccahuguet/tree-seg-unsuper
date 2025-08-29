@@ -1,0 +1,13 @@
+---
+- name: quality_large
+  profile: quality         # image_size=1280, upsample=2
+  model: large             # ViT-L/16
+
+- name: balanced_base
+  profile: balanced        # image_size=1024, upsample=2
+  model: base              # ViT-B/16
+
+- name: speed_small_no_refine
+  profile: speed           # image_size=896, upsample=1, pca=128
+  model: small             # ViT-S/16
+  refine: none             # disable SLIC for speed

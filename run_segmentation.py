@@ -38,8 +38,16 @@ def main():
                         help="Path to JSON/YAML file with a list of config overrides to run in sequence")
     parser.add_argument("--sweep-prefix", type=str, default="sweeps",
                         help="Subfolder under output/ for sweep runs (default: sweeps)")
+    parser.add_argument("--clean-output", action="store_true", help="Clear output directory before writing results")
+    parser.add_argument("--verbose", action="store_true", default=True, help="Print detailed processing information (default: True)")
+    parser.add_argument("--quiet", action="store_true", help="Suppress detailed processing output (opposite of --verbose)")
 
     args = parser.parse_args()
+    
+    # Handle verbose/quiet flags
+    if args.quiet:
+        args.verbose = False
+    
     # Apply performance presets (profile) unless explicitly overridden on CLI
     def _flag_provided(names: list[str]) -> bool:
         return any(name in sys.argv for name in names)
@@ -117,9 +125,13 @@ def main():
             refine_slic_compactness=args.refine_slic_compactness,
             refine_slic_sigma=args.refine_slic_sigma,
             metrics=args.metrics,
+            verbose=args.verbose,
         )
         if overrides:
             cfg.update({k: v for k, v in overrides.items() if v is not None})
+        # Normalize refine override
+        if cfg.get('refine') == 'none':
+            cfg['refine'] = None
 
         # Directory or single image
         if os.path.isdir(img_path):
@@ -211,12 +223,38 @@ def main():
             mdl = item.get('model') or model
             out_dir = os.path.join(base_out, args.sweep_prefix, name)
             print(f"\n=== Sweep '{name}' (model={mdl}) ===")
-            overrides = {k: v for k, v in item.items() if k not in {'name', 'model'}}
+            # Start from item overrides, excluding reserved keys
+            overrides = {k: v for k, v in item.items() if k not in {'name', 'model', 'profile'}}
+            # Apply profile defaults if provided, unless explicitly overridden in item
+            prof = item.get('profile')
+            if prof in ("quality", "balanced", "speed"):
+                if prof == "quality":
+                    overrides.setdefault('image_size', 1280)
+                    overrides.setdefault('feature_upsample_factor', 2)
+                    overrides.setdefault('pca_dim', None)
+                    overrides.setdefault('refine', 'slic')
+                    overrides.setdefault('refine_slic_compactness', 12.0)
+                    overrides.setdefault('refine_slic_sigma', 1.5)
+                elif prof == "balanced":
+                    overrides.setdefault('image_size', 1024)
+                    overrides.setdefault('feature_upsample_factor', 2)
+                    overrides.setdefault('pca_dim', None)
+                    overrides.setdefault('refine', 'slic')
+                    overrides.setdefault('refine_slic_compactness', 10.0)
+                    overrides.setdefault('refine_slic_sigma', 1.0)
+                elif prof == "speed":
+                    overrides.setdefault('image_size', 896)
+                    overrides.setdefault('feature_upsample_factor', 1)
+                    overrides.setdefault('pca_dim', 128)
+                    overrides.setdefault('refine', 'slic')
+                    overrides.setdefault('refine_slic_compactness', 20.0)
+                    overrides.setdefault('refine_slic_sigma', 1.0)
             _run_case(image_path, mdl, out_dir, overrides)
+        # end sweep
         return
     
-    # Clear output directory before processing
-    if os.path.exists(output_dir):
+    # Clear output directory before processing (non-sweep)
+    if os.path.exists(output_dir) and getattr(args, 'clean_output', False):
         # Count existing files
         existing_files = []
         for root, dirs, files in os.walk(output_dir):
@@ -260,6 +298,7 @@ def main():
                     refine_slic_compactness=args.refine_slic_compactness,
                     refine_slic_sigma=args.refine_slic_sigma,
                     metrics=args.metrics,
+                    verbose=args.verbose,
                 )
                 if args.metrics:
                     res, _paths = results[0] if isinstance(results, list) else results
@@ -290,6 +329,7 @@ def main():
                 refine_slic_compactness=args.refine_slic_compactness,
                 refine_slic_sigma=args.refine_slic_sigma,
                 metrics=args.metrics,
+                verbose=args.verbose,
             )
             if args.metrics and isinstance(results, list) and results:
                 res, _paths = results[0]

@@ -17,7 +17,14 @@ import argparse
 import csv
 import os
 import shutil
+import sys
+from pathlib import Path
 from datetime import datetime
+
+# Ensure project root is on sys.path so we can import tree_seg
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tree_seg import segment_trees
 
@@ -97,4 +104,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

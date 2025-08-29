@@ -40,6 +40,7 @@ class Config:
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results
+    verbose: bool = True  # Print detailed processing information
     
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent
@@ -98,6 +99,7 @@ class SegmentationResults:
     n_clusters_used: int
     image_path: str
     processing_stats: Dict[str, Any]
+    n_clusters_requested: Optional[int] = None
     
     @property
     def success(self) -> bool:

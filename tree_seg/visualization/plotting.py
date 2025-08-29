@@ -23,21 +23,24 @@ def generate_visualizations(results: SegmentationResults, config: Config, output
         config: Configuration object
         output_paths: Output file paths
     """
+    verbose = getattr(config, 'verbose', True)
     if not results.success:
-        print(f"⚠️ Skipping visualization - segmentation failed")
+        if verbose:
+            print(f"⚠️ Skipping visualization - segmentation failed")
         return
     
     # Get config text for overlays
     filename = os.path.basename(results.image_path)
     config_text = get_config_text(
-        results.n_clusters_used, 
+        results.n_clusters_used,
         config.overlay_ratio, 
         config.stride, 
         config.model_display_name, 
         filename, 
         config.version, 
         config.edge_width,
-        config.elbow_threshold if config.auto_k else None
+        config.elbow_threshold if config.auto_k else None,
+        n_clusters_requested=results.n_clusters_requested
     )
     
     # Choose colormap based on number of clusters
@@ -50,15 +53,16 @@ def generate_visualizations(results: SegmentationResults, config: Config, output
         cmap = plt.get_cmap("viridis", n_clusters)
     
     # Generate each visualization
-    _generate_segmentation_legend(results, config, output_paths, cmap, config_text)
-    _generate_edge_overlay(results, config, output_paths, cmap, config_text)
-    _generate_side_by_side(results, config, output_paths, cmap, config_text)
+    _generate_segmentation_legend(results, config, output_paths, cmap, config_text, verbose)
+    _generate_edge_overlay(results, config, output_paths, cmap, config_text, verbose)
+    _generate_side_by_side(results, config, output_paths, cmap, config_text, verbose)
     
-    print(f"✅ Generated visualizations for {filename}")
+    if verbose:
+        print(f"✅ Generated visualizations for {filename}")
 
 
 def _generate_segmentation_legend(results: SegmentationResults, config: Config, 
-                                 output_paths: OutputPaths, cmap, config_text: str) -> None:
+                                 output_paths: OutputPaths, cmap, config_text: str, verbose: bool = True) -> None:
     """Generate segmentation map with legend."""
     fig, ax = plt.subplots(figsize=(10, 10))
     
@@ -79,11 +83,12 @@ def _generate_segmentation_legend(results: SegmentationResults, config: Config,
     plt.savefig(output_paths.segmentation_legend, bbox_inches="tight", pad_inches=0.1, dpi=200)
     plt.close()
     
-    print(f"📊 Saved: {os.path.basename(output_paths.segmentation_legend)}")
+    if verbose:
+        print(f"📊 Saved: {os.path.basename(output_paths.segmentation_legend)}")
 
 
 def _generate_edge_overlay(results: SegmentationResults, config: Config,
-                          output_paths: OutputPaths, cmap, config_text: str) -> None:
+                          output_paths: OutputPaths, cmap, config_text: str, verbose: bool = True) -> None:
     """Generate edge overlay visualization."""
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.imshow(results.image_np)
@@ -179,11 +184,12 @@ def _generate_edge_overlay(results: SegmentationResults, config: Config,
     plt.close()
     
     hatching_text = "with hatching" if config.use_hatching else "borders only"
-    print(f"🔳 Saved edge overlay ({hatching_text}): {os.path.basename(output_paths.edge_overlay)}")
+    if verbose:
+        print(f"🔳 Saved edge overlay ({hatching_text}): {os.path.basename(output_paths.edge_overlay)}")
 
 
 def _generate_side_by_side(results: SegmentationResults, config: Config,
-                          output_paths: OutputPaths, cmap, config_text: str) -> None:
+                          output_paths: OutputPaths, cmap, config_text: str, verbose: bool = True) -> None:
     """Generate side-by-side comparison."""
     try:
         fig, axes = plt.subplots(1, 2, figsize=(16, 8))
@@ -216,10 +222,12 @@ def _generate_side_by_side(results: SegmentationResults, config: Config,
                    facecolor='white', edgecolor='none')
         plt.close()
         
-        print(f"📊 Saved side-by-side: {os.path.basename(output_paths.side_by_side)}")
+        if verbose:
+            print(f"📊 Saved side-by-side: {os.path.basename(output_paths.side_by_side)}")
         
     except Exception as e:
-        print(f"⚠️ Could not generate side-by-side image: {e}")
+        if verbose:
+            print(f"⚠️ Could not generate side-by-side image: {e}")
         try:
             plt.close('all')
         except:

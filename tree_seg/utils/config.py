@@ -44,17 +44,24 @@ def parse_model_info(model_name):
     return base_name, nickname, version
 
 
-def get_config_text(n_clusters, overlay_ratio, stride, model_name, filename, version, edge_width, elbow_threshold=None):
+def get_config_text(n_clusters_used, overlay_ratio, stride, model_name, filename, version, edge_width,
+                    elbow_threshold=None, n_clusters_requested: int | None = None):
     """
     Generate a configuration text block for plots.
     """
     base_name, nickname, model_version = parse_model_info(model_name)
     
+    # Clusters line: show used, and requested if different/available
+    if n_clusters_requested is not None and n_clusters_requested != n_clusters_used:
+        k_line = f"Clusters (k): {n_clusters_used} (requested {n_clusters_requested})"
+    else:
+        k_line = f"Clusters (k): {n_clusters_used}"
+
     config_text = (
         f"Model: {base_name} {nickname}\n"
         f"Version: {model_version}\n"
         f"Image: {filename}\n"
-        f"Clusters (k): {n_clusters}\n"
+        f"{k_line}\n"
         f"Stride: {stride}\n"
         f"Overlay Ratio: {overlay_ratio}\n"
         f"Edge Width: {edge_width}"

@@ -24,7 +24,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, pca_dim=None,
                  feature_upsample_factor: int = 1, refine: str | None = None,
                  refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
-                 collect_metrics: bool = False, model_name=None, output_dir="/kaggle/working/output"):
+                 collect_metrics: bool = False, model_name=None, output_dir="/kaggle/working/output",
+                 verbose: bool = True):
     """
     Process a single image for tree segmentation.
     
@@ -39,12 +40,14 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         auto_k: Whether to use automatic K selection
         k_range: Range for K selection (min_k, max_k)
         elbow_threshold: Threshold for elbow method (as decimal, e.g., 0.035)
+        verbose: Whether to print detailed processing information
         
     Returns:
         Tuple of (image_np, labels_resized) or (None, None) on error
     """
     try:
-        print(f"\n--- Processing {image_path} ---")
+        if verbose:
+            print(f"\n--- Processing {image_path} ---")
         t0 = time.perf_counter()
         if torch.cuda.is_available():
             try:
@@ -54,31 +57,36 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         image = Image.open(image_path).convert("RGB")
         image_np = np.array(image)
         h, w = image_np.shape[:2]
-        print(f"Original image size: {w}x{h}")
+        if verbose:
+            print(f"Original image size: {w}x{h}")
 
         t_pre_start = time.perf_counter()
         image_tensor = preprocess(image).to(device)
         t_pre_end = time.perf_counter()
-        print(f"Preprocessed tensor shape: {image_tensor.shape}")
+        if verbose:
+            print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
         with torch.no_grad():
             # DINOv3 always uses attention features for v3 (equivalent to v1.5)
             attn_choice = "none" if version == "v1" else "o"
             features_out = model.forward_sequential(image_tensor, attn_choice=attn_choice)
-            print(f"features_out type: {type(features_out)}")
+            if verbose:
+                print(f"features_out type: {type(features_out)}")
             
             # DINOv3 adapter returns a dictionary with patch features
             if isinstance(features_out, dict):
                 patch_features = features_out["x_norm_patchtokens"]
                 attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
-                print(f"patch_features shape: {patch_features.shape}")
-                if attn_features is not None:
-                    print(f"attn_features shape: {attn_features.shape}")
+                if verbose:
+                    print(f"patch_features shape: {patch_features.shape}")
+                    if attn_features is not None:
+                        print(f"attn_features shape: {attn_features.shape}")
                 # DINOv3 features are already in spatial format (H, W, D)
                 # No need to take mean across batch dimension
             else:
                 # Fallback for legacy tensor format
-                print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
+                if verbose:
+                    print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
                 if hasattr(features_out, "dim") and features_out.dim() == 4:
                     features = features_out.mean(dim=0)
                 else:
@@ -103,14 +111,15 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 attn_features = attn_features.view(H, W, -1)
         else:
             H, W = patch_features.shape[:2]
-        print(f"patch_features reshaped: {patch_features.shape}")
-        if attn_features is not None:
-            print(f"attn_features reshaped: {attn_features.shape}")
-        # Report actual compute device used by features
-        try:
-            print(f"🖥️ Compute device: {patch_features.device}")
-        except Exception:
-            pass
+        if verbose:
+            print(f"patch_features reshaped: {patch_features.shape}")
+            if attn_features is not None:
+                print(f"attn_features reshaped: {attn_features.shape}")
+            # Report actual compute device used by features
+            try:
+                print(f"🖥️ Compute device: {patch_features.device}")
+            except Exception:
+                pass
 
         # Optional upsampling of the feature grid for smoother segmentation
         if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
@@ -124,19 +133,23 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 af_up = F.interpolate(af, size=(up_h, up_w), mode="bilinear", align_corners=False)
                 attn_features = af_up.squeeze(0).permute(1, 2, 0)
             H, W = up_h, up_w
-            print(f"Upsampled features to: {H}x{W}")
+            if verbose:
+                print(f"Upsampled features to: {H}x{W}")
 
         if attn_features is not None and version in ["v1.5", "v3"]:
             features_np = np.concatenate(
                 [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
             )
-            print(f"Combined features shape: {features_np.shape}")
+            if verbose:
+                print(f"Combined features shape: {features_np.shape}")
         else:
             features_np = patch_features.cpu().numpy()
-            print(f"Patch-only features shape: {features_np.shape}")
+            if verbose:
+                print(f"Patch-only features shape: {features_np.shape}")
 
         features_flat = features_np.reshape(-1, features_np.shape[-1])
-        print(f"Flattened features shape: {features_flat.shape}")
+        if verbose:
+            print(f"Flattened features shape: {features_flat.shape}")
 
         # Optional PCA with configurable dimension
         effective_pca_dim = None
@@ -146,24 +159,29 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             effective_pca_dim = 128
 
         if effective_pca_dim is not None and effective_pca_dim < features_flat.shape[-1]:
-            print(f"Running PCA to {effective_pca_dim} dims...")
+            if verbose:
+                print(f"Running PCA to {effective_pca_dim} dims...")
             features_flat_tensor = torch.tensor(features_flat, dtype=torch.float32)
             mean = features_flat_tensor.mean(dim=0)
             features_flat_centered = features_flat_tensor - mean
             U, S, V = torch.pca_lowrank(features_flat_centered, q=effective_pca_dim, center=False)
             features_flat = (features_flat_centered @ V[:, :effective_pca_dim]).numpy()
-            print(f"PCA-reduced features shape: {features_flat.shape}")
+            if verbose:
+                print(f"PCA-reduced features shape: {features_flat.shape}")
         else:
-            print(f"Using {features_flat.shape[-1]}-D features (no PCA)")
+            if verbose:
+                print(f"Using {features_flat.shape[-1]}-D features (no PCA)")
 
         t_features = time.perf_counter()
 
         # Automatic K selection using elbow method
         if auto_k:
-            print("\n--- Automatic K Selection using elbow method ---")
+            if verbose:
+                print("\n--- Automatic K Selection using elbow method ---")
             optimal_k, k_scores = find_optimal_k_elbow(features_flat, k_range, elbow_threshold * 100)
 
-            print(f"Selected optimal K = {optimal_k}")
+            if verbose:
+                print(f"Selected optimal K = {optimal_k}")
 
             # Save K selection analysis plot
             output_prefix = os.path.splitext(os.path.basename(image_path))[0]
@@ -171,37 +189,47 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                                model_name, version, stride, optimal_k, auto_k, image_path)
 
             n_clusters = optimal_k
+            k_requested = int(optimal_k)
         else:
-            print(f"Using fixed K = {n_clusters}")
+            if verbose:
+                print(f"Using fixed K = {n_clusters}")
+            k_requested = int(n_clusters)
 
         # Clean features for main clustering (same as elbow method)
         if np.isnan(features_flat).any():
-            print("⚠️  Warning: Features contain NaN values for main clustering")
-            print("🧹 Cleaning NaN values...")
+            if verbose:
+                print("⚠️  Warning: Features contain NaN values for main clustering")
+                print("🧹 Cleaning NaN values...")
             features_flat = np.nan_to_num(features_flat, nan=0.0, posinf=0.0, neginf=0.0)
             
             if np.all(features_flat == 0):
-                print("🎲 Adding small random noise to zero features...")
+                if verbose:
+                    print("🎲 Adding small random noise to zero features...")
                 features_flat += np.random.normal(0, 0.001, features_flat.shape)
 
         t_kselect = time.perf_counter()
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         labels = kmeans.fit_predict(features_flat)
-        print(f"labels shape after kmeans: {labels.shape}")
+        if verbose:
+            print(f"labels shape after kmeans: {labels.shape}")
         labels = labels.reshape(H, W)
-        print(f"Labels shape after reshape: {labels.shape}")
+        if verbose:
+            print(f"Labels shape after reshape: {labels.shape}")
 
         labels_resized = cv2.resize(
             labels.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST
         )
-        print(f"labels_resized shape: {labels_resized.shape}")
+        if verbose:
+            print(f"labels_resized shape: {labels_resized.shape}")
 
         # Optional edge-aware refinement
         if refine == "slic":
             if slic is None:
-                print("⚠️  skimage not available; skipping SLIC refinement.")
+                if verbose:
+                    print("⚠️  skimage not available; skipping SLIC refinement.")
             else:
-                print("🔧 Refining segmentation with SLIC superpixels...")
+                if verbose:
+                    print("🔧 Refining segmentation with SLIC superpixels...")
                 t_refine_start = time.perf_counter()
                 labels_resized = _refine_with_slic(
                     image_np,
@@ -211,8 +239,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 )
                 t_refine_end = time.perf_counter()
 
-        # Metrics
-        metrics = None
+        # Info / Metrics
+        metrics = {'k_requested': k_requested}
         if collect_metrics:
             t_end = time.perf_counter()
             peak_vram_mb = None
@@ -221,7 +249,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                     peak_vram_mb = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
                 except Exception:
                     peak_vram_mb = None
-            metrics = {
+            metrics.update({
                 'time_total_s': round(t_end - t0, 3),
                 'time_preprocess_s': round(t_pre_end - t_pre_start, 3),
                 'time_features_s': round(t_features - t_pre_end, 3),
@@ -236,13 +264,14 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 'device_requested': str(device),
                 'device_actual': str(getattr(patch_features, 'device', device)),
                 'peak_vram_mb': round(peak_vram_mb, 1) if peak_vram_mb is not None else None,
-            }
+            })
 
         return (image_np, labels_resized, metrics) if collect_metrics else (image_np, labels_resized)
 
     except Exception as e:
-        print(f"Error processing {image_path}: {e}")
-        traceback.print_exc()
+        if verbose:
+            print(f"Error processing {image_path}: {e}")
+            traceback.print_exc()
         return None, None
 
 
@@ -333,7 +362,7 @@ def run_processing(
             output_prefix = os.path.splitext(filename)[0]
             print(f"Processing {filename} ...")
             return process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                               auto_k=False, k_range=(3, 10)), output_prefix
+                               auto_k=False, k_range=(3, 10), verbose=True), output_prefix
         else:
             print(f"File {filename} not found or is not a supported image format.")
             return None, None
@@ -345,6 +374,6 @@ def run_processing(
                 output_prefix = os.path.splitext(filename)[0]
                 print(f"Processing {filename} ...")
                 result = process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                                      auto_k=False, k_range=(3, 10))
+                                      auto_k=False, k_range=(3, 10), verbose=True)
                 results.append((result, output_prefix))
         return results 

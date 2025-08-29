@@ -29,13 +29,14 @@ class OutputManager:
         self.png_dir.mkdir(parents=True, exist_ok=True)
         self.web_dir.mkdir(parents=True, exist_ok=True)
     
-    def generate_filename_prefix(self, image_path: str, n_clusters: int) -> str:
+    def generate_filename_prefix(self, image_path: str, n_clusters_used: int, requested_k: int | None = None) -> str:
         """
         Generate config-based filename prefix.
         
         Args:
             image_path: Path to source image
-            n_clusters: Number of clusters used
+            n_clusters_used: Number of clusters used
+            requested_k: Optional K requested (e.g., from elbow); appended if differs
             
         Returns:
             Config-based filename prefix (e.g., "a3f7_v1-5_base_str4_et3-5_k5")
@@ -67,13 +68,17 @@ class OutputManager:
             et_str = f"et{et_clean}"
             components.append(et_str)
         
-        # Always add the actual K value used
-        components.append(f"k{n_clusters}")
+        # Always add the actual K value used; append requested if different
+        if requested_k is not None and requested_k != n_clusters_used:
+            components.append(f"k{n_clusters_used}r{requested_k}")
+        else:
+            components.append(f"k{n_clusters_used}")
         
         return "_".join(components)
     
-    def generate_output_paths(self, image_path: str, n_clusters: int, 
-                            include_elbow: bool = False) -> OutputPaths:
+    def generate_output_paths(self, image_path: str, n_clusters: int,
+                              requested_k: int | None = None,
+                              include_elbow: bool = False) -> OutputPaths:
         """
         Generate all output file paths.
         
@@ -85,7 +90,7 @@ class OutputManager:
         Returns:
             OutputPaths with all file paths
         """
-        prefix = self.generate_filename_prefix(image_path, n_clusters)
+        prefix = self.generate_filename_prefix(image_path, n_clusters, requested_k)
         
         # Generate PNG paths (stored in png/ subfolder)
         paths = OutputPaths(
