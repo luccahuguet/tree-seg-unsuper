@@ -3,6 +3,7 @@ Core segmentation functionality for tree segmentation.
 """
 
 import os
+import time
 import traceback
 import numpy as np
 import torch
@@ -23,7 +24,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, pca_dim=None,
                  feature_upsample_factor: int = 1, refine: str | None = None,
                  refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
-                 model_name=None, output_dir="/kaggle/working/output"):
+                 collect_metrics: bool = False, model_name=None, output_dir="/kaggle/working/output"):
     """
     Process a single image for tree segmentation.
     
@@ -44,11 +45,18 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
     """
     try:
         print(f"\n--- Processing {image_path} ---")
+        t0 = time.perf_counter()
+        if torch.cuda.is_available():
+            try:
+                torch.cuda.reset_peak_memory_stats(device)
+            except Exception:
+                pass
         image = Image.open(image_path).convert("RGB")
         image_np = np.array(image)
         h, w = image_np.shape[:2]
         print(f"Original image size: {w}x{h}")
 
+        tp0 = time.perf_counter()
         image_tensor = preprocess(image).to(device)
         print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
@@ -83,6 +91,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 patch_features = features
                 attn_features = None
 
+        t_feat_start = time.perf_counter()
         if patch_features.dim() == 2:
             n_patches = patch_features.shape[0]
             H = W = int(np.sqrt(n_patches))
@@ -141,6 +150,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         else:
             print(f"Using {features_flat.shape[-1]}-D features (no PCA)")
 
+        t_features = time.perf_counter()
+
         # Automatic K selection using elbow method
         if auto_k:
             print("\n--- Automatic K Selection using elbow method ---")
@@ -167,6 +178,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 print("🎲 Adding small random noise to zero features...")
                 features_flat += np.random.normal(0, 0.001, features_flat.shape)
 
+        t_kselect = time.perf_counter()
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         labels = kmeans.fit_predict(features_flat)
         print(f"labels shape after kmeans: {labels.shape}")
@@ -184,14 +196,42 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 print("⚠️  skimage not available; skipping SLIC refinement.")
             else:
                 print("🔧 Refining segmentation with SLIC superpixels...")
+                t_refine_start = time.perf_counter()
                 labels_resized = _refine_with_slic(
                     image_np,
                     labels_resized,
                     compactness=refine_slic_compactness,
                     sigma=refine_slic_sigma,
                 )
+                t_refine_end = time.perf_counter()
 
-        return image_np, labels_resized
+        # Metrics
+        metrics = None
+        if collect_metrics:
+            t_end = time.perf_counter()
+            peak_vram_mb = None
+            if torch.cuda.is_available():
+                try:
+                    peak_vram_mb = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
+                except Exception:
+                    peak_vram_mb = None
+            metrics = {
+                'time_total_s': round(t_end - t0, 3),
+                'time_preprocess_s': round(tp0 - t0, 3),
+                'time_features_s': round(t_features - tp0, 3),
+                'time_kselect_s': round(t_kselect - t_features, 3) if auto_k else 0.0,
+                'time_kmeans_s': round((t_refine_start if refine == 'slic' and slic is not None else t_end) - t_kselect, 3),
+                'time_refine_s': round((t_refine_end - t_refine_start), 3) if refine == 'slic' and slic is not None else 0.0,
+                'grid_H': int(H),
+                'grid_W': int(W),
+                'n_features': int(features_flat.shape[-1]),
+                'n_vectors': int(features_flat.shape[0]),
+                'n_clusters': int(n_clusters),
+                'device': str(device),
+                'peak_vram_mb': round(peak_vram_mb, 1) if peak_vram_mb is not None else None,
+            }
+
+        return (image_np, labels_resized, metrics) if collect_metrics else (image_np, labels_resized)
 
     except Exception as e:
         print(f"Error processing {image_path}: {e}")

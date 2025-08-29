@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--refine-slic-sigma", type=float, default=1.0, dest="refine_slic_sigma", help="SLIC Gaussian smoothing sigma")
     parser.add_argument("--profile", choices=["quality", "balanced", "speed"], default=None,
                         help="Preset quality/speed profile (applies defaults unless overridden)")
+    parser.add_argument("--metrics", action="store_true", help="Collect and print timing/VRAM metrics")
 
     args = parser.parse_args()
     # Apply performance presets (profile) unless explicitly overridden on CLI
@@ -133,7 +134,14 @@ def main():
                     refine=(None if args.refine == "none" else args.refine),
                     refine_slic_compactness=args.refine_slic_compactness,
                     refine_slic_sigma=args.refine_slic_sigma,
+                    metrics=args.metrics,
                 )
+                if args.metrics:
+                    res, _paths = results[0] if isinstance(results, list) else results
+                    stats = getattr(res, 'processing_stats', {})
+                    print(f"⏱️  total={stats.get('time_total_s')}s, features={stats.get('time_features_s')}s, "
+                          f"kselect={stats.get('time_kselect_s')}s, kmeans={stats.get('time_kmeans_s')}s, refine={stats.get('time_refine_s')}s, "
+                          f"peak_vram={stats.get('peak_vram_mb')}MB")
                 print(f"✅ Completed: {os.path.basename(img_path)}")
             except Exception as e:
                 print(f"❌ Failed: {os.path.basename(img_path)} - {e}")
@@ -156,7 +164,14 @@ def main():
                 refine=(None if args.refine == "none" else args.refine),
                 refine_slic_compactness=args.refine_slic_compactness,
                 refine_slic_sigma=args.refine_slic_sigma,
+                metrics=args.metrics,
             )
+            if args.metrics and isinstance(results, list) and results:
+                res, _paths = results[0]
+                stats = getattr(res, 'processing_stats', {})
+                print(f"⏱️  total={stats.get('time_total_s')}s, features={stats.get('time_features_s')}s, "
+                      f"kselect={stats.get('time_kselect_s')}s, kmeans={stats.get('time_kmeans_s')}s, refine={stats.get('time_refine_s')}s, "
+                      f"peak_vram={stats.get('peak_vram_mb')}MB")
             print(f"✅ Tree segmentation completed!")
         except Exception as e:
             print(f"❌ Error: {e}")

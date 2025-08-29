@@ -83,6 +83,7 @@ class TreeSegmentation:
             refine=self.config.refine,
             refine_slic_compactness=self.config.refine_slic_compactness,
             refine_slic_sigma=self.config.refine_slic_sigma,
+            collect_metrics=self.config.metrics,
             model_name=self.config.model_display_name,
             output_dir=self.config.output_dir
         )
@@ -93,17 +94,29 @@ class TreeSegmentation:
         image_np, labels_resized = result
         n_clusters_used = len(torch.unique(torch.from_numpy(labels_resized)))
         
+        # Build processing stats
+        stats = {
+            'original_size': image_np.shape[:2],
+            'labels_shape': labels_resized.shape,
+            'auto_k_used': self.config.auto_k,
+            'elbow_threshold': self.config.elbow_threshold if self.config.auto_k else None,
+            'model': self.config.model_display_name,
+            'image_size': self.config.image_size,
+            'feature_upsample_factor': self.config.feature_upsample_factor,
+            'pca_dim': self.config.pca_dim,
+            'refine': self.config.refine,
+        }
+
+        metrics = result[2] if isinstance(result, tuple) and len(result) > 2 else None
+        if isinstance(metrics, dict):
+            stats.update(metrics)
+
         return SegmentationResults(
             image_np=image_np,
             labels_resized=labels_resized,
             n_clusters_used=n_clusters_used,
             image_path=image_path,
-            processing_stats={
-                'original_size': image_np.shape[:2],
-                'labels_shape': labels_resized.shape,
-                'auto_k_used': self.config.auto_k,
-                'elbow_threshold': self.config.elbow_threshold if self.config.auto_k else None
-            }
+            processing_stats=stats
         )
     
     def generate_visualizations(self, results: SegmentationResults) -> OutputPaths:

@@ -37,6 +37,9 @@ class Config:
     refine: Optional[str] = "slic"  # Default to SLIC refinement
     refine_slic_compactness: float = 10.0
     refine_slic_sigma: float = 1.0
+
+    # Metrics & benchmarking
+    metrics: bool = False  # Collect and expose timing/VRAM info in results
     
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent

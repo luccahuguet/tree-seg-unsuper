@@ -98,6 +98,7 @@ Flags:
 - `--refine {none,slic}`: edge-aware smoothing (default: slic)
 - `--refine-slic-compactness FLOAT`: SLIC compactness (higher=smoother, lower=hugs edges). Default 10.0
 - `--refine-slic-sigma FLOAT`: Gaussian smoothing for SLIC pre-processing. Default 1.0
+- `--metrics`: print timing and VRAM stats (also included in result stats)
 
 Profiles (set sensible defaults; flags still override):
 
