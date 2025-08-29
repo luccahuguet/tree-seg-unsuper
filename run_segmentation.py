@@ -31,8 +31,8 @@ def main():
     parser.add_argument("--refine", choices=["none", "slic"], default="slic", help="Edge-aware refinement mode (default: slic)")
     parser.add_argument("--refine-slic-compactness", type=float, default=10.0, dest="refine_slic_compactness", help="SLIC compactness (higher=smoother, lower=edges)")
     parser.add_argument("--refine-slic-sigma", type=float, default=1.0, dest="refine_slic_sigma", help="SLIC Gaussian smoothing sigma")
-    parser.add_argument("--profile", choices=["quality", "balanced", "speed"], default=None,
-                        help="Preset quality/speed profile (applies defaults unless overridden)")
+    parser.add_argument("--profile", choices=["quality", "balanced", "speed"], default="balanced",
+                        help="Preset quality/speed profile (default: balanced); explicit flags override")
     parser.add_argument("--metrics", action="store_true", help="Collect and print timing/VRAM metrics")
 
     args = parser.parse_args()

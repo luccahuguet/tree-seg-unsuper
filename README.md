@@ -100,13 +100,13 @@ Flags:
 - `--refine-slic-sigma FLOAT`: Gaussian smoothing for SLIC pre-processing. Default 1.0
 - `--metrics`: print timing and VRAM stats (also included in result stats)
 
-Profiles (set sensible defaults; flags still override):
+Profiles (set sensible defaults; flags still override; default profile is balanced):
 
 ```bash
 # Highest quality
 uv run python run_segmentation.py input base output --profile quality
 
-# Balanced (default-equivalent)
+# Balanced (default)
 uv run python run_segmentation.py input base output --profile balanced
 
 # Fast(er) runs / lower memory
