@@ -30,12 +30,18 @@ class TreeSegmentation:
         self.config.validate()
         
         self.output_manager = OutputManager(self.config)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Pick best available device (CUDA > MPS > CPU)
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            self.device = torch.device("mps")
+        else:
+            self.device = torch.device("cpu")
         self.model = None
         self.preprocess = None
         
         print(f"🌳 TreeSegmentation initialized")
-        print(f"📱 Device: {self.device}")
+        print(f"📱 Selected device: {self.device}")
         print(f"🔧 Model: {self.config.model_display_name}")
         print(f"📁 Output: {self.config.output_dir}")
     

@@ -105,6 +105,11 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         print(f"patch_features reshaped: {patch_features.shape}")
         if attn_features is not None:
             print(f"attn_features reshaped: {attn_features.shape}")
+        # Report actual compute device used by features
+        try:
+            print(f"🖥️ Compute device: {patch_features.device}")
+        except Exception:
+            pass
 
         # Optional upsampling of the feature grid for smoother segmentation
         if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
@@ -227,7 +232,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 'n_features': int(features_flat.shape[-1]),
                 'n_vectors': int(features_flat.shape[0]),
                 'n_clusters': int(n_clusters),
-                'device': str(device),
+                'device_requested': str(device),
+                'device_actual': str(getattr(patch_features, 'device', device)),
                 'peak_vram_mb': round(peak_vram_mb, 1) if peak_vram_mb is not None else None,
             }
 
