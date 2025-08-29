@@ -88,10 +88,14 @@ class TreeSegmentation:
             output_dir=self.config.output_dir
         )
         
-        if result[0] is None:
+        # Support optional metrics tuple
+        image_np = result[0] if isinstance(result, tuple) else result
+        labels_resized = result[1] if isinstance(result, tuple) else None
+
+        if image_np is None:
             raise RuntimeError(f"Failed to process image: {image_path}")
-        
-        image_np, labels_resized = result
+        if labels_resized is None and isinstance(result, tuple) and len(result) >= 2:
+            labels_resized = result[1]
         n_clusters_used = len(torch.unique(torch.from_numpy(labels_resized)))
         
         # Build processing stats
