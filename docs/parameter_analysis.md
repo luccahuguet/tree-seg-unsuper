@@ -39,10 +39,17 @@ All 12 configurations from our systematic parameter study, showing edge overlay 
 
 ### Model Size Progression
 
-| Small (21M) | Base (86M) | Large (304M) | Giant (1.1B) |
-|-------------|------------|--------------|--------------|
-| ![Small]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_small_edge_overlay.jpg) | ![Base]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_base_edge_overlay.jpg) | ![Large]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_large_edge_overlay.jpg) | ![Giant]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_giant_edge_overlay.jpg) |
-| Fast, good quality | Balanced performance | High quality | Maximum quality |
+**Small vs Base Models**
+| Small (21M) | Base (86M) |
+|-------------|------------|
+| ![Small]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_small_edge_overlay.jpg) | ![Base]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_base_edge_overlay.jpg) |
+| Fast, good quality | Balanced performance |
+
+**Large vs Giant Models**
+| Large (304M) | Giant (1.1B) |
+|--------------|--------------|
+| ![Large]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_large_edge_overlay.jpg) | ![Giant]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_giant_edge_overlay.jpg) |
+| High quality | Maximum quality |
 
 ### Elbow Threshold Sensitivity
 
@@ -76,20 +83,6 @@ All 12 configurations from our systematic parameter study, showing edge overlay 
 | **Base** (dinov3_vitb16) | 768D | 86M | Balanced | Very Good | Recommended default |
 | **Large** (dinov3_vitl16) | 1024D | 304M | Slower | Excellent | High-quality results |
 | **Giant** (dinov3_vith16plus) | 1280D | 1.1B | Slowest | Maximum | Research/publication |
-
-### Model Size Results (Stride 2, Quality Profile)
-
-![Small Model]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_small_edge_overlay.jpg)
-*Small Model: Fast processing, good for testing*
-
-![Base Model]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_base_edge_overlay.jpg)
-*Base Model: Optimal balance of quality and performance*
-
-![Large Model]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_large_edge_overlay.jpg)
-*Large Model: Higher quality features, slower processing*
-
-![Giant Model]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_giant_edge_overlay.jpg)
-*Giant Model: Maximum quality features, slowest processing*
 
 **Key Finding**: Linear progression in cluster detection capability - larger models consistently identify more granular tree distinctions.
 
