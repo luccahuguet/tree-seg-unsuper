@@ -19,7 +19,7 @@ class Config:
     filename: Optional[str] = None  # If None, process all images
     
     # Model settings
-    model_name: str = "base"  # small/base/large/giant/mega or full DINOv3 name
+    model_name: str = "giant"  # small/base/large/giant/mega or full DINOv3 name
     version: str = "v3"  # Now using DINOv3
     stride: int = 4
     image_size: int = 1024  # Preprocess resize (square)

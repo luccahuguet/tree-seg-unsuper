@@ -12,12 +12,15 @@ def parse_model_info(model_name):
     Returns:
         tuple: (base_name, nickname, version)
     """
-    # Extract base name (DINOv2 is current, v2 refers to future U2Seg roadmap)
-    if "dinov2" in model_name.lower():
+    name = model_name.lower()
+    # Extract base name and version
+    if "dinov3" in name:
+        base_name = "DINOv3"
+        version = "v3"
+    elif "dinov2" in name:
         base_name = "DINOv2"
-        # Current DINOv2 models use v1.5 (patch + attention features)
         version = "v1.5"
-    elif "dino" in model_name.lower():
+    elif "dino" in name:
         base_name = "DINO"
         version = "v1"
     else:
@@ -25,14 +28,16 @@ def parse_model_info(model_name):
         version = "v1"
     
     # Extract size nickname
-    if "vits" in model_name.lower():
+    if "vits" in name:
         nickname = "Small"
-    elif "vitb" in model_name.lower():
+    elif "vitb" in name:
         nickname = "Base"
-    elif "vitl" in model_name.lower():
+    elif "vitl" in name:
         nickname = "Large"
-    elif "vitg" in model_name.lower():
+    elif "vith" in name or "vitg" in name:
         nickname = "Giant"
+    elif "vit7b" in name:
+        nickname = "Mega"
     else:
         nickname = "Unknown"
     

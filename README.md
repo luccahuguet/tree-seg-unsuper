@@ -63,7 +63,7 @@ uv run python run_segmentation.py input base output
 ```
 
 Defaults favor high quality:
-- Model: `base` (ViT-B/16)
+- Model: `giant` (ViT-H+/16)
 - Image size: 1024×1024
 - Feature upsample factor: 2 (clusters on a 128×128 grid)
 - Edge refinement: SLIC superpixels (aligns boundaries to image edges)
@@ -72,7 +72,7 @@ CLI flags allow tuning quality/performance:
 
 ```bash
 # Higher quality (even smoother):
-uv run python run_segmentation.py input base output \
+uv run python run_segmentation.py input giant output \
   --image-size 1280 --feature-upsample 2
 
 # Faster / lower memory:
@@ -83,8 +83,8 @@ uv run python run_segmentation.py input base output \
 uv run python run_segmentation.py input base output \
   --pca-dim 128
 
-# Process a single image:
-uv run python run_segmentation.py input/forest.jpg base output
+# Process a single image (giant default):
+uv run python run_segmentation.py input/forest.jpg giant output
 
 # Edge-aware refinement (SLIC superpixels):
 uv run python run_segmentation.py input base output \

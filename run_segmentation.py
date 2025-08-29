@@ -23,7 +23,7 @@ load_dotenv()
 def main():
     parser = argparse.ArgumentParser(description="Tree segmentation CLI")
     parser.add_argument("image_path", nargs="?", default="input/", help="Path to image or directory")
-    parser.add_argument("model", nargs="?", default="base", help="Model size: small/base/large/giant/mega or full name")
+    parser.add_argument("model", nargs="?", default="giant", help="Model size: small/base/large/giant/mega or full name")
     parser.add_argument("output_dir", nargs="?", default="output", help="Output directory")
     parser.add_argument("--image-size", type=int, default=1024, dest="image_size", help="Preprocess resize (square)")
     parser.add_argument("--feature-upsample", type=int, default=2, dest="feature_upsample_factor", help="Upsample feature grid before K-Means")
