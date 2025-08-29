@@ -31,26 +31,30 @@ All 12 configurations from our systematic parameter study, showing edge overlay 
 *Configuration: Base model, stride 4, 3.5% threshold, SLIC refinement*
 
 ### Stride Comparison Series
+
 | Stride 2 (Higher Quality) | Stride 4 (Faster Processing) |
-|---------------------------|-------------------------------|
+|----------------------------|-------------------------------|
 | ![Stride 2]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str2_edge_overlay.jpg) | ![Stride 4]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str4_edge_overlay.jpg) |
 | Giant model, stride 2 | Giant model, stride 4 |
 
 ### Model Size Progression
+
 | Small (21M) | Base (86M) | Large (304M) | Giant (1.1B) |
 |-------------|------------|--------------|--------------|
 | ![Small]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_small_edge_overlay.jpg) | ![Base]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_base_edge_overlay.jpg) | ![Large]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_large_edge_overlay.jpg) | ![Giant]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_giant_edge_overlay.jpg) |
 | Fast, good quality | Balanced performance | High quality | Maximum quality |
 
 ### Elbow Threshold Sensitivity
+
 | Conservative (7.0%) | Balanced (3.5%) | Sensitive (1.5%) |
-|-------------------|-----------------|------------------|
+|---------------------|-----------------|------------------|
 | ![7.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_7_0_edge_overlay.jpg) | ![3.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_3_5_edge_overlay.jpg) | ![1.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_1_5_edge_overlay.jpg) |
 | Fewer, broader clusters | Optimal clustering | More, finer clusters |
 
 ### Refinement Impact
+
 | With SLIC Refinement | Without Refinement |
-|---------------------|-------------------|
+|----------------------|---------------------|
 | ![With SLIC]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_with_slic_edge_overlay.jpg) | ![No Refinement]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_none_edge_overlay.jpg) |
 | Smoother boundaries | Faster processing |
 
@@ -131,7 +135,7 @@ All 12 configurations from our systematic parameter study, showing edge overlay 
 ### Post-Processing Comparison
 
 | With SLIC Refinement | Without Refinement |
-|---------------------|-------------------|
+|----------------------|---------------------|
 | ![With SLIC]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_with_slic_edge_overlay.jpg) | ![No Refinement]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_none_edge_overlay.jpg) |
 
 **Analysis**:
