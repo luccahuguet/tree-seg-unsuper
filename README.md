@@ -1,6 +1,6 @@
-# Tree Segmentation with DINOv2
+# Tree Segmentation with DINOv3
 
-Modern unsupervised tree segmentation using DINOv2 Vision Transformers and K-means clustering for aerial drone imagery.
+Modern unsupervised tree segmentation using DINOv3 Vision Transformers and K-means clustering for aerial drone imagery.
 
 ## 🚀 What's New - Modern Architecture
 
@@ -14,7 +14,7 @@ Modern unsupervised tree segmentation using DINOv2 Vision Transformers and K-mea
 ## 🌳 Project Overview
 
 This project implements an unsupervised tree segmentation pipeline that:
-- Uses DINOv2 Vision Transformers to extract deep features from aerial images  
+- Uses DINOv3 Vision Transformers to extract deep features from aerial images  
 - Applies K-means clustering for segmentation
 - Supports automatic K-selection using elbow method
 - Generates high-quality visualization outputs with config-based naming
@@ -210,10 +210,11 @@ config.validate()  # Raises ValueError if invalid
 - `0.2-0.3`: Conservative (fewer clusters)
 
 **Model Sizes:**
-- `small`: DINOv2 Small (21M params) - Fast, good for testing
-- `base`: DINOv2 Base (86M params) - Best balance (recommended)
-- `large`: DINOv2 Large (300M params) - Higher quality, slower  
-- `giant`: DINOv2 Giant (1.1B params) - Maximum quality, very slow
+- `small`: DINOv3 Small (21M params) - Fast, good for testing
+- `base`: DINOv3 Base (86M params) - Best balance (recommended)
+- `large`: DINOv3 Large (304M params) - Higher quality, slower  
+- `giant`: DINOv3 Giant (1.1B params) - Maximum quality, very slow
+- `mega`: DINOv3 Mega (6.7B params) - Satellite-optimized, ultimate quality
 
 ## 📊 Output Files
 
@@ -226,15 +227,15 @@ Files now use **config-based naming** for easy identification:
 ```
 
 **Examples:**
-- `a3f7_v1-5_base_str4_et3-5_segmentation_legend.png`
-- `a3f7_v1-5_base_str4_et3-5_edge_overlay.png`
-- `a3f7_v1-5_base_str4_et3-5_side_by_side.png`
-- `a3f7_v1-5_base_str4_et3-5_elbow_analysis.png`
+- `a3f7_v3_base_str4_et3-5_segmentation_legend.png`
+- `a3f7_v3_base_str4_et3-5_edge_overlay.png`
+- `a3f7_v3_base_str4_et3-5_side_by_side.png`
+- `a3f7_v3_base_str4_et3-5_elbow_analysis.png`
 
 **Filename Components:**
 - `a3f7`: 4-char hash of original filename (prevents collisions)
-- `v1-5`: DINOv2 version used
-- `base`: Model size (small/base/large/giant)
+- `v3`: DINOv3 version used
+- `base`: Model size (small/base/large/giant/mega)
 - `str4`: Stride value
 - `et3-5`: Elbow threshold (or `k6` for fixed K)
 
@@ -258,8 +259,8 @@ Files now use **config-based naming** for easy identification:
 
 ## 🎯 Model Variants
 
-- **v1.5 (current)**: Uses DINOv2 features with elbow method K-selection
-- Previous: v1 (patch only), v2 (curvature method)
+- **v3 (current)**: Uses DINOv3 features with elbow method K-selection
+- Previous: v1 (patch only), v1.5 (DINOv2 patch + attention), v2 (curvature method)
 
 ## 🖼️ Supported Image Formats
 
@@ -326,11 +327,11 @@ This is a research project. For questions or issues, please refer to the paper o
 
 ## 🗺️ Roadmap
 
-- **V1.5 (Current):** DINOv2 features with elbow method K-selection
-- **V2:** U2Seg (advanced unsupervised segmentation)
-- **V3:** DynaSeg (dynamic fusion segmentation)
-- **V4:** Multispectral extension
-- **Previous:** V1 (patch only), V2 (curvature method)
+- **V3 (Current):** DINOv3 features with elbow method K-selection
+- **V4:** U2Seg (advanced unsupervised segmentation)
+- **V5:** DynaSeg (dynamic fusion segmentation)
+- **V6:** Multispectral extension
+- **Previous:** V1 (patch only), V1.5 (DINOv2), V2 (curvature method)
 
 ## 🔜 Next Steps
 
@@ -341,8 +342,8 @@ This is a research project. For questions or issues, please refer to the paper o
 
 ## 📚 References
 
-- DINOv2: Meta AI (2023). DINOv2: Learning Robust Visual Features without Supervision
-- DINOv2 GitHub: https://github.com/facebookresearch/dinov2
+- DINOv3: Meta AI (2024). DINOv3: Scaling Self-Supervised Learning for Computer Vision
+- DINOv3 GitHub: https://github.com/facebookresearch/dinov3
 - NEON AOP: https://data.neonscience.org/data-products/DP3.30010.001
 # Sweeps
 
