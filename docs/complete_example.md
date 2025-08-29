@@ -14,13 +14,13 @@ This section showcases a complete tree segmentation run with all four output vis
 ## Configuration Used
 
 **Image**: forest2.jpeg  
-**Configuration**: `2326_v3_base_str4_et3-5_k6`
+**Configuration**: Basic Example (balanced profile)
 
 - **Model**: DINOv2 Base (`dinov2_vitb14`)
-- **Version**: v3 (current pipeline with elbow method)
+- **Profile**: Balanced (optimized for general use)
 - **Stride**: 4 (balanced quality/performance)
 - **Elbow Threshold**: 3.5% (optimal for tree species)
-- **Selected K**: 6 clusters (automatically determined)
+- **Auto K-Selection**: Enabled (automatically determined)
 
 ---
 
@@ -29,7 +29,7 @@ This section showcases a complete tree segmentation run with all four output vis
 ### 1. Segmentation Legend
 *Colored segmentation map with comprehensive cluster legend*
 
-![Segmentation Legend]({{ site.baseurl }}/results/complete_example/2326_v3_base_str4_et3-5_k6_segmentation_legend.jpg)
+![Segmentation Legend]({{ site.baseurl }}/results/complete_example/basic_example_segmentation_legend.jpg)
 
 **Purpose**: Shows the segmentation result with:
 - Color-coded cluster regions
@@ -42,7 +42,7 @@ This section showcases a complete tree segmentation run with all four output vis
 ### 2. Edge Overlay
 *Original image with colored boundaries overlaid*
 
-![Edge Overlay]({{ site.baseurl }}/results/complete_example/2326_v3_base_str4_et3-5_k6_edge_overlay.jpg)
+![Edge Overlay]({{ site.baseurl }}/results/complete_example/basic_example_edge_overlay.jpg)
 
 **Purpose**: Demonstrates boundary accuracy by:
 - Overlaying colored edges on original imagery
@@ -55,7 +55,7 @@ This section showcases a complete tree segmentation run with all four output vis
 ### 3. Side-by-Side Comparison
 *Original image alongside segmentation result*
 
-![Side by Side]({{ site.baseurl }}/results/complete_example/2326_v3_base_str4_et3-5_k6_side_by_side.jpg)
+![Side by Side]({{ site.baseurl }}/results/complete_example/basic_example_side_by_side.jpg)
 
 **Purpose**: Enables direct comparison between:
 - Original aerial drone imagery (left)

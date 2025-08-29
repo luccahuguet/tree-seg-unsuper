@@ -16,71 +16,69 @@ The `docs_image_generation.json` sweep generates comprehensive results for:
 ### 1. Run the Documentation Sweep
 
 ```bash
-python run_segmentation.py input/forest.jpg base output --sweep sweeps/docs_image_generation.json --verbose
+python generate_docs_images.py input/forest2.jpeg
 ```
 
-This will generate results in `output/sweeps/` with organized subdirectories for each configuration.
-
-### 2. Organize Images for Documentation
-
-```bash
-python scripts/organize_docs_images.py
-```
-
-This script moves the generated images into the proper `docs/results/` structure expected by the Jekyll documentation site.
+This will generate results in `output/sweeps/` with organized subdirectories for each configuration and automatically organize them into the proper `docs/results/` structure expected by the Jekyll documentation site.
 
 ## Generated Image Structure
 
-After running both commands, images will be organized as:
+After running the script, images will be organized as:
 
 ```
 docs/results/
 ├── methodology/
-│   ├── forest_v1-5_base_str4_et3-5_segmentation_legend.jpg
-│   ├── forest_v1-5_base_str4_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_base_str4_et3-5_side_by_side.jpg
-│   └── forest_v1-5_base_str4_et3-5_elbow_analysis.jpg
+│   ├── basic_example_segmentation_legend.jpg
+│   ├── basic_example_edge_overlay.jpg
+│   ├── basic_example_side_by_side.jpg
+│   └── basic_example_elbow_analysis.jpg
 ├── complete_example/
-│   ├── forest_v1-5_base_str4_et3-5_segmentation_legend.jpg
-│   ├── forest_v1-5_base_str4_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_base_str4_et3-5_side_by_side.jpg
-│   └── forest_v1-5_base_str4_et3-5_elbow_analysis.jpg
-├── parameter_comparison/elbow/
-│   ├── forest_v1-5_small_str4_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_base_str4_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_large_str4_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_giant_str4_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_small_str2_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_base_str2_et3-5_edge_overlay.jpg
-│   ├── forest_v1-5_large_str2_et3-5_edge_overlay.jpg
-│   └── forest_v1-5_giant_str2_et3-5_edge_overlay.jpg
+│   ├── basic_example_segmentation_legend.jpg
+│   ├── basic_example_edge_overlay.jpg
+│   ├── basic_example_side_by_side.jpg
+│   └── basic_example_elbow_analysis.jpg
+├── parameter_comparison/
+│   ├── stride/
+│   │   ├── stride_comparison_str2_edge_overlay.jpg
+│   │   └── stride_comparison_str4_edge_overlay.jpg
+│   ├── model_size/
+│   │   ├── model_comparison_small_edge_overlay.jpg
+│   │   ├── model_comparison_base_edge_overlay.jpg
+│   │   ├── model_comparison_large_edge_overlay.jpg
+│   │   └── model_comparison_giant_edge_overlay.jpg
+│   ├── elbow_threshold/
+│   │   ├── elbow_threshold_1_5_edge_overlay.jpg
+│   │   ├── elbow_threshold_3_5_edge_overlay.jpg
+│   │   └── elbow_threshold_7_0_edge_overlay.jpg
+│   └── refinement/
+│       ├── refine_with_slic_edge_overlay.jpg
+│       └── refine_none_edge_overlay.jpg
 └── analysis/
-    ├── forest_v1-5_base_str4_et3-5_segmentation_legend.jpg (quality profile)
-    ├── forest_v1-5_base_str4_et3-5_edge_overlay.jpg (speed profile)
-    └── forest_v1-5_base_str4_et3-5_elbow_analysis.jpg
+    ├── refine_with_slic_segmentation_legend.jpg (quality profile)
+    └── basic_example_edge_overlay.jpg (speed profile)
 ```
 
-## Sweep Configuration Details
+## Sweep Configuration Details (12 Total)
 
-### Methodology Demo
-- **Model**: Base (dinov2_vitb14)
-- **Profile**: Balanced
-- **Purpose**: Demonstrate core pipeline functionality
+### 1. Basic Example
+- **Model**: Base (dinov2_vitb14), **Profile**: Balanced, **Stride**: 4
+- **Purpose**: Core pipeline demonstration for methodology and complete example docs
 
-### Complete Example  
-- **Model**: Base (dinov2_vitb14)
-- **Profile**: Balanced
-- **Purpose**: Full workflow with all 4 visualization types
+### 2-3. Stride Comparison
+- **Model**: Giant (dinov2_vitg14), **Profile**: Quality, **Strides**: 2 vs 4
+- **Purpose**: Quality vs speed trade-off analysis
 
-### Parameter Comparison
-- **Models**: Small, Base, Large, Giant
-- **Strides**: 2, 4
-- **Purpose**: Systematic comparison of model size and stride impact
+### 4-7. Model Size Comparison  
+- **Models**: Small, Base, Large, Giant, **Profile**: Quality, **Stride**: 2
+- **Purpose**: Systematic comparison of feature dimensionality impact
 
-### Analysis Profiles
-- **Quality Profile**: 1280px, enhanced SLIC, no PCA
-- **Speed Profile**: 896px, PCA 128D, optimized SLIC
-- **Purpose**: Performance trade-off demonstration
+### 8-10. Elbow Threshold Comparison
+- **Model**: Giant, **Profile**: Quality, **Stride**: 2, **Thresholds**: 1.5%, 3.5%, 7.0%
+- **Purpose**: Clustering sensitivity analysis
+
+### 11-12. Refinement Comparison
+- **Model**: Giant, **Profile**: Quality, **Stride**: 2, **Refinement**: With/without SLIC
+- **Purpose**: Post-processing impact analysis
 
 ## Documentation Integration
 
@@ -95,10 +93,10 @@ The generated images are automatically referenced in:
 
 To update documentation images:
 
-1. Modify sweep configuration if needed
-2. Run the sweep: `python run_segmentation.py input/forest.jpg base output --sweep sweeps/docs_image_generation.json`
-3. Organize results: `python scripts/organize_docs_images.py`
-4. Commit updated images to repository
+1. Run the complete generation script: `python generate_docs_images.py input/forest2.jpeg`
+2. Commit updated images to repository
+
+The script automatically handles sweep execution and image organization.
 
 ## Notes
 
