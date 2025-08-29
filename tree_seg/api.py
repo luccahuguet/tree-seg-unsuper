@@ -48,7 +48,7 @@ class TreeSegmentation:
                 self.config.model_display_name, 
                 self.device
             )
-            self.preprocess = get_preprocess()
+            self.preprocess = get_preprocess(self.config.image_size)
             print("✅ Model initialized")
     
     def process_single_image(self, image_path: str) -> SegmentationResults:
@@ -78,6 +78,8 @@ class TreeSegmentation:
             k_range=self.config.k_range,
             elbow_threshold=self.config.elbow_threshold_decimal,
             use_pca=self.config.use_pca,
+            pca_dim=self.config.pca_dim,
+            feature_upsample_factor=self.config.feature_upsample_factor,
             model_name=self.config.model_display_name,
             output_dir=self.config.output_dir
         )

@@ -22,6 +22,7 @@ class Config:
     model_name: str = "base"  # small/base/large/giant/mega or full DINOv3 name
     version: str = "v3"  # Now using DINOv3
     stride: int = 4
+    image_size: int = 518  # Preprocess resize (square)
     
     # Clustering settings
     auto_k: bool = True
@@ -29,6 +30,8 @@ class Config:
     k_range: Tuple[int, int] = (3, 10)
     elbow_threshold: float = 3.5  # Percentage (will be converted to decimal)
     use_pca: bool = False
+    pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
+    feature_upsample_factor: int = 1  # Upsample HxW feature grid before K-Means
     
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent
@@ -67,6 +70,12 @@ class Config:
             raise ValueError("elbow_threshold must be positive")
         if not (2 <= self.n_clusters <= 20):
             raise ValueError("n_clusters must be between 2 and 20")
+        if self.image_size < 128 or self.image_size > 2048:
+            raise ValueError("image_size must be between 128 and 2048")
+        if self.feature_upsample_factor < 1 or self.feature_upsample_factor > 8:
+            raise ValueError("feature_upsample_factor must be between 1 and 8")
+        if self.pca_dim is not None and (self.pca_dim <= 0 or self.pca_dim > 1024):
+            raise ValueError("pca_dim must be between 1 and 1024 when set")
 
 
 @dataclass

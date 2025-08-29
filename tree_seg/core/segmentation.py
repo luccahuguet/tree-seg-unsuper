@@ -6,6 +6,7 @@ import os
 import traceback
 import numpy as np
 import torch
+import torch.nn.functional as F
 import cv2
 from PIL import Image
 from sklearn.cluster import KMeans
@@ -14,8 +15,8 @@ from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
 
 def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
-                 auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, model_name=None,
-                 output_dir="/kaggle/working/output"):
+                 auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, pca_dim=None,
+                 feature_upsample_factor: int = 1, model_name=None, output_dir="/kaggle/working/output"):
     """
     Process a single image for tree segmentation.
     
@@ -89,6 +90,20 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         if attn_features is not None:
             print(f"attn_features reshaped: {attn_features.shape}")
 
+        # Optional upsampling of the feature grid for smoother segmentation
+        if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
+            up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
+            # Upsample patch features (H, W, D) -> (up_h, up_w, D)
+            pf = patch_features.permute(2, 0, 1).unsqueeze(0)  # 1, D, H, W
+            pf_up = F.interpolate(pf, size=(up_h, up_w), mode="bilinear", align_corners=False)
+            patch_features = pf_up.squeeze(0).permute(1, 2, 0)
+            if attn_features is not None:
+                af = attn_features.permute(2, 0, 1).unsqueeze(0)
+                af_up = F.interpolate(af, size=(up_h, up_w), mode="bilinear", align_corners=False)
+                attn_features = af_up.squeeze(0).permute(1, 2, 0)
+            H, W = up_h, up_w
+            print(f"Upsampled features to: {H}x{W}")
+
         if attn_features is not None and version in ["v1.5", "v3"]:
             features_np = np.concatenate(
                 [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
@@ -101,18 +116,23 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         features_flat = features_np.reshape(-1, features_np.shape[-1])
         print(f"Flattened features shape: {features_flat.shape}")
 
-        if use_pca and features_flat.shape[-1] > 128:
-            print("Running PCA on flat features...")
+        # Optional PCA with configurable dimension
+        effective_pca_dim = None
+        if pca_dim is not None and pca_dim > 0:
+            effective_pca_dim = min(pca_dim, features_flat.shape[-1])
+        elif use_pca and features_flat.shape[-1] > 128:
+            effective_pca_dim = 128
+
+        if effective_pca_dim is not None and effective_pca_dim < features_flat.shape[-1]:
+            print(f"Running PCA to {effective_pca_dim} dims...")
             features_flat_tensor = torch.tensor(features_flat, dtype=torch.float32)
             mean = features_flat_tensor.mean(dim=0)
             features_flat_centered = features_flat_tensor - mean
-            U, S, V = torch.pca_lowrank(features_flat_centered, q=128, center=False)
-            features_flat = (features_flat_centered @ V[:, :128]).numpy()
+            U, S, V = torch.pca_lowrank(features_flat_centered, q=effective_pca_dim, center=False)
+            features_flat = (features_flat_centered @ V[:, :effective_pca_dim]).numpy()
             print(f"PCA-reduced features shape: {features_flat.shape}")
-        elif features_flat.shape[-1] > 128:
-            print(f"Skipping PCA (disabled). Using full {features_flat.shape[-1]} dimensions.")
         else:
-            print(f"Features already low-dimensional ({features_flat.shape[-1]} dims), no PCA needed.")
+            print(f"Using {features_flat.shape[-1]}-D features (no PCA)")
 
         # Automatic K selection using elbow method
         if auto_k:
@@ -186,7 +206,7 @@ def run_processing(
     print(f"Using device: {device}")
 
     model = initialize_model(stride, model_name, device)
-    preprocess = get_preprocess()
+    preprocess = get_preprocess(image_size=518)
 
     if filename:
         image_path = os.path.join(input_dir, filename)
