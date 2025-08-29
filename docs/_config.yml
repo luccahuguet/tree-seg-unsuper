@@ -1,5 +1,5 @@
-title: "Tree Segmentation with DINOv2"
-description: "Unsupervised tree segmentation using DINOv2 Vision Transformers"
+title: "Tree Segmentation with DINOv3"
+description: "Unsupervised tree segmentation using DINOv3 Vision Transformers"
 author: "Research Team"
 email: "your-email@example.com"
 
@@ -23,7 +23,9 @@ url: "https://luccahuguet.github.io"
 header_pages:
   - index.md
   - methodology.md
+  - models.md
   - complete_example.md
+  - troubleshooting.md
   - parameter_comparison.md
   - analysis.md
 
@@ -48,5 +50,5 @@ academic:
   
 # Custom variables
 experiment_date: "2025"
-model_version: "v1.5"
-dino_variant: "DINOv2"
+model_version: "v3"
+dino_variant: "DINOv3"

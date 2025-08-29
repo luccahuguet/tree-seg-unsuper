@@ -4,6 +4,20 @@
 
 This document provides comprehensive information about DINOv3 model variants, their Hugging Face weights, and how they map to our project's configuration.
 
+## Quick Model Selection
+
+```python
+config = Config(
+    model_name="base",        # Recommended default
+    # Options:
+    # "small"  → ViT-S/16 (21M params)    - Fast
+    # "base"   → ViT-B/16 (86M params)    - Balanced ⭐
+    # "large"  → ViT-L/16 (300M params)   - High quality
+    # "giant"  → ViT-H+/16 (840M params)  - Maximum quality
+    # "mega"   → ViT-7B/16 (6.7B params)  - Satellite optimized
+)
+```
+
 ## Model Access Requirements
 
 ⚠️ **Important**: DINOv3 models require manual access approval from Meta AI:
