@@ -204,81 +204,114 @@ def organize_images():
     (docs_results / "parameter_comparison" / "elbow_threshold").mkdir(parents=True, exist_ok=True)
     (docs_results / "parameter_comparison" / "refinement").mkdir(parents=True, exist_ok=True)
     
-    # Image organization mapping
+    # Image organization mapping with expected documentation filenames
     mappings = [
         # Basic example images (shared by methodology and complete example docs)
         {
             "source": "basic_example/web",
             "target": "methodology",
-            "files": ["*_segmentation_legend.jpg", "*_edge_overlay.jpg", "*_side_by_side.jpg", "*_elbow_analysis.jpg"]
+            "files": {
+                "*_segmentation_legend.jpg": "basic_example_segmentation_legend.jpg",
+                "*_edge_overlay.jpg": "basic_example_edge_overlay.jpg",
+                "*_side_by_side.jpg": "basic_example_side_by_side.jpg",
+                "*_elbow_analysis.jpg": "basic_example_elbow_analysis.jpg"
+            }
         },
         {
             "source": "basic_example/web",
             "target": "complete_example", 
-            "files": ["*_segmentation_legend.jpg", "*_edge_overlay.jpg", "*_side_by_side.jpg", "*_elbow_analysis.jpg"]
+            "files": {
+                "*_segmentation_legend.jpg": "basic_example_segmentation_legend.jpg",
+                "*_edge_overlay.jpg": "basic_example_edge_overlay.jpg",
+                "*_side_by_side.jpg": "basic_example_side_by_side.jpg",
+                "*_elbow_analysis.jpg": "basic_example_elbow_analysis.jpg"
+            }
         },
         
         # Stride comparison (web-optimized)
         {
             "source": "stride_comparison_str2/web",
             "target": "parameter_comparison/stride",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "stride_comparison_str2_edge_overlay.jpg"
+            }
         },
         {
             "source": "stride_comparison_str4/web",
             "target": "parameter_comparison/stride",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "stride_comparison_str4_edge_overlay.jpg"
+            }
         },
         
         # Model size comparison (web-optimized)
         {
             "source": "model_comparison_small/web",
             "target": "parameter_comparison/model_size",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "model_comparison_small_edge_overlay.jpg"
+            }
         },
         {
             "source": "model_comparison_base/web", 
             "target": "parameter_comparison/model_size",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "model_comparison_base_edge_overlay.jpg"
+            }
         },
         {
             "source": "model_comparison_large/web",
             "target": "parameter_comparison/model_size", 
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "model_comparison_large_edge_overlay.jpg"
+            }
         },
         {
             "source": "model_comparison_giant/web",
             "target": "parameter_comparison/model_size",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "model_comparison_giant_edge_overlay.jpg"
+            }
         },
         
         # Elbow threshold comparison (web-optimized)
         {
             "source": "elbow_threshold_1_5/web",
             "target": "parameter_comparison/elbow_threshold",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "elbow_threshold_1_5_edge_overlay.jpg"
+            }
         },
         {
             "source": "elbow_threshold_3_5/web",
             "target": "parameter_comparison/elbow_threshold",
-            "files": ["*_edge_overlay.jpg", "*_elbow_analysis.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "elbow_threshold_3_5_edge_overlay.jpg",
+                "*_elbow_analysis.jpg": "elbow_threshold_3_5_elbow_analysis.jpg"
+            }
         },
         {
             "source": "elbow_threshold_7_0/web",
             "target": "parameter_comparison/elbow_threshold",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "elbow_threshold_7_0_edge_overlay.jpg"
+            }
         },
         
         # Refinement comparison (web-optimized)
         {
             "source": "refine_with_slic/web",
             "target": "parameter_comparison/refinement",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "refine_with_slic_edge_overlay.jpg"
+            }
         },
         {
             "source": "refine_none/web",
             "target": "parameter_comparison/refinement",
-            "files": ["*_edge_overlay.jpg"]
+            "files": {
+                "*_edge_overlay.jpg": "refine_none_edge_overlay.jpg"
+            }
         }
     ]
     
@@ -294,19 +327,20 @@ def organize_images():
             
         print(f"📁 Processing {mapping['source']} -> {mapping['target']}")
         
-        # Find and copy matching files
-        for pattern in mapping["files"]:
+        # Find and copy matching files with renaming
+        for pattern, target_name in mapping["files"].items():
             import glob
             matches = glob.glob(str(source_dir / pattern))
             
             for match in matches:
                 source_file = Path(match)
-                target_file = target_dir / source_file.name
+                target_file = target_dir / target_name
                 
                 try:
                     shutil.copy2(source_file, target_file)
-                    print(f"   ✅ Copied: {source_file.name}")
+                    print(f"   ✅ Copied: {source_file.name} -> {target_name}")
                     total_copied += 1
+                    break  # Only copy the first match for each pattern
                 except Exception as e:
                     print(f"   ❌ Failed to copy {source_file.name}: {e}")
     

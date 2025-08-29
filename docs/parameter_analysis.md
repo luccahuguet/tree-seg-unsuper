@@ -22,16 +22,56 @@ Our systematic analysis covers:
 
 ---
 
+## Complete Sweep Results Gallery
+
+All 12 configurations from our systematic parameter study, showing edge overlay visualizations for direct comparison:
+
+### Basic Example (Methodology Baseline)
+![Basic Example]({{ site.baseurl }}/results/methodology/basic_example_edge_overlay.jpg)
+*Configuration: Base model, stride 4, 3.5% threshold, SLIC refinement*
+
+### Stride Comparison Series
+| Stride 2 (Higher Quality) | Stride 4 (Faster Processing) |
+|---------------------------|-------------------------------|
+| ![Stride 2]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str2_edge_overlay.jpg) | ![Stride 4]({{ site.baseurl }}/results/parameter_comparison/stride/stride_comparison_str4_edge_overlay.jpg) |
+| Giant model, stride 2 | Giant model, stride 4 |
+
+### Model Size Progression
+| Small (21M) | Base (86M) | Large (304M) | Giant (1.1B) |
+|-------------|------------|--------------|--------------|
+| ![Small]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_small_edge_overlay.jpg) | ![Base]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_base_edge_overlay.jpg) | ![Large]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_large_edge_overlay.jpg) | ![Giant]({{ site.baseurl }}/results/parameter_comparison/model_size/model_comparison_giant_edge_overlay.jpg) |
+| Fast, good quality | Balanced performance | High quality | Maximum quality |
+
+### Elbow Threshold Sensitivity
+| Conservative (7.0%) | Balanced (3.5%) | Sensitive (1.5%) |
+|-------------------|-----------------|------------------|
+| ![7.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_7_0_edge_overlay.jpg) | ![3.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_3_5_edge_overlay.jpg) | ![1.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_1_5_edge_overlay.jpg) |
+| Fewer, broader clusters | Optimal clustering | More, finer clusters |
+
+### Refinement Impact
+| With SLIC Refinement | Without Refinement |
+|---------------------|-------------------|
+| ![With SLIC]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_with_slic_edge_overlay.jpg) | ![No Refinement]({{ site.baseurl }}/results/parameter_comparison/refinement/refine_none_edge_overlay.jpg) |
+| Smoother boundaries | Faster processing |
+
+**Configuration Details:**
+- **Stride Comparison**: Giant model, stride 2 vs 4, quality profile
+- **Model Size**: All models at stride 2, quality profile, 3.5% threshold
+- **Elbow Threshold**: Giant model, stride 2, varying thresholds
+- **Refinement**: Giant model, stride 2, 3.5% threshold, SLIC on/off
+
+---
+
 ## Model Size Comparison
 
-### DINOv2 Model Variants
+### DINOv3 Model Variants
 
-| Model | Features | Speed | Quality | Use Case |
-|-------|----------|-------|---------|----------|
-| **Small** (dinov2_vits14) | 384D | Fastest | Good | Rapid prototyping |
-| **Base** (dinov2_vitb14) | 768D | Balanced | Very Good | Recommended default |
-| **Large** (dinov2_vitl14) | 1024D | Slower | Excellent | High-quality results |
-| **Giant** (dinov2_vitg14) | 1536D | Slowest | Maximum | Research/publication |
+| Model | Features | Parameters | Speed | Quality | Use Case |
+|-------|----------|------------|-------|---------|----------|
+| **Small** (dinov3_vits16) | 384D | 21M | Fastest | Good | Rapid prototyping |
+| **Base** (dinov3_vitb16) | 768D | 86M | Balanced | Very Good | Recommended default |
+| **Large** (dinov3_vitl16) | 1024D | 304M | Slower | Excellent | High-quality results |
+| **Giant** (dinov3_vith16plus) | 1280D | 1.1B | Slowest | Maximum | Research/publication |
 
 ### Model Size Results (Stride 2, Quality Profile)
 
@@ -120,7 +160,7 @@ Our systematic analysis covers:
 ### 2. Elbow Method Validation
 - **Consistent Behavior**: Eliminates stride-dependent paradoxes seen in curvature methods
 - **Predictable Thresholds**: 1.5%-7.0% range covers full segmentation spectrum
-- **Intuitive Configuration**: Percentage-based thresholds (3.5% vs 0.035)
+- **Intuitive Configuration**: Percentage-based thresholds (3.5% direct percentage)
 
 ### 3. Configuration Interactions
 - **Compound Effects**: Giant + stride 2 + SLIC = maximum quality
@@ -134,11 +174,11 @@ Our systematic analysis covers:
 ### Development Profile (Fast Iteration)
 ```python
 config = Config(
-    model_name="small",
+    model_name="small",        # Maps to dinov3_vits16 (21M params)
     stride=4,
     elbow_threshold=3.5,
-    refine="none",
-    profile="speed"
+    refine=None,
+    image_size=896
 )
 ```
 - **Time**: ~15 seconds
@@ -147,11 +187,11 @@ config = Config(
 ### Production Profile (Balanced)
 ```python
 config = Config(
-    model_name="base", 
+    model_name="base",         # Maps to dinov3_vitb16 (86M params)
     stride=4,
     elbow_threshold=3.5,
     refine="slic",
-    profile="balanced"
+    image_size=1024
 )
 ```
 - **Time**: ~35 seconds  
@@ -160,11 +200,11 @@ config = Config(
 ### Research Profile (Maximum Quality)
 ```python
 config = Config(
-    model_name="giant",
+    model_name="giant",        # Maps to dinov3_vith16plus (1.1B params)
     stride=2, 
     elbow_threshold=3.5,
     refine="slic",
-    profile="quality"
+    image_size=1280
 )
 ```
 - **Time**: ~100 seconds
@@ -174,25 +214,76 @@ config = Config(
 
 ## Generate Results
 
-To reproduce all parameter analysis results:
+## Reproducing All Results
+
+To generate all 12 configurations shown above:
 
 ```bash
 python generate_docs_images.py input/forest2.jpeg
 ```
 
-This generates all 12 configurations and organizes results into the documentation structure shown above.
+This script:
+1. **Runs 12 configurations** systematically with different parameters
+2. **Generates web-optimized images** for GitHub Pages
+3. **Organizes results** into the documentation structure
+4. **Creates consistent naming** for easy reference
+
+### Sweep Configuration Summary
+
+| Configuration | Model | Stride | Threshold | Refinement | Purpose |
+|--------------|-------|--------|-----------|------------|---------|
+| basic_example | base | 4 | 3.5% | slic | Methodology baseline |
+| stride_comparison_str2 | giant | 2 | 3.5% | slic | Quality comparison |
+| stride_comparison_str4 | giant | 4 | 3.5% | slic | Speed comparison |
+| model_comparison_small | small | 2 | 3.5% | slic | Model size study |
+| model_comparison_base | base | 2 | 3.5% | slic | Model size study |
+| model_comparison_large | large | 2 | 3.5% | slic | Model size study |
+| model_comparison_giant | giant | 2 | 3.5% | slic | Model size study |
+| elbow_threshold_1_5 | giant | 2 | 1.5% | slic | Sensitivity study |
+| elbow_threshold_3_5 | giant | 2 | 3.5% | slic | Sensitivity study |
+| elbow_threshold_7_0 | giant | 2 | 7.0% | slic | Sensitivity study |
+| refine_with_slic | giant | 2 | 3.5% | slic | Refinement study |
+| refine_none | giant | 2 | 3.5% | none | Refinement study |
+
+All configurations use DINOv3 models with automatic K-selection and web-optimized output for GitHub Pages display.
+
+### Actual vs Documented Implementation
+
+| Component | Previous Docs | Actual Implementation |
+|-----------|---------------|----------------------|
+| **Model Architecture** | DINOv2 (dinov2_vitb14) | DINOv3 (dinov3_vitb16) |
+| **Feature Dimensions** | 768D (Base) | 768D (Base), 1280D (Giant) |
+| **Parameter Counts** | ~86M (Base) | 86M (Base), 1.1B (Giant) |
+| **Patch Size** | 14x14 pixels | 16x16 pixels |
+| **Version** | v1.5 | v3 |
+| **Elbow Threshold** | 0.035 (decimal) | 3.5 (percentage) |
+| **Model Loading** | Single strategy | Multi-strategy with fallbacks |
+| **Error Handling** | Basic | Comprehensive with NaN prevention |
+
+The documentation has been updated to reflect the actual DINOv3 implementation with correct model names, parameter counts, and configuration values.
 
 ---
 
-## Method Comparison: Elbow vs Curvature
+## Technical Implementation Details
 
-### Elbow Method Advantages ✅
-- **Eliminated Paradoxes**: Consistent behavior across stride values
-- **Intuitive Thresholds**: Percentage-based (3.5% vs 0.035)
-- **Predictable Results**: Clear threshold → cluster count relationship
-- **Tunable Sensitivity**: Easy to adjust for different applications
+### DINOv3 Feature Extraction Pipeline
 
-### Implementation Details
+```python
+# Core feature extraction process
+with torch.no_grad():
+    # DINOv3 uses attention features for v3 (equivalent to v1.5)
+    attn_choice = "none" if version == "v1" else "o"
+    features_out = model.forward_sequential(image_tensor, attn_choice=attn_choice)
+    
+    # DINOv3 adapter returns a dictionary with patch features
+    if isinstance(features_out, dict):
+        patch_features = features_out["x_norm_patchtokens"]
+        attn_features = features_out.get("x_patchattn", None)
+        # DINOv3 features are already in spatial format (H, W, D)
+```
+
+### Elbow Method Implementation
+
 ```python
 def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.5):
     """
@@ -201,11 +292,62 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.5):
     Args:
         elbow_threshold: Percentage threshold (e.g., 3.5 = 3.5%)
     """
+    wcss_values = []
+    for k in range(k_range[0], k_range[1] + 1):
+        kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
+        kmeans.fit(features_flat)
+        wcss_values.append(kmeans.inertia_)
+    
     # Calculate percentage decrease between consecutive K values
+    pct_decrease = []
+    for i in range(1, len(wcss_values)):
+        pct_change = ((wcss_values[i-1] - wcss_values[i]) / wcss_values[i-1]) * 100
+        pct_decrease.append(pct_change)
+    
+    # Find elbow point where improvement drops below threshold
     for i, pct in enumerate(pct_decrease):
         if pct < elbow_threshold:  # Direct percentage comparison
-            optimal_k = k_values[i]
+            optimal_k = k_range[0] + i
             break
+    else:
+        optimal_k = k_range[1]  # Use maximum if no elbow found
+    
+    return optimal_k, wcss_values
 ```
 
-The corrected elbow method provides consistent, predictable K-selection across all parameter combinations, eliminating the unexpected behaviors observed in curvature-based approaches.
+### Model Architecture Comparison
+
+| Component | DINOv2 (Legacy) | DINOv3 (Current) |
+|-----------|-----------------|------------------|
+| **Architecture** | ViT-B/14, ViT-L/14 | ViT-S/16, ViT-B/16, ViT-L/16, ViT-H+/16 |
+| **Feature Dim** | 768D (Base) | 768D (Base), 1280D (Giant) |
+| **Patch Size** | 14x14 pixels | 16x16 pixels |
+| **Training Data** | ImageNet-22k | LVD-142M (much larger) |
+| **Loading** | Direct hub access | HuggingFace + fallback strategies |
+| **Robustness** | Single loading path | Multi-strategy with error recovery |
+
+### Key Improvements in v3
+
+1. **Robust Model Loading**: Multi-strategy loading (Meta hub → HuggingFace → random weights)
+2. **NaN Prevention**: Automatic LinearKMaskedBias initialization fix
+3. **Better Features**: DINOv3 trained on 142M images vs ImageNet-22k
+4. **Consistent K-Selection**: Elbow method eliminates stride-dependent paradoxes
+5. **Production Ready**: Comprehensive error handling and logging
+
+### Model Loading Strategy
+
+The DINOv3 adapter uses a robust multi-strategy approach:
+
+```python
+# Strategy 1: Original Meta hub (often blocked by 403 errors)
+try:
+    backbone = dinov3_backbones.dinov3_vitb16(pretrained=True)
+except:
+    # Strategy 2: HuggingFace safetensors with parameter mapping
+    weight_loader = HuggingFaceWeightLoader("facebook/dinov3-vitb16-pretrain-lvd1689m")
+    backbone = dinov3_backbones.dinov3_vitb16(pretrained=False)
+    weight_loader.apply_weights_to_model(backbone)
+    # Strategy 3: Random weights (fallback for testing)
+```
+
+This ensures the pipeline works even when Meta's servers are inaccessible, which is common in production environments.

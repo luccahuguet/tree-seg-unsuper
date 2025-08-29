@@ -13,7 +13,7 @@ nav_order: 2
 
 Our tree segmentation pipeline consists of four main stages:
 
-1. **Feature Extraction** - DINOv2 Vision Transformer
+1. **Feature Extraction** - DINOv3 Vision Transformer
 2. **Clustering** - K-means with automatic K selection
 3. **Post-processing** - Upsampling and refinement
 4. **Visualization** - Multi-format output generation
@@ -22,8 +22,8 @@ Our tree segmentation pipeline consists of four main stages:
 
 ### 1. Feature Extraction
 
-**Model**: DINOv2 Vision Transformer (v1.5)
-- **Variant**: Base model (dinov2_vitb14)
+**Model**: DINOv3 Vision Transformer (v3)
+- **Variant**: Base model (dinov3_vitb16)
 - **Features**: Patch embeddings + attention features
 - **Dimensionality**: 768-dimensional feature space
 - **Stride**: 4 (balance of quality vs. speed)
@@ -54,7 +54,7 @@ Our tree segmentation pipeline consists of four main stages:
 
 ```python
 config = Config(
-    model_name="base",          # DINOv2 variant  
+    model_name="base",          # DINOv3 variant  
     version="v3",               # Current algorithm version
     stride=4,                   # Feature resolution
     auto_k=True,                # Automatic K selection
@@ -103,4 +103,11 @@ config = Config(
 *Elbow method analysis showing optimal cluster selection*
 
 ![Methodology Elbow Analysis]({{ site.baseurl }}/results/methodology/basic_example_elbow_analysis.jpg)
+
+---
+
+## See Also
+
+- **[Complete Example]({{ '/complete_example' | relative_url }})**: Full pipeline demonstration with all output types
+- **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})**: Comprehensive study of all 12 configurations and model comparisons
 

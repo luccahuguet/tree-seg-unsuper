@@ -16,7 +16,7 @@ This section showcases a complete tree segmentation run with all four output vis
 **Image**: forest2.jpeg  
 **Configuration**: Basic Example (balanced profile)
 
-- **Model**: DINOv2 Base (`dinov2_vitb14`)
+- **Model**: DINOv3 Base (`dinov3_vitb16`)
 - **Profile**: Balanced (optimized for general use)
 - **Stride**: 4 (balanced quality/performance)
 - **Elbow Threshold**: 3.5% (optimal for tree species)
@@ -89,4 +89,10 @@ This complete example demonstrates:
 5. **Quality Assurance**: Comprehensive documentation and tracking
 
 The results show successful unsupervised segmentation of complex forest imagery with professional-grade output quality suitable for academic presentation.
+
+---
+
+## See Also
+
+For comprehensive parameter analysis including all 12 sweep configurations, model comparisons, and performance benchmarks, see the **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})** page.
 
