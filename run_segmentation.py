@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """
 Simple CLI for tree segmentation.
-Usage: python run_segmentation.py [image_path] [model] [output_dir]
+
+Usage:
+  python run_segmentation.py [image_path] [model] [output_dir] [options]
+
+Options:
+  --image-size INT           Preprocess resize (square). Default: 1024
+  --feature-upsample INT     Upsample HxW feature grid before K-Means. Default: 2
+  --pca-dim INT              Optional PCA target dim (e.g., 128). Default: None
 """
 
 import sys
 import os
+import argparse
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -13,18 +21,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def main():
-    # Default values
-    image_path = "input/"
-    model = "base"
-    output_dir = "output"
-    
-    # Parse command line arguments
-    if len(sys.argv) > 1:
-        image_path = sys.argv[1]
-    if len(sys.argv) > 2:
-        model = sys.argv[2]
-    if len(sys.argv) > 3:
-        output_dir = sys.argv[3]
+    parser = argparse.ArgumentParser(description="Tree segmentation CLI")
+    parser.add_argument("image_path", nargs="?", default="input/", help="Path to image or directory")
+    parser.add_argument("model", nargs="?", default="base", help="Model size: small/base/large/giant/mega or full name")
+    parser.add_argument("output_dir", nargs="?", default="output", help="Output directory")
+    parser.add_argument("--image-size", type=int, default=1024, dest="image_size", help="Preprocess resize (square)")
+    parser.add_argument("--feature-upsample", type=int, default=2, dest="feature_upsample_factor", help="Upsample feature grid before K-Means")
+    parser.add_argument("--pca-dim", type=int, default=None, dest="pca_dim", help="Optional PCA target dimension (e.g., 128)")
+
+    args = parser.parse_args()
+    image_path = args.image_path
+    model = args.model
+    output_dir = args.output_dir
     
     # Import after loading env vars
     from tree_seg import segment_trees
@@ -67,7 +75,10 @@ def main():
                     img_path,
                     model=model,
                     auto_k=True,
-                    output_dir=output_dir
+                    output_dir=output_dir,
+                    image_size=args.image_size,
+                    feature_upsample_factor=args.feature_upsample_factor,
+                    pca_dim=args.pca_dim,
                 )
                 print(f"✅ Completed: {os.path.basename(img_path)}")
             except Exception as e:
@@ -84,7 +95,10 @@ def main():
                 image_path,
                 model=model,
                 auto_k=True,
-                output_dir=output_dir
+                output_dir=output_dir,
+                image_size=args.image_size,
+                feature_upsample_factor=args.feature_upsample_factor,
+                pca_dim=args.pca_dim,
             )
             print(f"✅ Tree segmentation completed!")
         except Exception as e:
