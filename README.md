@@ -1,4 +1,4 @@
-# Tree Segmentation with DINOv2
+# Tree Segmentation with DINOv3
 
 Modern unsupervised tree segmentation using DINOv3 Vision Transformers and K-means clustering for aerial drone imagery.
 
@@ -54,6 +54,19 @@ final-paper/
 
 ## 🚀 Quick Start
 
+### Run (uv + CLI)
+
+Using the simple CLI wrapper with uv:
+
+```bash
+uv run python run_segmentation.py input base output
+```
+
+Defaults now favor high quality:
+- Model: `base` (ViT-B/16)
+- Image size: 1024×1024
+- Feature upsample factor: 2 (clusters on a 128×128 grid)
+
 ### API Usage
 
 **Simple one-liner:**
@@ -74,11 +87,24 @@ from tree_seg import TreeSegmentation, Config
 
 # Create configuration
 config = Config(
-    model_name="base",      # small, base, large, giant
-    auto_k=True,           # Automatic K selection
-    elbow_threshold=0.1,   # Sensitive elbow detection
-    use_hatching=True,     # Visual distinction
-    edge_width=2
+    # Model
+    model_name="base",      # small/base/large/giant/mega or full DINOv3 name
+    version="v3",
+
+    # Quality & performance
+    image_size=1024,         # Resize (square). 518/896/1024 are good picks
+    feature_upsample_factor=2, # Upsample feature grid before K-Means
+    pca_dim=None,            # Optional PCA target dim (e.g., 128) or None
+
+    # Clustering
+    auto_k=True,
+    elbow_threshold=0.1,
+    k_range=(3, 10),
+    n_clusters=6,            # Used only when auto_k=False
+
+    # Visualization
+    use_hatching=True,
+    edge_width=2,
 )
 
 # Process with modern API
@@ -123,25 +149,27 @@ from tree_seg import Config
 config = Config(
     # Input/Output
     input_dir="/kaggle/input/drone-imagery",
-    output_dir="/kaggle/working/output", 
-    filename=None,              # Process all images in directory
-    
+    output_dir="/kaggle/working/output",
+    filename=None,
+
     # Model settings
-    model_name="base",          # small/base/large/giant
-    version="v1.5",             # Current version
-    stride=4,                   # Balance of speed vs quality
-    
+    model_name="base",
+    version="v3",
+    stride=4,
+    image_size=1024,
+    feature_upsample_factor=2,
+    pca_dim=None,
+
     # Clustering (automatic K-selection recommended)
-    auto_k=True,                # Let elbow method choose K
-    elbow_threshold=0.1,        # Sensitivity (0.05-0.3)
-    k_range=(3, 10),            # K search range
-    n_clusters=6,               # Only used when auto_k=False
-    
+    auto_k=True,
+    elbow_threshold=0.1,
+    k_range=(3, 10),
+    n_clusters=6,
+
     # Visualization
-    overlay_ratio=4,            # Transparency (1=opaque, 10=transparent)
-    edge_width=2,               # Border thickness
-    use_hatching=True,          # Pattern distinction
-    use_pca=False               # Keep full feature space
+    overlay_ratio=4,
+    edge_width=2,
+    use_hatching=True,
 )
 
 # Automatic validation
@@ -205,8 +233,8 @@ Files now use **config-based naming** for easy identification:
 
 ## 🎯 Model Variants
 
-- **v3**: Uses DINOv3 satellite-optimized features with enhanced performance
-- **Previous versions**: v1 (patch only), v1.5 (patch + attention) - now superseded
+- **v3 (default)**: Uses DINOv3 features with enhanced performance
+- Previous: v1 (patch only), v1.5 (patch + attention)
 
 ## 🖼️ Supported Image Formats
 
@@ -263,10 +291,10 @@ tree_seg(
 
 ### Performance Tips:
 
-- Use `stride=2` for higher resolution (slower)
-- Use `stride=8` for faster processing (lower resolution)
-- Adjust `n_clusters` based on image complexity
-- Use `version="v1.5"` for better results
+- Lower memory/CPU: reduce `image_size` (e.g., 896 or 518)
+- Faster clustering: set `feature_upsample_factor=1`
+- Large models: ensure GPU VRAM is sufficient; consider `pca_dim=128`
+- Adjust `n_clusters`/`k_range` based on image complexity
 
 ## 📄 License
 
@@ -298,4 +326,3 @@ This is a research project. For questions or issues, please refer to the paper o
 - Satellite optimization: WRI forestry applications with 70% accuracy improvement
 - NEON AOP: https://data.neonscience.org/data-products/DP3.30010.001
 - Previous work: DINOv2 - https://github.com/facebookresearch/dinov2
-

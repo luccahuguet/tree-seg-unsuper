@@ -94,6 +94,16 @@ def _fix_linear_k_masked_bias(self, backbone):
 5. **Handle Missing Weights**: Create zero tensors for missing K bias terms
 6. **Concatenate QKV**: Combine separate Q/K/V projections into single QKV layer
 
+### Resolution and Blockiness
+
+DINOv3 uses a fixed patch size of 16, so a `518×518` input yields a `32×32` token grid. Clustering at that grid and upsampling labels can look blocky.
+
+To reduce block artifacts, the project now defaults to:
+- `image_size=1024` (token grid 64×64)
+- `feature_upsample_factor=2` (upsample features to 128×128 before K‑Means)
+
+You can tune these via `Config(image_size=..., feature_upsample_factor=..., pca_dim=...)` for speed‑quality tradeoffs.
+
 ## Results: Success Metrics ✅
 
 ### Before (Broken System)
