@@ -21,3 +21,15 @@ input/*.png
 .DS_Store
 .aider*
 input
+\n+# Model weights and caches
+# Ignore local weight directories and common weight files
+models/weights/
+weights/*
+!weights/README.md
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+*.h5
