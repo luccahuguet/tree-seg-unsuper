@@ -56,8 +56,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         h, w = image_np.shape[:2]
         print(f"Original image size: {w}x{h}")
 
-        tp0 = time.perf_counter()
+        t_pre_start = time.perf_counter()
         image_tensor = preprocess(image).to(device)
+        t_pre_end = time.perf_counter()
         print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
         with torch.no_grad():
@@ -222,8 +223,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                     peak_vram_mb = None
             metrics = {
                 'time_total_s': round(t_end - t0, 3),
-                'time_preprocess_s': round(tp0 - t0, 3),
-                'time_features_s': round(t_features - tp0, 3),
+                'time_preprocess_s': round(t_pre_end - t_pre_start, 3),
+                'time_features_s': round(t_features - t_pre_end, 3),
                 'time_kselect_s': round(t_kselect - t_features, 3) if auto_k else 0.0,
                 'time_kmeans_s': round((t_refine_start if refine == 'slic' and slic is not None else t_end) - t_kselect, 3),
                 'time_refine_s': round((t_refine_end - t_refine_start), 3) if refine == 'slic' and slic is not None else 0.0,

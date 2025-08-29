@@ -62,7 +62,9 @@ class OutputManager:
         
         # Add clustering method info
         if self.config.auto_k:
-            et_str = f"et{str(self.config.elbow_threshold).replace('.', '-')}"
+            # Format elbow threshold without float artifacts (e.g., 3.5)
+            et_clean = (f"{self.config.elbow_threshold:.2f}".rstrip('0').rstrip('.')).replace('.', '-')
+            et_str = f"et{et_clean}"
             components.append(et_str)
         
         # Always add the actual K value used
