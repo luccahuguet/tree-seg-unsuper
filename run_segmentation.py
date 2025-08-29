@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--image-size", type=int, default=1024, dest="image_size", help="Preprocess resize (square)")
     parser.add_argument("--feature-upsample", type=int, default=2, dest="feature_upsample_factor", help="Upsample feature grid before K-Means")
     parser.add_argument("--pca-dim", type=int, default=None, dest="pca_dim", help="Optional PCA target dimension (e.g., 128)")
+    parser.add_argument("--refine", choices=["none", "slic"], default="none", help="Optional edge-aware refinement")
 
     args = parser.parse_args()
     image_path = args.image_path
@@ -79,6 +80,7 @@ def main():
                     image_size=args.image_size,
                     feature_upsample_factor=args.feature_upsample_factor,
                     pca_dim=args.pca_dim,
+                    refine=(None if args.refine == "none" else args.refine),
                 )
                 print(f"✅ Completed: {os.path.basename(img_path)}")
             except Exception as e:
@@ -99,6 +101,7 @@ def main():
                 image_size=args.image_size,
                 feature_upsample_factor=args.feature_upsample_factor,
                 pca_dim=args.pca_dim,
+                refine=(None if args.refine == "none" else args.refine),
             )
             print(f"✅ Tree segmentation completed!")
         except Exception as e:

@@ -80,6 +80,9 @@ class TreeSegmentation:
             use_pca=self.config.use_pca,
             pca_dim=self.config.pca_dim,
             feature_upsample_factor=self.config.feature_upsample_factor,
+            refine=self.config.refine,
+            refine_slic_compactness=self.config.refine_slic_compactness,
+            refine_slic_sigma=self.config.refine_slic_sigma,
             model_name=self.config.model_display_name,
             output_dir=self.config.output_dir
         )

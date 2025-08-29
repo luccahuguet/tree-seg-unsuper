@@ -13,10 +13,17 @@ from sklearn.cluster import KMeans
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
+try:
+    from skimage.segmentation import slic
+except Exception:
+    slic = None
+
 
 def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
                  auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, pca_dim=None,
-                 feature_upsample_factor: int = 1, model_name=None, output_dir="/kaggle/working/output"):
+                 feature_upsample_factor: int = 1, refine: str | None = None,
+                 refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
+                 model_name=None, output_dir="/kaggle/working/output"):
     """
     Process a single image for tree segmentation.
     
@@ -171,12 +178,77 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         )
         print(f"labels_resized shape: {labels_resized.shape}")
 
+        # Optional edge-aware refinement
+        if refine == "slic":
+            if slic is None:
+                print("⚠️  skimage not available; skipping SLIC refinement.")
+            else:
+                print("🔧 Refining segmentation with SLIC superpixels...")
+                labels_resized = _refine_with_slic(
+                    image_np,
+                    labels_resized,
+                    compactness=refine_slic_compactness,
+                    sigma=refine_slic_sigma,
+                )
+
         return image_np, labels_resized
 
     except Exception as e:
         print(f"Error processing {image_path}: {e}")
         traceback.print_exc()
         return None, None
+
+
+def _refine_with_slic(image_np: np.ndarray, labels_resized: np.ndarray,
+                       compactness: float = 10.0, sigma: float = 1.0) -> np.ndarray:
+    """Refine cluster labels using SLIC superpixels with majority voting.
+
+    Args:
+        image_np: Original RGB image as numpy array (H, W, 3)
+        labels_resized: Initial labels (H, W)
+        compactness: SLIC compactness parameter
+        sigma: SLIC Gaussian smoothing parameter
+
+    Returns:
+        Refined labels (H, W)
+    """
+    h, w = labels_resized.shape[:2]
+    # Target ~ one superpixel per ~48x48 area (tunable)
+    target_area = 48 * 48
+    n_segments = max(100, int((h * w) / target_area))
+
+    # Ensure float image in [0,1]
+    img_float = image_np.astype(np.float32)
+    if img_float.max() > 1.5:
+        img_float = img_float / 255.0
+
+    segments = slic(
+        img_float,
+        n_segments=n_segments,
+        compactness=compactness,
+        sigma=sigma,
+        start_label=0,
+        channel_axis=-1,
+    )
+
+    refined = labels_resized.copy()
+    # Majority vote within each superpixel
+    # Vectorized approach via flattening
+    seg_flat = segments.reshape(-1)
+    lab_flat = labels_resized.reshape(-1)
+
+    # For each segment id, compute the mode of labels
+    seg_ids = np.unique(seg_flat)
+    for sid in seg_ids:
+        mask = (seg_flat == sid)
+        if not np.any(mask):
+            continue
+        # bincount of labels in this segment
+        vals = lab_flat[mask]
+        max_label = np.bincount(vals).argmax()
+        refined.reshape(-1)[mask] = max_label
+
+    return refined.astype(np.uint8)
 
 
 def run_processing(

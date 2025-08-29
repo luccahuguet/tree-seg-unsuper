@@ -33,6 +33,11 @@ class Config:
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
     feature_upsample_factor: int = 2  # Upsample HxW feature grid before K-Means
     
+    # Refinement settings
+    refine: Optional[str] = None  # None or "slic"
+    refine_slic_compactness: float = 10.0
+    refine_slic_sigma: float = 1.0
+    
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent
     edge_width: int = 2
@@ -76,6 +81,8 @@ class Config:
             raise ValueError("feature_upsample_factor must be between 1 and 8")
         if self.pca_dim is not None and (self.pca_dim <= 0 or self.pca_dim > 1024):
             raise ValueError("pca_dim must be between 1 and 1024 when set")
+        if self.refine not in (None, "slic"):
+            raise ValueError("refine must be None or 'slic'")
 
 
 @dataclass

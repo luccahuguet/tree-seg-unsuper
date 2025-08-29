@@ -84,12 +84,17 @@ uv run python run_segmentation.py input base output \
 
 # Process a single image:
 uv run python run_segmentation.py input/forest.jpg base output
+
+# Edge-aware refinement (SLIC superpixels):
+uv run python run_segmentation.py input base output \
+  --refine slic
 ```
 
 Flags:
 - `--image-size INT`: square resize used before feature extraction (default 1024)
 - `--feature-upsample INT`: bilinear upsample of H×W feature grid before K-Means (default 2)
 - `--pca-dim INT`: optional PCA target dimension (e.g., 128) for faster clustering
+- `--refine {none,slic}`: optional edge-aware smoothing using SLIC superpixels
 
 ### API Usage
 
