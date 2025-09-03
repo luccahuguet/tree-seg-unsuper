@@ -12,8 +12,12 @@ nav_order: 1
 ## Quick Start
 
 ```bash
-# Install and run
+# Clone and install
+git clone https://github.com/luccahuguet/tree-seg-unsuper.git
+cd tree-seg-unsuper
 uv sync
+
+# Run segmentation
 uv run python run_segmentation.py input/forest2.jpeg base output --verbose
 
 # Test installation
@@ -26,10 +30,13 @@ This research presents a systematic study of unsupervised tree segmentation usin
 
 ## Research Objectives
 
-1. **Evaluate DINOv3 effectiveness** for forestry applications across multiple model sizes
-2. **Develop automatic K-selection** using elbow method for optimal cluster determination  
-3. **Establish performance benchmarks** across computational vs. quality trade-offs
-4. **Create reproducible pipeline** for systematic tree segmentation analysis
+1. **Evaluate DINOv3 effectiveness** for forestry applications across multiple model sizes (V1.5)
+2. **Develop automatic K-selection** using elbow method for optimal cluster determination (V1.5)
+3. **Advance beyond K-means** with unified unsupervised segmentation methods (V2)
+4. **Implement dynamic fusion** techniques for adaptive segmentation (V3)
+5. **Enable multispectral analysis** for enhanced forest monitoring (V4)
+6. **Establish performance benchmarks** across architectural versions and methods
+7. **Create extensible pipeline** supporting modular segmentation approaches
 
 ## Key Contributions
 
