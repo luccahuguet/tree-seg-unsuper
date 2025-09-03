@@ -55,6 +55,24 @@ This work demonstrates how modern self-supervised learning can advance forestry 
 
 The systematic model comparison reveals optimal configurations for different use cases, with automatic K-selection ensuring consistent results across varying forest imagery.
 
+## Development Roadmap
+
+### **Current: V1.5 (DINOv3 + K-means)**
+- **Baseline**: Solid foundation with state-of-the-art features
+- **Architecture**: Clean, extensible design ready for advanced methods
+
+### **Next: V2 (U2Seg)**
+**Target**: `tree_seg/clustering/u2seg.py`
+- Advanced unsupervised segmentation beyond K-means
+- Integration point: `core/segmentation.py` routing logic
+- **Paper**: [U2Seg: Unsupervised Universal Image Segmentation](https://arxiv.org/abs/2312.17243)
+
+### **Future: V3 (DynaSeg) + V4 (Multispectral)**
+**Target**: `tree_seg/clustering/dynaseg.py` + `tree_seg/models/multispectral_adapter.py`
+- Dynamic fusion methods + multi-band imagery support
+- Architecture supports both through modular design
+- **Paper**: [DynaSeg: A Deep Dynamic Fusion Method for Unsupervised Image Segmentation](https://arxiv.org/abs/2405.05477)
+
 ---
 
 ## Documentation Structure

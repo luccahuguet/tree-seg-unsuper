@@ -62,6 +62,11 @@ Tree segmentation using DINOv3 for aerial drone imagery. Modern v3.0 architectur
 - Modern visualization with config-based overlays
 - Automatic file discovery for notebook display
 
+## Documentation Guidelines
+- **Always verify paper links**: Use WebFetch to validate arXiv URLs before adding to docs
+- **Search for correct papers**: Use WebSearch with proper keywords to find actual paper references
+- **Never assume arXiv IDs**: Paper IDs change and papers may not exist at guessed URLs
+
 ## Usage Patterns
 ```python
 # Quick usage
