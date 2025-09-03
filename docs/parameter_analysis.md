@@ -9,16 +9,21 @@ nav_order: 4
 
 # Parameter Analysis: Complete Model and Configuration Study
 
-This section provides comprehensive analysis of all parameters affecting tree segmentation quality, including model sizes, stride values, elbow thresholds, and refinement options.
+## V1.5 Foundation: Parameter Analysis for Future Architecture
 
-## Overview: 13-Configuration Sweep
+This comprehensive analysis establishes the baseline performance characteristics for our current DINOv3 + K-means architecture (V1.5), providing the foundation for evaluating future advances in V2 (U2Seg) and beyond. These findings directly inform the design decisions for upcoming architectural versions.
 
-Our systematic analysis covers:
-- **1 Basic Example**: Core pipeline demonstration
-- **2 Stride Comparisons**: Quality vs speed trade-offs
-- **4 Model Size Comparisons**: Feature dimensionality impact
-- **4 Elbow Threshold Comparisons**: Clustering sensitivity (2x2 grid)
-- **2 Refinement Comparisons**: Post-processing effects
+## Overview: 13-Configuration Systematic Study
+
+Our comprehensive analysis covers all critical parameters through systematic comparison:
+- **[Basic Example](#basic-example-pipeline-demonstration)**: Core pipeline demonstration
+- **[Model Comparison](#model-size-comparison)** (4 configs): Small, Base, Large, Giant feature impact
+- **[Stride Analysis](#stride-parameter-analysis)** (2 configs): Quality vs speed trade-offs  
+- **[Threshold Sensitivity](#elbow-threshold-sensitivity)** (4 configs): Clustering granularity (2x2 grid)
+- **[Refinement Impact](#refinement-impact-analysis)** (2 configs): Post-processing effects
+- **[Performance Matrix](#performance-comparison-matrix)**: Speed/quality trade-off guidance
+- **[Research Findings](#key-research-findings)**: V1.5 insights and V2+ implications
+- **[Recommended Profiles](#recommended-profiles)**: Development, Production, Research configs
 
 ---
 
@@ -120,20 +125,29 @@ This baseline configuration demonstrates the complete pipeline using balanced se
 
 ## Key Research Findings
 
-### 1. Model Size Impact
-- **Linear Progression**: Small (K=3-4) → Giant (K=5-7)
+### 1. Model Size Impact (V1.5 → V2+ Evolution)
+- **Linear Progression**: Small (K=3-4) → Giant (K=5-7) establishes baseline expectations
 - **Diminishing Returns**: Base→Large shows significant improvement, Large→Giant marginal
-- **Optimal Choice**: Base model provides best quality/speed balance
+- **Optimal Choice**: Base model provides best quality/speed balance for V1.5
+- **V2+ Implications**: U2Seg's unified approach should maintain this linear progression while improving absolute performance
 
-### 2. Elbow Method Validation
+### 2. Elbow Method Validation (Foundation for Advanced Methods)
 - **Consistent Behavior**: Eliminates stride-dependent paradoxes seen in curvature methods
 - **Predictable Thresholds**: 1.5%-7.0% range covers full segmentation spectrum
 - **Intuitive Configuration**: Percentage-based thresholds (3.5% direct percentage)
+- **V2+ Integration**: This robust K-selection framework will serve as fallback for U2Seg's adaptive clustering
 
-### 3. Configuration Interactions
-- **Compound Effects**: Giant + stride 2 + SLIC = maximum quality
-- **Efficiency**: Small + stride 4 + no refinement = maximum speed
+### 3. Configuration Interactions (Architectural Design Lessons)
+- **Compound Effects**: Giant + stride 2 + SLIC = maximum quality baseline
+- **Efficiency**: Small + stride 4 + no refinement = maximum speed baseline
 - **Balance**: Base + stride 4 + default settings = optimal general use
+- **V3+ Planning**: DynaSeg's dynamic fusion should eliminate need for manual configuration trade-offs
+
+### 4. Future Architecture Targets
+Based on these V1.5 findings, upcoming versions target:
+- **V2 (U2Seg)**: Improve segmentation quality without increasing computational cost
+- **V3 (DynaSeg)**: Eliminate manual threshold tuning through dynamic parameter adaptation  
+- **V4 (Multispectral)**: Maintain current processing speeds while adding multi-band capability
 
 ---
 
