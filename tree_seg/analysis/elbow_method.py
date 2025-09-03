@@ -64,21 +64,20 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.5):
             threshold_idx = i
             break
 
-    elbow_idx = threshold_idx
+    # Fix index mapping: pct_decrease[i] represents transition from k_values[i] to k_values[i+1]
+    # So we want k_values[threshold_idx + 1] as the optimal K
+    elbow_idx = threshold_idx + 1
 
     # Safety bounds
     elbow_idx = max(0, min(int(elbow_idx), len(k_values) - 1))
     optimal_k = k_values[elbow_idx]
 
-    # Validate result
+    # Validate result (safety override removed for investigation)
     if optimal_k < 3:
         print(f"⚠️  Optimal K={optimal_k} seems too low for tree species, using K=3")
         optimal_k = 3
         elbow_idx = k_values.index(3) if 3 in k_values else 0
-    elif optimal_k > 8:
-        print(f"⚠️  Optimal K={optimal_k} seems high for typical tree species, using K=8")
-        optimal_k = min(8, max(k_values))
-        elbow_idx = k_values.index(optimal_k)
+    # Note: Upper bound safety override removed to investigate threshold sensitivity
 
     print(f"📊 Elbow method suggests optimal K = {optimal_k}")
 

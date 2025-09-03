@@ -86,6 +86,7 @@ The systematic model comparison reveals optimal configurations for different use
 
 - **[Methodology]({{ '/methodology' | relative_url }})**: Technical pipeline and algorithm details
 - **[Complete Example]({{ '/complete_example' | relative_url }})**: Full workflow demonstration with all outputs  
-- **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})**: Comprehensive study of all 12 configurations, model comparisons, and performance benchmarks
+- **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})**: Comprehensive study of all 13 configurations, model comparisons, and performance benchmarks
+- **[Technical Implementation]({{ '/technical_implementation' | relative_url }})**: Configuration profiles, code implementation details, and reproduction instructions
 
 
