@@ -31,7 +31,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-exclude = [".venv", ".git"]
+exclude = [".venv", ".git", "dinov3"]
 
 [tool.uv.sources]
 ty = { git = "https://github.com/astral-sh/ty" }
