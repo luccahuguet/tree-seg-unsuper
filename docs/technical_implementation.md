@@ -165,13 +165,7 @@ def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=5.0):
     return optimal_k, wcss_values
 ```
 
-### Bug Fixes Applied
-
-1. **Safety Override**: Removed K≤8 limit that masked threshold sensitivity
-2. **Index Mapping**: Fixed incorrect K selection (pct_decrease[i] → k_values[i+1]) 
-3. **Unit Mismatch**: Resolved config decimal vs. function percentage parameters
-
----
+ 
 
 ## Model Loading Strategy
 
