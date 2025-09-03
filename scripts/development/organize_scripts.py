@@ -74,10 +74,10 @@ def organize_scripts():
     # Create README files
     create_readme_files(scripts_dir, dev_dir, utils_dir)
     
-    print(f"\n🎉 Organization complete!")
-    print(f"📁 Development scripts: scripts/development/")
-    print(f"🛠️ Utility scripts: scripts/utils/")
-    print(f"📌 Core scripts remain in root")
+    print("\n🎉 Organization complete!")
+    print("📁 Development scripts: scripts/development/")
+    print("🛠️ Utility scripts: scripts/utils/")
+    print("📌 Core scripts remain in root")
 
 def create_readme_files(scripts_dir, dev_dir, utils_dir):
     """Create README files for the script directories."""
@@ -157,7 +157,7 @@ Ongoing utility scripts for data management and analysis.
 These utilities provide ongoing value for data analysis and format conversion.
 """)
     
-    print(f"📝 Created README files for script directories")
+    print("📝 Created README files for script directories")
 
 if __name__ == "__main__":
     organize_scripts()

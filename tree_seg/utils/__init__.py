@@ -6,9 +6,11 @@ from .config import get_config_text
 try:
     from .notebook_helpers import display_segmentation_results, print_config_summary
     NOTEBOOK_HELPERS_AVAILABLE = True
+    _notebook_helpers = [display_segmentation_results, print_config_summary]
 except ImportError:
     # IPython not available - running outside Jupyter environment
     NOTEBOOK_HELPERS_AVAILABLE = False
+    _notebook_helpers = []
 
 __all__ = [
     'get_config_text',

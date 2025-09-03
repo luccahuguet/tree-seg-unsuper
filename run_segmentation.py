@@ -14,7 +14,6 @@ Options:
 import sys
 import os
 import argparse
-from pathlib import Path
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -186,7 +185,7 @@ def main():
                         f"kselect={stats.get('time_kselect_s')}s, kmeans={stats.get('time_kmeans_s')}s, refine={stats.get('time_refine_s')}s, "
                         f"peak_vram={stats.get('peak_vram_mb')}MB, device={stats.get('device_actual') or stats.get('device_requested')}"
                     )
-                print(f"✅ Tree segmentation completed!")
+                print("✅ Tree segmentation completed!")
             except Exception as e:
                 print(f"❌ Error: {e}")
 
@@ -337,7 +336,7 @@ def main():
                 print(f"⏱️  total={stats.get('time_total_s')}s, features={stats.get('time_features_s')}s, "
                       f"kselect={stats.get('time_kselect_s')}s, kmeans={stats.get('time_kmeans_s')}s, refine={stats.get('time_refine_s')}s, "
                       f"peak_vram={stats.get('peak_vram_mb')}MB")
-            print(f"✅ Tree segmentation completed!")
+            print("✅ Tree segmentation completed!")
         except Exception as e:
             print(f"❌ Error: {e}")
 

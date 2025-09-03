@@ -15,7 +15,6 @@ from enum import Enum
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -135,7 +134,7 @@ class HuggingFaceWeightLoader:
                     local_files_only=True  # Try local cache first
                 )
                 logger.info(f"✅ Using cached weights: {self.hf_model_id}")
-            except:
+            except Exception:
                 # Download if not in cache
                 logger.info(f"⬇️ Downloading model weights: {self.hf_model_id}")
                 weights_path = hf_hub_download(
@@ -494,7 +493,7 @@ class DINOv3Adapter(nn.Module):
             LoadingStrategy.RANDOM_WEIGHTS: "Random weights"
         }
         
-        logger.info(f"🎉 DINOv3Adapter initialized successfully!")
+        logger.info("🎉 DINOv3Adapter initialized successfully!")
         logger.info(f"   Model: {self.model_name} ({self.model_config.params_count})")
         logger.info(f"   Strategy: {strategy_msg[self.loading_strategy]}")
         logger.info(f"   Features: {self.feat_dim}D, Patch size: {self.patch_size}")

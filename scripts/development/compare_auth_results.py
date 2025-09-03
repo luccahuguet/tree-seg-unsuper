@@ -41,7 +41,7 @@ def compare_results():
         print("❌ Missing benchmark data files")
         return
     
-    print(f"\n📊 Comparison: Random Weights vs Authenticated Pretrained Weights")
+    print("\n📊 Comparison: Random Weights vs Authenticated Pretrained Weights")
     print("-"*80)
     print(f"{'Model':<12} {'Pre-Auth (s)':<12} {'With-Auth (s)':<14} {'Difference':<12} {'WCSS Diff':<12}")
     print("-"*80)
@@ -112,7 +112,7 @@ def compare_results():
     print("• Initial model download time (cached after first run)")
     print("• Requires HuggingFace token for gated models")
     
-    print(f"\n📊 Overall: Authentication enables proper DINOv3 performance")
+    print("\n📊 Overall: Authentication enables proper DINOv3 performance")
     print("   All models now use real pretrained weights for feature extraction")
 
 if __name__ == "__main__":

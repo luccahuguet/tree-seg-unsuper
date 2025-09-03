@@ -86,7 +86,7 @@ def view_analysis(df):
     if df is None or df.empty:
         return
     
-    print(f"\n📈 Performance Analysis")
+    print("\n📈 Performance Analysis")
     print("-"*50)
     
     # Convert parameters to numeric for analysis
@@ -109,7 +109,7 @@ def view_analysis(df):
         model = format_model_name(row['model_name'])
         print(f"{model:<12} {row['time_ratio']:.1f}x time  {row['param_ratio']:.1f}x params  Efficiency: {row['efficiency']:.1f}")
     
-    print(f"\n🎯 Key Insights")
+    print("\n🎯 Key Insights")
     print("-"*30)
     
     # K-selection percentage
@@ -125,7 +125,7 @@ def view_raw(df):
     if df is None or df.empty:
         return
     
-    print(f"\n📋 Raw Benchmark Data")
+    print("\n📋 Raw Benchmark Data")
     print("-"*50)
     
     for i, row in df.iterrows():
@@ -134,7 +134,7 @@ def view_raw(df):
         print(f"    Timestamp: {timestamp}")
         print(f"    Image: {Path(row['image_path']).name} ({row['image_size'][0]}x{row['image_size'][1]})")
         print(f"    Total Time: {row['total_time_s']:.3f}s")
-        print(f"    Breakdown:")
+        print("    Breakdown:")
         print(f"      - K-Selection: {row['k_selection_s']:.3f}s ({row['k_selection_s']/row['total_time_s']*100:.1f}%)")
         print(f"      - Clustering: {row['clustering_s']:.3f}s ({row['clustering_s']/row['total_time_s']*100:.1f}%)")
         print(f"    Results: K={row['optimal_k']}, Features={row['feature_dims']}D, WCSS={row['final_wcss']:.0f}")
@@ -160,7 +160,7 @@ def main():
     
     # Display based on mode
     if args.mode in ['summary', 'all']:
-        display_df = view_summary(df)
+        view_summary(df)
     
     if args.mode in ['analysis', 'all']:
         view_analysis(df)

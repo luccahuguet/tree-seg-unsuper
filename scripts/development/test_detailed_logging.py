@@ -32,7 +32,7 @@ def test_model_loading():
     print("-"*50)
     
     try:
-        results = segment_trees(
+        segment_trees(
             input_path="input/forest.jpg",
             output_dir="output",
             model="dinov3_vits16",
@@ -50,7 +50,7 @@ def test_model_loading():
     print("-"*50)
     
     try:
-        results = segment_trees(
+        segment_trees(
             input_path="input/forest.jpg",
             output_dir="output", 
             model="dinov3_vitb16",

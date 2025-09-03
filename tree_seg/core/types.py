@@ -5,7 +5,6 @@ Core types and data structures for tree segmentation.
 from dataclasses import dataclass
 from typing import Optional, Tuple, Dict, Any
 import numpy as np
-from pathlib import Path
 
 
 @dataclass

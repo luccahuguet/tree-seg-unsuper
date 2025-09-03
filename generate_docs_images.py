@@ -174,7 +174,7 @@ def run_sweep(input_image):
         ]
         
         # Run the sweep
-        result = subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True)
         
         print("\n✅ Sweep generation completed!")
         
@@ -360,7 +360,7 @@ def organize_images():
                 except Exception as e:
                     print(f"   ❌ Failed to copy {source_file.name}: {e}")
     
-    print(f"\n🎯 Image organization complete!")
+    print("\n🎯 Image organization complete!")
     print(f"📊 Total images copied: {total_copied}")
     print(f"📍 Images organized in: {docs_results}")
     

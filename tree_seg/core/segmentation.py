@@ -100,7 +100,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 patch_features = features
                 attn_features = None
 
-        t_feat_start = time.perf_counter()
+        time.perf_counter()
         if patch_features.dim() == 2:
             n_patches = patch_features.shape[0]
             H = W = int(np.sqrt(n_patches))

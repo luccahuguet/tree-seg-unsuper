@@ -3,7 +3,6 @@
 Analyze performance benchmarks across all DINOv3 model variants.
 """
 
-import json
 import polars as pl
 from pathlib import Path
 
@@ -35,7 +34,7 @@ def analyze_performance():
         ).alias("sort_order")
     ]).sort("sort_order")
     
-    print(f"\n📊 PERFORMANCE COMPARISON")
+    print("\n📊 PERFORMANCE COMPARISON")
     print("-" * 80)
     print(f"{'Model':<18} {'Params':<8} {'Dims':<6} {'Total':<8} {'K-Sel':<8} {'Cluster':<8} {'K':<3}")
     print("-" * 80)
@@ -85,7 +84,7 @@ def analyze_performance():
     feature_dims_range = df.select([pl.col("feature_dims").min(), pl.col("feature_dims").max()])
     
     print(f"• K-selection dominates: {k_selection_pct:.1f}% of total time")
-    print(f"• All models converged to K=8 for this forest image")
+    print("• All models converged to K=8 for this forest image")
     print(f"• Feature dimensions scale: {feature_dims_range.item(0, 0)}D → {feature_dims_range.item(0, 1)}D")
     
     # Performance scaling
@@ -93,8 +92,8 @@ def analyze_performance():
     param_scaling = df.select(pl.col("param_ratio").max()).item()
     
     print(f"• Performance scaling: {param_scaling:.0f}x params → {time_scaling:.1f}x time")
-    print(f"• GPU memory limit reached at 7B parameters")
-    print(f"• Cache hits enabled for all successful runs")
+    print("• GPU memory limit reached at 7B parameters")
+    print("• Cache hits enabled for all successful runs")
     
     print("\n💡 RECOMMENDATIONS")
     print("-" * 50)

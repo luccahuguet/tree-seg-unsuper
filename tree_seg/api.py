@@ -4,12 +4,12 @@ Modern, clean API for tree segmentation.
 
 import os
 import torch
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from pathlib import Path
 
 from .core.types import Config, SegmentationResults, OutputPaths
 from .core.output_manager import OutputManager
-from .models import initialize_model, get_preprocess, print_gpu_info
+from .models import initialize_model, get_preprocess
 from .core.segmentation import process_image
 from .visualization.plotting import generate_visualizations
 
@@ -40,7 +40,7 @@ class TreeSegmentation:
         self.model = None
         self.preprocess = None
         
-        print(f"🌳 TreeSegmentation initialized")
+        print("🌳 TreeSegmentation initialized")
         print(f"📱 Selected device: {self.device}")
         print(f"🔧 Model: {self.config.model_display_name}")
         print(f"📁 Output: {self.config.output_dir}")

@@ -3,14 +3,10 @@ Modern visualization module using the new architecture.
 """
 
 import os
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import colors
-from matplotlib.patches import Polygon
-from scipy import ndimage
 
 from ..core.types import Config, SegmentationResults, OutputPaths
-from ..utils.config import get_config_text, parse_model_info
+from ..utils.config import get_config_text
 # Removed circular import - we'll reimplement detect_segmentation_edges if needed
 
 
@@ -26,7 +22,7 @@ def generate_visualizations(results: SegmentationResults, config: Config, output
     verbose = getattr(config, 'verbose', True)
     if not results.success:
         if verbose:
-            print(f"⚠️ Skipping visualization - segmentation failed")
+            print("⚠️ Skipping visualization - segmentation failed")
         return
     
     # Get config text for overlays
@@ -230,5 +226,5 @@ def _generate_side_by_side(results: SegmentationResults, config: Config,
             print(f"⚠️ Could not generate side-by-side image: {e}")
         try:
             plt.close('all')
-        except:
+        except Exception:
             pass

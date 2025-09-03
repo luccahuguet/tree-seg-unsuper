@@ -4,6 +4,7 @@
 
 import sys
 import os
+from collections import defaultdict
 sys.path.append("/kaggle/working/project")
 
 from tree_seg import TreeSegmentation, Config
@@ -38,7 +39,6 @@ all_outputs = segmenter.output_manager.list_all_outputs()
 print(f"\n📊 Total output files generated: {len(all_outputs)}")
 
 # Group by image hash for summary
-from collections import defaultdict
 by_image = defaultdict(list)
 
 for file_path in all_outputs:

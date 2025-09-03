@@ -4,7 +4,6 @@ Benchmark all available DINOv3 models for performance comparison.
 """
 
 from tree_seg.api import segment_trees
-from tree_seg.core.types import Config
 
 # All available model variants
 MODEL_VARIANTS = [
@@ -23,7 +22,7 @@ def run_model_benchmark(model_name: str, image_path: str = "input/forest.jpg"):
     
     try:
         # Run segmentation with benchmarking enabled
-        results = segment_trees(
+        segment_trees(
             input_path=image_path,
             output_dir="output",
             model=model_name,
@@ -57,7 +56,7 @@ def main():
         status = "✅ SUCCESS" if success else "❌ FAILED"
         print(f"{model_name:<20} {status}")
     
-    print(f"\n📁 Results saved to: output/performance_log.jsonl")
+    print("\n📁 Results saved to: output/performance_log.jsonl")
     print("🔍 Use 'cat output/performance_log.jsonl' to view detailed timings")
 
 if __name__ == "__main__":

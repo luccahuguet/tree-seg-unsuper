@@ -4,13 +4,10 @@ DINOv3 Adapter for tree segmentation - replaces HighResDV2.
 Provides a clean interface to DINOv3 models that matches the existing API.
 """
 
-import os
 import sys
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
-from typing import Dict, Any, Literal
+from typing import Dict, Literal
 from pathlib import Path
 
 # Add DINOv3 to Python path
@@ -21,7 +18,6 @@ if str(DINOV3_PATH) not in sys.path:
 # Import DINOv3 components
 try:
     import dinov3.hub.backbones as dinov3_backbones
-    from dinov3.hub.utils import DINOV3_BASE_URL
 except ImportError as e:
     raise ImportError(f"Failed to import DINOv3. Ensure submodule is initialized: {e}")
 
@@ -111,7 +107,7 @@ class DINOv3Adapter(nn.Module):
         # Try 2: Load using direct safetensors download (if available)
         if model_name in hf_model_map:
             try:
-                print(f"🔄 Trying direct safetensors download...")
+                print("🔄 Trying direct safetensors download...")
                 success = self._load_hf_safetensors_weights(model_fn, hf_model_map[model_name])
                 if success:
                     backbone = model_fn(pretrained=False)  # Load architecture
@@ -139,23 +135,23 @@ class DINOv3Adapter(nn.Module):
         if model_name in hf_model_map:
             try:
                 from transformers import AutoModel
-                print(f"🔄 Trying transformers fallback...")
+                print("🔄 Trying transformers fallback...")
                 hf_model_id = hf_model_map[model_name]
                 backbone = AutoModel.from_pretrained(hf_model_id)
                 print(f"📥 Loaded DINOv3 model: {model_name} (transformers, pretrained)")
                 print(f"   Hugging Face model: {hf_model_id}")
                 return backbone
             except ImportError:
-                print(f"⚠️  transformers library not available")
+                print("⚠️  transformers library not available")
             except Exception as e:
                 print(f"⚠️  Transformers loading failed: {e}")
         
         # Try 4: Load architecture only (random weights)
         try:
-            print(f"🔄 Loading model architecture only (random weights)...")
+            print("🔄 Loading model architecture only (random weights)...")
             backbone = model_fn(pretrained=False)
             print(f"📥 Loaded DINOv3 model: {model_name} (random initialization)")
-            print(f"⚠️  Note: Using random weights - performance will be limited")
+            print("⚠️  Note: Using random weights - performance will be limited")
             return backbone
         except Exception as e2:
             print(f"❌ Failed to load DINOv3 model architecture: {e2}")
@@ -200,7 +196,6 @@ class DINOv3Adapter(nn.Module):
             )
             
             # Load and convert weights
-            converted_weights = {}
             with safe_open(model_path, framework='pt', device='cpu') as f:
                 # This is a simplified conversion - we'd need proper mapping
                 # For now, let's see what keys we have
@@ -221,7 +216,6 @@ class DINOv3Adapter(nn.Module):
         try:
             from safetensors import safe_open
             import torch
-            import torch.nn as nn
             
             # Load HF weights
             hf_weights = {}
@@ -469,7 +463,7 @@ class DINOv3Adapter(nn.Module):
             
             def forward_features(self, x):
                 """Custom forward pass using HF weights."""
-                batch_size = x.shape[0]
+                x.shape[0]
                 device = x.device
                 
                 # Move weights to same device as input
