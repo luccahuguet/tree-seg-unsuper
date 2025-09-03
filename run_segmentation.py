@@ -14,6 +14,7 @@ Options:
 import sys
 import os
 import argparse
+from tree_seg.constants import SUPPORTED_IMAGE_EXTS
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -142,9 +143,10 @@ def main():
         if os.path.isdir(img_path):
             import glob
             image_files = []
-            for ext in ['*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff']:
-                image_files.extend(glob.glob(os.path.join(img_path, ext)))
-                image_files.extend(glob.glob(os.path.join(img_path, ext.upper())))
+            for ext in SUPPORTED_IMAGE_EXTS:
+                pat = f"*{ext}"
+                image_files.extend(glob.glob(os.path.join(img_path, pat)))
+                image_files.extend(glob.glob(os.path.join(img_path, pat.upper())))
             if not image_files:
                 print(f"❌ No image files found in {img_path}")
                 return
@@ -279,9 +281,10 @@ def main():
         # Process all images in directory
         import glob
         image_files = []
-        for ext in ['*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff']:
-            image_files.extend(glob.glob(os.path.join(image_path, ext)))
-            image_files.extend(glob.glob(os.path.join(image_path, ext.upper())))
+        for ext in SUPPORTED_IMAGE_EXTS:
+            pat = f"*{ext}"
+            image_files.extend(glob.glob(os.path.join(image_path, pat)))
+            image_files.extend(glob.glob(os.path.join(image_path, pat.upper())))
         
         if not image_files:
             print(f"❌ No image files found in {image_path}")

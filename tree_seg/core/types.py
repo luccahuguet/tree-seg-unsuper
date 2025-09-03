@@ -5,6 +5,7 @@ Core types and data structures for tree segmentation.
 from dataclasses import dataclass
 from typing import Optional, Tuple, Dict, Any
 import numpy as np
+from ..constants import DEFAULT_K_RANGE
 
 
 @dataclass
@@ -26,7 +27,7 @@ class Config:
     # Clustering settings
     auto_k: bool = True
     n_clusters: int = 6  # Used when auto_k=False
-    k_range: Tuple[int, int] = (3, 10)
+    k_range: Tuple[int, int] = DEFAULT_K_RANGE
     elbow_threshold: float = 5.0  # Percentage (will be converted to decimal)
     use_pca: bool = False
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension

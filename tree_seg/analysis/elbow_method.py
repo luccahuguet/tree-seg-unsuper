@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import os
 import hashlib
 from sklearn.cluster import KMeans
+from ..constants import DPI_ELBOW
 
 
 def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.5):
@@ -167,7 +168,7 @@ def plot_elbow_analysis(scores, output_dir, output_prefix, elbow_threshold=3.0,
     else:
         # Fallback to old naming
         plot_path = os.path.join(output_dir, f"{output_prefix}_elbow_analysis.png")
-    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    plt.savefig(plot_path, dpi=DPI_ELBOW, bbox_inches='tight')
     plt.close()
 
     print(f"📈 Saved elbow analysis: {plot_path}")

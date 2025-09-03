@@ -11,6 +11,7 @@ from PIL import Image
 
 from .types import Config, OutputPaths
 from ..utils.config import parse_model_info
+from ..constants import PNG_SUBDIR, WEB_SUBDIR, ELBOW_PREFIX
 
 
 class OutputManager:
@@ -21,8 +22,8 @@ class OutputManager:
     def __init__(self, config: Config):
         self.config = config
         self.output_dir = Path(config.output_dir)
-        self.png_dir = self.output_dir / "png"
-        self.web_dir = self.output_dir / "web"
+        self.png_dir = self.output_dir / PNG_SUBDIR
+        self.web_dir = self.output_dir / WEB_SUBDIR
         
         # Create output directories
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -65,7 +66,7 @@ class OutputManager:
         if self.config.auto_k:
             # Format elbow threshold without float artifacts (e.g., 3.5)
             et_clean = (f"{self.config.elbow_threshold:.2f}".rstrip('0').rstrip('.')).replace('.', '-')
-            et_str = f"et{et_clean}"
+            et_str = f"{ELBOW_PREFIX}{et_clean}"
             components.append(et_str)
         
         # Always add the actual K value used; append requested if different

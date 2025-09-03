@@ -7,6 +7,8 @@ import torch
 from typing import Optional, List
 from pathlib import Path
 
+from .constants import SUPPORTED_IMAGE_EXTS
+
 from .core.types import Config, SegmentationResults, OutputPaths
 from .core.output_manager import OutputManager
 from .models import initialize_model, get_preprocess
@@ -196,7 +198,7 @@ class TreeSegmentation:
         input_dir = directory_path or self.config.input_dir
         
         # Supported image extensions
-        extensions = {'.jpg', '.jpeg', '.png', '.tif', '.tiff'}
+        extensions = set(SUPPORTED_IMAGE_EXTS)
         
         image_files = []
         for ext in extensions:

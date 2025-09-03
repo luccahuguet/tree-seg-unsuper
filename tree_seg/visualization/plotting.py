@@ -7,6 +7,12 @@ import matplotlib.pyplot as plt
 
 from ..core.types import Config, SegmentationResults, OutputPaths
 from ..utils.config import get_config_text
+from ..constants import (
+    HATCH_PATTERNS,
+    DPI_SEGMENTATION,
+    DPI_EDGE_OVERLAY,
+    DPI_SIDE_BY_SIDE,
+)
 # Removed circular import - we'll reimplement detect_segmentation_edges if needed
 
 
@@ -76,7 +82,7 @@ def _generate_segmentation_legend(results: SegmentationResults, config: Config,
     )
     
     plt.tight_layout()
-    plt.savefig(output_paths.segmentation_legend, bbox_inches="tight", pad_inches=0.1, dpi=200)
+    plt.savefig(output_paths.segmentation_legend, bbox_inches="tight", pad_inches=0.1, dpi=DPI_SEGMENTATION)
     plt.close()
     
     if verbose:
@@ -90,7 +96,7 @@ def _generate_edge_overlay(results: SegmentationResults, config: Config,
     ax.imshow(results.image_np)
     
     # Define hatch patterns
-    hatch_patterns = ['/', '\\', '|', '.', 'x', '-']
+    hatch_patterns = HATCH_PATTERNS
     
     # Get cluster colors (reuse from original plotting.py)
     def get_cluster_color(cluster_id, n_clusters, cmap):
@@ -176,7 +182,7 @@ def _generate_edge_overlay(results: SegmentationResults, config: Config,
     legend.get_frame().set_facecolor('white')
     
     plt.tight_layout()
-    plt.savefig(output_paths.edge_overlay, bbox_inches="tight", pad_inches=0.1, dpi=200)
+    plt.savefig(output_paths.edge_overlay, bbox_inches="tight", pad_inches=0.1, dpi=DPI_EDGE_OVERLAY)
     plt.close()
     
     hatching_text = "with hatching" if config.use_hatching else "borders only"
@@ -214,7 +220,7 @@ def _generate_side_by_side(results: SegmentationResults, config: Config,
         )
         
         plt.tight_layout(pad=2.0)
-        plt.savefig(output_paths.side_by_side, bbox_inches="tight", pad_inches=0.2, dpi=150,
+        plt.savefig(output_paths.side_by_side, bbox_inches="tight", pad_inches=0.2, dpi=DPI_SIDE_BY_SIDE,
                    facecolor='white', edgecolor='none')
         plt.close()
         
