@@ -88,26 +88,17 @@ def create_sweep_config():
         
         # Elbow threshold comparison (Giant model, stride 2) - 2x2 grid
         {
-            "name": "elbow_threshold_1_5",
+            "name": "elbow_threshold_2_5",
             "model": "giant",
             "profile": "quality",
             "stride": 2,
-            "elbow_threshold": 1.5,
-            "web_optimize": True,
-            "verbose": True
-        },
-        {
-            "name": "elbow_threshold_3_5",
-            "model": "giant", 
-            "profile": "quality",
-            "stride": 2,
-            "elbow_threshold": 3.5,
+            "elbow_threshold": 2.5,
             "web_optimize": True,
             "verbose": True
         },
         {
             "name": "elbow_threshold_5_0",
-            "model": "giant",
+            "model": "giant", 
             "profile": "quality",
             "stride": 2,
             "elbow_threshold": 5.0,
@@ -115,11 +106,20 @@ def create_sweep_config():
             "verbose": True
         },
         {
-            "name": "elbow_threshold_7_0",
+            "name": "elbow_threshold_10_0",
             "model": "giant",
             "profile": "quality",
             "stride": 2,
-            "elbow_threshold": 7.0,
+            "elbow_threshold": 10.0,
+            "web_optimize": True,
+            "verbose": True
+        },
+        {
+            "name": "elbow_threshold_20_0",
+            "model": "giant",
+            "profile": "quality",
+            "stride": 2,
+            "elbow_threshold": 20.0,
             "web_optimize": True,
             "verbose": True
         },
@@ -285,32 +285,32 @@ def organize_images():
         
         # Elbow threshold comparison (web-optimized) - 2x2 grid
         {
-            "source": "elbow_threshold_1_5/web",
+            "source": "elbow_threshold_2_5/web",
             "target": "parameter_comparison/elbow_threshold",
             "files": {
-                "*_edge_overlay.jpg": "elbow_threshold_1_5_edge_overlay.jpg"
-            }
-        },
-        {
-            "source": "elbow_threshold_3_5/web",
-            "target": "parameter_comparison/elbow_threshold",
-            "files": {
-                "*_edge_overlay.jpg": "elbow_threshold_3_5_edge_overlay.jpg",
-                "*_elbow_analysis.jpg": "elbow_threshold_3_5_elbow_analysis.jpg"
+                "*_edge_overlay.jpg": "elbow_threshold_2_5_edge_overlay.jpg"
             }
         },
         {
             "source": "elbow_threshold_5_0/web",
             "target": "parameter_comparison/elbow_threshold",
             "files": {
-                "*_edge_overlay.jpg": "elbow_threshold_5_0_edge_overlay.jpg"
+                "*_edge_overlay.jpg": "elbow_threshold_5_0_edge_overlay.jpg",
+                "*_elbow_analysis.jpg": "elbow_threshold_5_0_elbow_analysis.jpg"
             }
         },
         {
-            "source": "elbow_threshold_7_0/web",
+            "source": "elbow_threshold_10_0/web",
             "target": "parameter_comparison/elbow_threshold",
             "files": {
-                "*_edge_overlay.jpg": "elbow_threshold_7_0_edge_overlay.jpg"
+                "*_edge_overlay.jpg": "elbow_threshold_10_0_edge_overlay.jpg"
+            }
+        },
+        {
+            "source": "elbow_threshold_20_0/web",
+            "target": "parameter_comparison/elbow_threshold",
+            "files": {
+                "*_edge_overlay.jpg": "elbow_threshold_20_0_edge_overlay.jpg"
             }
         },
         
@@ -402,7 +402,7 @@ def main():
     print("  📋 Complete Example - Full workflow showcase") 
     print("  🔄 Stride Comparison - Giant model at stride 2 vs 4")
     print("  🎯 Model Size Comparison - Small/Base/Large/Giant at stride 4")
-    print("  📊 Elbow Threshold Comparison - 1.5%, 3.5%, 5.0%, 7.0% thresholds (2x2 grid)")
+    print("  📊 Elbow Threshold Comparison - 2.5%, 5.0%, 10.0%, 20.0% thresholds (2x2 grid)")
     print("  🔧 Refinement Comparison - With/without SLIC refinement")
     print("\n💡 Web-optimized images ready for Jekyll documentation site!")
     print("📦 Only lightweight .jpg files added to git (no heavy .png files)")

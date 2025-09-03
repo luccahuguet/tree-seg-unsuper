@@ -33,6 +33,8 @@ def main():
     parser.add_argument("--profile", choices=["quality", "balanced", "speed"], default="balanced",
                         help="Preset quality/speed profile (default: balanced); explicit flags override")
     parser.add_argument("--metrics", action="store_true", help="Collect and print timing/VRAM metrics")
+    parser.add_argument("--elbow-threshold", type=float, default=None, dest="elbow_threshold",
+                        help="Elbow method percentage threshold (e.g., 5.0). Default: 5.0")
     parser.add_argument("--sweep", type=str, default=None,
                         help="Path to JSON/YAML file with a list of config overrides to run in sequence")
     parser.add_argument("--sweep-prefix", type=str, default="sweeps",
@@ -120,12 +122,16 @@ def main():
             image_size=args.image_size,
             feature_upsample_factor=args.feature_upsample_factor,
             pca_dim=args.pca_dim,
+            elbow_threshold=args.elbow_threshold,
             refine=(None if args.refine == "none" else args.refine),
             refine_slic_compactness=args.refine_slic_compactness,
             refine_slic_sigma=args.refine_slic_sigma,
             metrics=args.metrics,
             verbose=args.verbose,
         )
+        # Remove optional None values so defaults apply in Config
+        if cfg.get('elbow_threshold') is None:
+            cfg.pop('elbow_threshold')
         if overrides:
             cfg.update({k: v for k, v in overrides.items() if v is not None})
         # Normalize refine override
@@ -285,11 +291,7 @@ def main():
         for img_path in sorted(image_files):
             print(f"\n🚀 Processing: {os.path.basename(img_path)}")
             try:
-                results = segment_trees(
-                    img_path,
-                    model=model,
-                    auto_k=True,
-                    output_dir=output_dir,
+                common_kwargs = dict(
                     image_size=args.image_size,
                     feature_upsample_factor=args.feature_upsample_factor,
                     pca_dim=args.pca_dim,
@@ -298,6 +300,15 @@ def main():
                     refine_slic_sigma=args.refine_slic_sigma,
                     metrics=args.metrics,
                     verbose=args.verbose,
+                )
+                if args.elbow_threshold is not None:
+                    common_kwargs['elbow_threshold'] = args.elbow_threshold
+                results = segment_trees(
+                    img_path,
+                    model=model,
+                    auto_k=True,
+                    output_dir=output_dir,
+                    **common_kwargs,
                 )
                 if args.metrics:
                     res, _paths = results[0] if isinstance(results, list) else results
@@ -316,11 +327,7 @@ def main():
         
         print(f"🚀 Processing: {os.path.basename(image_path)}")
         try:
-            results = segment_trees(
-                image_path,
-                model=model,
-                auto_k=True,
-                output_dir=output_dir,
+            common_kwargs = dict(
                 image_size=args.image_size,
                 feature_upsample_factor=args.feature_upsample_factor,
                 pca_dim=args.pca_dim,
@@ -329,6 +336,15 @@ def main():
                 refine_slic_sigma=args.refine_slic_sigma,
                 metrics=args.metrics,
                 verbose=args.verbose,
+            )
+            if args.elbow_threshold is not None:
+                common_kwargs['elbow_threshold'] = args.elbow_threshold
+            results = segment_trees(
+                image_path,
+                model=model,
+                auto_k=True,
+                output_dir=output_dir,
+                **common_kwargs,
             )
             if args.metrics and isinstance(results, list) and results:
                 res, _paths = results[0]

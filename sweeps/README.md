@@ -47,9 +47,10 @@ docs/results/
 │   │   ├── model_comparison_large_edge_overlay.jpg
 │   │   └── model_comparison_giant_edge_overlay.jpg
 │   ├── elbow_threshold/
-│   │   ├── elbow_threshold_1_5_edge_overlay.jpg
-│   │   ├── elbow_threshold_3_5_edge_overlay.jpg
-│   │   └── elbow_threshold_7_0_edge_overlay.jpg
+│   │   ├── elbow_threshold_2_5_edge_overlay.jpg
+│   │   ├── elbow_threshold_5_0_edge_overlay.jpg
+│   │   ├── elbow_threshold_10_0_edge_overlay.jpg
+│   │   └── elbow_threshold_20_0_edge_overlay.jpg
 │   └── refinement/
 │       ├── refine_with_slic_edge_overlay.jpg
 │       └── refine_none_edge_overlay.jpg
@@ -72,8 +73,8 @@ docs/results/
 - **Models**: Small, Base, Large, Giant, **Profile**: Quality, **Stride**: 2
 - **Purpose**: Systematic comparison of feature dimensionality impact
 
-### 8-10. Elbow Threshold Comparison
-- **Model**: Giant, **Profile**: Quality, **Stride**: 2, **Thresholds**: 1.5%, 3.5%, 7.0%
+### 8-11. Elbow Threshold Comparison
+- **Model**: Giant, **Profile**: Quality, **Stride**: 2, **Thresholds**: 2.5%, 5.0%, 10.0%, 20.0%
 - **Purpose**: Clustering sensitivity analysis
 
 ### 11-12. Refinement Comparison
@@ -101,6 +102,6 @@ The script automatically handles sweep execution and image organization.
 ## Notes
 
 - Uses `input/forest.jpg` as the standard test image for consistency
-- All configurations use elbow method with 3.5% threshold
+- Default elbow threshold is 5.0%; threshold comparison includes 2.5%, 5.0%, 10.0%, 20.0%
 - Images are generated in web-optimized JPEG format
 - Sweep takes approximately 15-20 minutes to complete all configurations

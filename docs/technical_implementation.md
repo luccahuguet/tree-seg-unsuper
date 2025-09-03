@@ -16,7 +16,7 @@ nav_order: 5
 config = Config(
     model_name="small",        # Maps to dinov3_vits16 (21M params)
     stride=4,
-    elbow_threshold=3.5,
+    elbow_threshold=5.0,
     refine=None,
     image_size=896
 )
@@ -29,7 +29,7 @@ config = Config(
 config = Config(
     model_name="base",         # Maps to dinov3_vitb16 (86M params)
     stride=4,
-    elbow_threshold=3.5,
+    elbow_threshold=5.0,
     refine="slic",
     image_size=1024
 )
@@ -42,7 +42,7 @@ config = Config(
 config = Config(
     model_name="giant",        # Maps to dinov3_vith16plus (1.1B params)
     stride=2, 
-    elbow_threshold=3.5,
+    elbow_threshold=5.0,
     refine="slic",
     image_size=1280
 )
@@ -70,19 +70,19 @@ This script:
 
 | Configuration | Model | Stride | Threshold | Refinement | Purpose |
 |--------------|-------|--------|-----------|------------|---------|
-| basic_example | base | 4 | 3.5% | slic | Methodology baseline |
-| stride_comparison_str2 | giant | 2 | 3.5% | slic | Quality comparison |
-| stride_comparison_str4 | giant | 4 | 3.5% | slic | Speed comparison |
-| model_comparison_small | small | 2 | 3.5% | slic | Model size study |
-| model_comparison_base | base | 2 | 3.5% | slic | Model size study |
-| model_comparison_large | large | 2 | 3.5% | slic | Model size study |
-| model_comparison_giant | giant | 2 | 3.5% | slic | Model size study |
-| elbow_threshold_1_5 | giant | 2 | 1.5% | slic | Sensitivity study |
-| elbow_threshold_3_5 | giant | 2 | 3.5% | slic | Sensitivity study |
+| basic_example | base | 4 | 5.0% | slic | Methodology baseline |
+| stride_comparison_str2 | giant | 2 | 5.0% | slic | Quality comparison |
+| stride_comparison_str4 | giant | 4 | 5.0% | slic | Speed comparison |
+| model_comparison_small | small | 2 | 5.0% | slic | Model size study |
+| model_comparison_base | base | 2 | 5.0% | slic | Model size study |
+| model_comparison_large | large | 2 | 5.0% | slic | Model size study |
+| model_comparison_giant | giant | 2 | 5.0% | slic | Model size study |
+| elbow_threshold_2_5 | giant | 2 | 2.5% | slic | Sensitivity study |
 | elbow_threshold_5_0 | giant | 2 | 5.0% | slic | Sensitivity study |
-| elbow_threshold_7_0 | giant | 2 | 7.0% | slic | Sensitivity study |
-| refine_with_slic | giant | 2 | 3.5% | slic | Refinement study |
-| refine_none | giant | 2 | 3.5% | none | Refinement study |
+| elbow_threshold_10_0 | giant | 2 | 10.0% | slic | Sensitivity study |
+| elbow_threshold_20_0 | giant | 2 | 20.0% | slic | Sensitivity study |
+| refine_with_slic | giant | 2 | 5.0% | slic | Refinement study |
+| refine_none | giant | 2 | 5.0% | none | Refinement study |
 
 All configurations use DINOv3 models with automatic K-selection and web-optimized output for GitHub Pages display.
 
@@ -132,12 +132,12 @@ with torch.no_grad():
 ### Fixed Algorithm
 
 ```python
-def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=3.5):
+def find_optimal_k_elbow(features_flat, k_range=(3, 10), elbow_threshold=5.0):
     """
     Find optimal K using percentage-based diminishing returns.
     
     Args:
-        elbow_threshold: Percentage threshold (e.g., 3.5 = 3.5%)
+        elbow_threshold: Percentage threshold (e.g., 5.0 = 5.0%)
     """
     wcss_values = []
     for k in range(k_range[0], k_range[1] + 1):
@@ -200,7 +200,7 @@ This ensures the pipeline works even when Meta's servers are inaccessible, which
 | **Parameter Counts** | ~86M (Base) | 86M (Base), 1.1B (Giant) |
 | **Patch Size** | 14x14 pixels | 16x16 pixels |
 | **Version** | v1.5 | v3 |
-| **Elbow Threshold** | 0.035 (decimal) | 3.5 (percentage) |
+| **Elbow Threshold** | 0.05 (decimal) | 5.0 (percentage) |
 | **Model Loading** | Single strategy | Multi-strategy with fallbacks |
 | **Error Handling** | Basic | Comprehensive with NaN prevention |
 

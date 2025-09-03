@@ -56,20 +56,20 @@
     "verbose": true
   },
   {
-    "name": "elbow_threshold_1_5",
+    "name": "elbow_threshold_2_5",
     "model": "giant",
     "profile": "quality",
     "stride": 2,
-    "elbow_threshold": 1.5,
+    "elbow_threshold": 2.5,
     "web_optimize": true,
     "verbose": true
   },
   {
-    "name": "elbow_threshold_3_5",
+    "name": "elbow_threshold_10_0",
     "model": "giant", 
     "profile": "quality",
     "stride": 2,
-    "elbow_threshold": 3.5,
+    "elbow_threshold": 10.0,
     "web_optimize": true,
     "verbose": true
   },
@@ -83,11 +83,11 @@
     "verbose": true
   },
   {
-    "name": "elbow_threshold_7_0",
+    "name": "elbow_threshold_20_0",
     "model": "giant",
     "profile": "quality",
     "stride": 2,
-    "elbow_threshold": 7.0,
+    "elbow_threshold": 20.0,
     "web_optimize": true,
     "verbose": true
   },

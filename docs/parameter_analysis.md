@@ -31,7 +31,7 @@ For configuration profiles, reproduction instructions, and technical implementat
 ## Basic Example: Pipeline Demonstration
 
 ![Basic Example]({{ site.baseurl }}/results/methodology/basic_example_edge_overlay.jpg)
-*Configuration: Base model, stride 4, 3.5% threshold, SLIC refinement*
+*Configuration: Base model, stride 4, 5.0% threshold, SLIC refinement*
 
 This baseline configuration demonstrates the complete pipeline using balanced settings suitable for most forestry applications. The base model provides good quality with reasonable processing time, making it ideal for methodology demonstration.
 
@@ -82,21 +82,21 @@ This baseline configuration demonstrates the complete pipeline using balanced se
 
 ### Clustering Granularity Control (2x2 Grid)
 
-| Conservative (1.5%) | Balanced (3.5%) |
+| Sensitive (2.5%) | Balanced (5.0%) |
 |---------------------|-----------------|
-| ![1.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_1_5_edge_overlay.jpg) | ![3.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_3_5_edge_overlay.jpg) |
+| ![2.5%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_2_5_edge_overlay.jpg) | ![5.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_5_0_edge_overlay.jpg) |
 | More clusters, finer segmentation | Optimal clustering - recommended default |
 
-| Moderate (5.0%) | Conservative (7.0%) |
+| Conservative (10.0%) | Very Conservative (20.0%) |
 |-----------------|---------------------|
-| ![5.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_5_0_edge_overlay.jpg) | ![7.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_7_0_edge_overlay.jpg) |
+| ![10.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_10_0_edge_overlay.jpg) | ![20.0%]({{ site.baseurl }}/results/parameter_comparison/elbow_threshold/elbow_threshold_20_0_edge_overlay.jpg) |
 | Balanced clustering | Fewer clusters, broader regions |
 
 **Threshold Guidelines** (✅ **Validated**):
-- **1.5%**: Sensitive detection, maximum clusters (K=10) - finds very fine distinctions
-- **3.5%**: Balanced clustering (K=7) - optimal for most forestry applications  
-- **5.0%**: Conservative clustering (K=5) - broader tree groupings
-- **7.0%**: Very conservative (K=4) - major forest regions only
+- **2.5%**: Sensitive detection — more clusters; fine distinctions
+- **5.0%**: Balanced clustering — recommended default for most forestry applications
+- **10.0%**: Conservative clustering — broader tree groupings
+- **20.0%**: Very conservative — major forest regions only
 - **Behavior**: Lower thresholds → more clusters, higher thresholds → fewer clusters as expected
 
 ---
@@ -120,9 +120,9 @@ This baseline configuration demonstrates the complete pipeline using balanced se
 
 | Configuration | Model | Stride | Threshold | Refinement | Expected K | Time | Quality |
 |--------------|-------|--------|-----------|------------|------------|------|---------|
-| Development | Small | 4 | 3.5% | None | 3-4 | ~15s | Good |
-| Balanced | Base | 4 | 3.5% | SLIC | 4-5 | ~35s | Very Good |
-| Research | Giant | 2 | 3.5% | SLIC | 5-7 | ~100s | Excellent |
+| Development | Small | 4 | 5.0% | None | 3-4 | ~15s | Good |
+| Balanced | Base | 4 | 5.0% | SLIC | 4-5 | ~35s | Very Good |
+| Research | Giant | 2 | 5.0% | SLIC | 5-7 | ~100s | Excellent |
 
 ---
 
@@ -136,7 +136,7 @@ This baseline configuration demonstrates the complete pipeline using balanced se
 
 ### 2. Elbow Method Validation (Foundation for Advanced Methods)
 - **Consistent Behavior**: Eliminates stride-dependent paradoxes seen in curvature methods
-- **Predictable Thresholds**: 1.5%-7.0% range covers full segmentation spectrum (K=10→K=4)
+- **Predictable Thresholds**: 2.5%-20.0% range covers broad segmentation spectrum
 - **Intuitive Configuration**: Percentage-based thresholds provide direct control over clustering sensitivity
 - **Bug Resolution**: Fixed index mapping and safety override issues that masked threshold sensitivity
 - **V2+ Integration**: This robust K-selection framework will serve as fallback for U2Seg's adaptive clustering

@@ -16,7 +16,7 @@ config = Config(
     output_dir="/kaggle/working/output",
     model_name="base",
     auto_k=True,
-    elbow_threshold=0.15,
+    elbow_threshold=5.0,
     web_optimize=True  # Auto-optimize for web
 )
 

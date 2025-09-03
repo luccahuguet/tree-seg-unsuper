@@ -19,7 +19,7 @@ This section showcases a complete tree segmentation run with all four output vis
 - **Model**: DINOv3 Base (`dinov3_vitb16`)
 - **Profile**: Balanced (optimized for general use)
 - **Stride**: 4 (balanced quality/performance)
-- **Elbow Threshold**: 3.5% (optimal for tree species)
+- **Elbow Threshold**: 5.0% (balanced default for tree species)
 - **Auto K-Selection**: Enabled (automatically determined)
 
 ---
@@ -95,4 +95,3 @@ The results show successful unsupervised segmentation of complex forest imagery 
 ## See Also
 
 For comprehensive parameter analysis including all 12 sweep configurations, model comparisons, and performance benchmarks, see the **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})** page.
-

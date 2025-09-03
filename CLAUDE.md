@@ -73,7 +73,7 @@ Tree segmentation using DINOv3 for aerial drone imagery. Modern v3.0 architectur
 results = segment_trees("image.jpg", model="base", auto_k=True)
 
 # Advanced usage  
-config = Config(model_name="base", elbow_threshold=0.1)
+config = Config(model_name="base", elbow_threshold=5.0)
 segmenter = TreeSegmentation(config)
 results, paths = segmenter.process_and_visualize("image.jpg")
 

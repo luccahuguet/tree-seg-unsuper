@@ -86,6 +86,7 @@ Flags:
 - `--refine-slic-compactness FLOAT`: SLIC compactness (higher=smoother, lower=hugs edges). Default 10.0
 - `--refine-slic-sigma FLOAT`: Gaussian smoothing for SLIC pre-processing. Default 1.0
 - `--metrics`: print timing and VRAM stats (also included in result stats)
+ - `--elbow-threshold FLOAT`: elbow method percentage threshold (e.g., 5.0). Default 5.0
  - `--sweep PATH`: run multiple configurations from a JSON/YAML list; outputs saved under `output/<sweeps>/<name>`
  - `--sweep-prefix STR`: subfolder under `output/` to place sweep runs (default: `sweeps`)
 
@@ -137,7 +138,7 @@ config = Config(
 
     # Clustering
     auto_k=True,
-    elbow_threshold=0.1,
+    elbow_threshold=5.0,
     k_range=(3, 10),
     n_clusters=6,            # Used only when auto_k=False
 
@@ -188,7 +189,7 @@ config = Config(
 
     # Clustering (automatic K-selection recommended)
     auto_k=True,
-    elbow_threshold=0.1,
+    elbow_threshold=5.0,
     k_range=(3, 10),
     n_clusters=6,
 
@@ -204,10 +205,11 @@ config.validate()  # Raises ValueError if invalid
 
 ### Configuration Tips
 
-**Elbow Threshold Values:**
-- `0.05-0.1`: Sensitive (finds more clusters)
-- `0.1-0.2`: Balanced (recommended)  
-- `0.2-0.3`: Conservative (fewer clusters)
+**Elbow Threshold Values (percent):**
+- `2.5%`: Sensitive — more clusters
+- `5.0%`: Balanced — recommended default  
+- `10.0%`: Conservative — fewer clusters
+- `20.0%`: Very conservative — broad regions
 
 **Model Sizes:**
 - `small`: DINOv3 Small (21M params) - Fast, good for testing
@@ -227,17 +229,17 @@ Files now use **config-based naming** for easy identification:
 ```
 
 **Examples:**
-- `a3f7_v3_base_str4_et3-5_segmentation_legend.png`
-- `a3f7_v3_base_str4_et3-5_edge_overlay.png`
-- `a3f7_v3_base_str4_et3-5_side_by_side.png`
-- `a3f7_v3_base_str4_et3-5_elbow_analysis.png`
+- `a3f7_v3_base_str4_et5-0_segmentation_legend.png`
+- `a3f7_v3_base_str4_et5-0_edge_overlay.png`
+- `a3f7_v3_base_str4_et5-0_side_by_side.png`
+- `a3f7_v3_base_str4_et5-0_elbow_analysis.png`
 
 **Filename Components:**
 - `a3f7`: 4-char hash of original filename (prevents collisions)
 - `v3`: DINOv3 version used
 - `base`: Model size (small/base/large/giant/mega)
 - `str4`: Stride value
-- `et3-5`: Elbow threshold (or `k6` for fixed K)
+- `et5-0`: Elbow threshold (or `k6` for fixed K)
 
 **File Types:**
 - `segmentation_legend.png`: Colored map with cluster legend
@@ -285,7 +287,7 @@ from tree_seg import TreeSegmentation, Config
 config = Config(
     model_name="base",
     auto_k=True,
-    elbow_threshold=3.5
+    elbow_threshold=5.0
 )
 
 segmenter = TreeSegmentation(config)
@@ -299,7 +301,7 @@ uv run python run_segmentation.py input/forest2.jpeg base output
 
 # With custom parameters
 uv run python run_segmentation.py input/forest2.jpeg giant output \
-  --stride 2 --elbow-threshold 1.5 --profile quality
+  --stride 2 --elbow-threshold 5.0 --profile quality
 ```
 
 ## 🔍 Troubleshooting

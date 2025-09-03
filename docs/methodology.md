@@ -32,7 +32,7 @@ Our tree segmentation pipeline consists of four main stages:
 
 **Elbow Method** with intelligent thresholding:
 - **K Range**: 3-10 clusters (optimized for tree species diversity)
-- **Threshold**: 3.5% (percentage decrease threshold for diminishing returns)
+- **Threshold**: 5.0% (percentage decrease threshold for diminishing returns)
 - **Metric**: Within-Cluster Sum of Squares (WCSS)
 - **Optimization**: Percentage decrease analysis with safety bounds
 
@@ -58,7 +58,7 @@ config = Config(
     version="v3",               # Current algorithm version
     stride=4,                   # Feature resolution
     auto_k=True,                # Automatic K selection
-    elbow_threshold=3.5,        # 3.5% threshold for diminishing returns
+    elbow_threshold=5.0,        # 5.0% threshold for diminishing returns
     k_range=(3, 10),            # Extended range for tree species
     use_pca=False,              # Keep full feature space
     edge_width=2,               # Visualization parameter
@@ -110,4 +110,3 @@ config = Config(
 
 - **[Complete Example]({{ '/complete_example' | relative_url }})**: Full pipeline demonstration with all output types
 - **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})**: Comprehensive study of all 12 configurations and model comparisons
-

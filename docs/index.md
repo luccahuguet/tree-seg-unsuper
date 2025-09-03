@@ -48,7 +48,7 @@ This research presents a systematic study of unsupervised tree segmentation usin
 ## Technical Innovation
 
 **Self-Supervised Features**: DINOv3 Vision Transformers eliminate manual annotation requirements  
-**Intelligent Clustering**: Elbow method with forest-optimized thresholds (3.5% default)  
+**Intelligent Clustering**: Elbow method with forest-optimized thresholds (5.0% default)  
 **Multi-Scale Analysis**: Comprehensive evaluation across four model architectures  
 **Professional Visualization**: Web-optimized outputs with systematic naming conventions
 
@@ -88,5 +88,4 @@ The systematic model comparison reveals optimal configurations for different use
 - **[Complete Example]({{ '/complete_example' | relative_url }})**: Full workflow demonstration with all outputs  
 - **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})**: Comprehensive study of all 13 configurations, model comparisons, and performance benchmarks
 - **[Technical Implementation]({{ '/technical_implementation' | relative_url }})**: Configuration profiles, code implementation details, and reproduction instructions
-
 

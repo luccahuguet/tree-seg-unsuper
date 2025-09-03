@@ -27,7 +27,7 @@ class Config:
     auto_k: bool = True
     n_clusters: int = 6  # Used when auto_k=False
     k_range: Tuple[int, int] = (3, 10)
-    elbow_threshold: float = 3.5  # Percentage (will be converted to decimal)
+    elbow_threshold: float = 5.0  # Percentage (will be converted to decimal)
     use_pca: bool = False
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
     feature_upsample_factor: int = 2  # Upsample HxW feature grid before K-Means
