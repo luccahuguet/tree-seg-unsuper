@@ -14,7 +14,7 @@ Options:
 import sys
 import os
 import argparse
-from tree_seg.constants import SUPPORTED_IMAGE_EXTS
+from tree_seg.constants import SUPPORTED_IMAGE_EXTS, PROFILE_DEFAULTS, PROFILE_FLAG_MAP
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -56,45 +56,12 @@ def main():
 
     if args.profile:
         prof = args.profile
-        if prof == "quality":
-            if not _flag_provided(["--image-size"]):
-                args.image_size = 1280
-            if not _flag_provided(["--feature-upsample"]):
-                args.feature_upsample_factor = 2
-            if not _flag_provided(["--pca-dim"]):
-                args.pca_dim = None
-            if not _flag_provided(["--refine"]):
-                args.refine = "slic"
-            if not _flag_provided(["--refine-slic-compactness"]):
-                args.refine_slic_compactness = 12.0
-            if not _flag_provided(["--refine-slic-sigma"]):
-                args.refine_slic_sigma = 1.5
-        elif prof == "balanced":
-            if not _flag_provided(["--image-size"]):
-                args.image_size = 1024
-            if not _flag_provided(["--feature-upsample"]):
-                args.feature_upsample_factor = 2
-            if not _flag_provided(["--pca-dim"]):
-                args.pca_dim = None
-            if not _flag_provided(["--refine"]):
-                args.refine = "slic"
-            if not _flag_provided(["--refine-slic-compactness"]):
-                args.refine_slic_compactness = 10.0
-            if not _flag_provided(["--refine-slic-sigma"]):
-                args.refine_slic_sigma = 1.0
-        elif prof == "speed":
-            if not _flag_provided(["--image-size"]):
-                args.image_size = 896
-            if not _flag_provided(["--feature-upsample"]):
-                args.feature_upsample_factor = 1
-            if not _flag_provided(["--pca-dim"]):
-                args.pca_dim = 128
-            if not _flag_provided(["--refine"]):
-                args.refine = "slic"
-            if not _flag_provided(["--refine-slic-compactness"]):
-                args.refine_slic_compactness = 20.0
-            if not _flag_provided(["--refine-slic-sigma"]):
-                args.refine_slic_sigma = 1.0
+        defaults = PROFILE_DEFAULTS.get(prof)
+        if defaults:
+            for key, value in defaults.items():
+                flag = PROFILE_FLAG_MAP.get(key)
+                if flag is None or not _flag_provided([flag]):
+                    setattr(args, key, value)
 
     image_path = args.image_path
     model = args.model
@@ -234,28 +201,10 @@ def main():
             overrides = {k: v for k, v in item.items() if k not in {'name', 'model', 'profile'}}
             # Apply profile defaults if provided, unless explicitly overridden in item
             prof = item.get('profile')
-            if prof in ("quality", "balanced", "speed"):
-                if prof == "quality":
-                    overrides.setdefault('image_size', 1280)
-                    overrides.setdefault('feature_upsample_factor', 2)
-                    overrides.setdefault('pca_dim', None)
-                    overrides.setdefault('refine', 'slic')
-                    overrides.setdefault('refine_slic_compactness', 12.0)
-                    overrides.setdefault('refine_slic_sigma', 1.5)
-                elif prof == "balanced":
-                    overrides.setdefault('image_size', 1024)
-                    overrides.setdefault('feature_upsample_factor', 2)
-                    overrides.setdefault('pca_dim', None)
-                    overrides.setdefault('refine', 'slic')
-                    overrides.setdefault('refine_slic_compactness', 10.0)
-                    overrides.setdefault('refine_slic_sigma', 1.0)
-                elif prof == "speed":
-                    overrides.setdefault('image_size', 896)
-                    overrides.setdefault('feature_upsample_factor', 1)
-                    overrides.setdefault('pca_dim', 128)
-                    overrides.setdefault('refine', 'slic')
-                    overrides.setdefault('refine_slic_compactness', 20.0)
-                    overrides.setdefault('refine_slic_sigma', 1.0)
+            defaults = PROFILE_DEFAULTS.get(prof)
+            if defaults:
+                for key, value in defaults.items():
+                    overrides.setdefault(key, value)
             _run_case(image_path, mdl, out_dir, overrides)
         # end sweep
         return
