@@ -9,8 +9,6 @@ This directory contains various scripts organized by purpose.
 
 ## 🚀 Quick Access
 
-Most commonly used scripts remain in the project root:
-- `manage_model_weights.py` - Model weight management
-- `restore_models.py` - Restore cached model weights  
-- `run_segmentation.py` - Main segmentation execution
-- `tree_seg_notebook.py` - Kaggle notebook version
+Key entry points now live directly in this directory:
+- `run_segmentation.py` - Main segmentation execution CLI (use `uv run python main.py ...`)
+- `generate_docs_images.py` - Documentation image generation sweep (use `uv run python scripts/generate_docs_images.py ...`)

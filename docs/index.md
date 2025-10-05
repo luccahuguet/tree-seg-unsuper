@@ -17,8 +17,8 @@ git clone https://github.com/luccahuguet/tree-seg-unsuper.git
 cd tree-seg-unsuper
 uv sync
 
-# Run segmentation
-uv run python run_segmentation.py input/forest2.jpeg base output --verbose
+# Run segmentation (processes every image in `input/` → `output/`)
+uv run python main.py --verbose
 
 # Test installation
 uv run python -c "import tree_seg; print('✅ Works')"
@@ -88,4 +88,3 @@ The systematic model comparison reveals optimal configurations for different use
 - **[Complete Example]({{ '/complete_example' | relative_url }})**: Full workflow demonstration with all outputs  
 - **[Parameter Analysis]({{ '/parameter_analysis' | relative_url }})**: Comprehensive study of all 13 configurations, model comparisons, and performance benchmarks
 - **[Technical Implementation]({{ '/technical_implementation' | relative_url }})**: Configuration profiles, code implementation details, and reproduction instructions
-

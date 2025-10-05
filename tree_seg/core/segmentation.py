@@ -24,7 +24,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, pca_dim=None,
                  feature_upsample_factor: int = 1, refine: str | None = None,
                  refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
-                 collect_metrics: bool = False, model_name=None, output_dir="/kaggle/working/output",
+                 collect_metrics: bool = False, model_name=None, output_dir="output",
                  verbose: bool = True):
     """
     Process a single image for tree segmentation.

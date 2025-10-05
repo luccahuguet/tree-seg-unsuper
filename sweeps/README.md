@@ -16,7 +16,7 @@ The `docs_image_generation.json` sweep generates comprehensive results for:
 ### 1. Run the Documentation Sweep
 
 ```bash
-python generate_docs_images.py input/forest2.jpeg
+uv run python scripts/generate_docs_images.py input/forest2.jpeg
 ```
 
 This will generate results in `output/sweeps/` with organized subdirectories for each configuration and automatically organize them into the proper `docs/results/` structure expected by the Jekyll documentation site.
@@ -94,7 +94,7 @@ The generated images are automatically referenced in:
 
 To update documentation images:
 
-1. Run the complete generation script: `python generate_docs_images.py input/forest2.jpeg`
+1. Run the complete generation script: `uv run python scripts/generate_docs_images.py input/forest2.jpeg`
 2. Commit updated images to repository
 
 The script automatically handles sweep execution and image organization.

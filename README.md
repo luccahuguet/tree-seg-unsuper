@@ -33,8 +33,10 @@ tree-seg-unsuper/
 ├── sweeps/                    # Sweep configurations
 ├── input/                     # Input images
 ├── output/                    # Output results
-├── run_segmentation.py        # Main CLI script
-├── generate_docs_images.py    # Documentation image generation
+├── main.py                    # Convenience entry point for uv run python main.py
+├── scripts/                   # Entry-point scripts
+│   ├── run_segmentation.py    # Main CLI script
+│   └── generate_docs_images.py # Documentation image generation
 ├── pyproject.toml            # Project metadata
 └── README.md                 # This file
 ```
@@ -46,11 +48,12 @@ tree-seg-unsuper/
 Using the simple CLI wrapper with uv:
 
 ```bash
-uv run python run_segmentation.py input base output
+uv run python main.py
 ```
 
-Defaults favor high quality:
-- Model: `giant` (ViT-H+/16)
+By default the command scans `input/`, writes to `output/`, and uses the balanced
+profile:
+- Model: `base` (ViT-B/16)
 - Image size: 1024×1024
 - Feature upsample factor: 2 (clusters on a 128×128 grid)
 - Edge refinement: SLIC superpixels (aligns boundaries to image edges)
@@ -59,22 +62,22 @@ CLI flags allow tuning quality/performance:
 
 ```bash
 # Higher quality (even smoother):
-uv run python run_segmentation.py input giant output \
+uv run python main.py input giant output \
   --image-size 1280 --feature-upsample 2
 
-# Faster / lower memory:
-uv run python run_segmentation.py input base output \
+# Faster / lower memory (retain default directories):
+uv run python main.py \
   --image-size 896 --feature-upsample 1
 
 # Apply PCA to speed up clustering:
-uv run python run_segmentation.py input base output \
+uv run python main.py \
   --pca-dim 128
 
-# Process a single image (giant default):
-uv run python run_segmentation.py input/forest.jpg giant output
+# Process a single image with explicit output folder:
+uv run python main.py input/forest.jpg base output/single
 
 # Edge-aware refinement (SLIC superpixels):
-uv run python run_segmentation.py input base output \
+uv run python main.py \
   --refine slic --refine-slic-compactness 12 --refine-slic-sigma 1.5
 ```
 
@@ -94,13 +97,13 @@ Profiles (set sensible defaults; flags still override; default profile is balanc
 
 ```bash
 # Highest quality
-uv run python run_segmentation.py input base output --profile quality
+uv run python main.py --profile quality
 
 # Balanced (default)
-uv run python run_segmentation.py input base output --profile balanced
+uv run python main.py --profile balanced
 
 # Fast(er) runs / lower memory
-uv run python run_segmentation.py input base output --profile speed
+uv run python main.py --profile speed
 ```
 
 - `quality`: `image_size=1280`, `feature_upsample=2`, `pca_dim=None`, `refine=slic`, `compactness=12`, `sigma=1.5`
@@ -161,7 +164,7 @@ print(f"Files: {paths.all_paths()}")
 To generate all documentation images with comprehensive parameter analysis:
 
 ```bash
-python generate_docs_images.py input/forest2.jpeg
+uv run python scripts/generate_docs_images.py input/forest2.jpeg
 ```
 
 This runs 12 different configurations and organizes results for the GitHub Pages documentation.
@@ -297,10 +300,10 @@ results, paths = segmenter.process_and_visualize("input/forest2.jpeg")
 ### Process with CLI:
 ```bash
 # Basic usage
-uv run python run_segmentation.py input/forest2.jpeg base output
+uv run python main.py input/forest2.jpeg base output
 
 # With custom parameters
-uv run python run_segmentation.py input/forest2.jpeg giant output \
+uv run python main.py input/forest2.jpeg giant output \
   --stride 2 --elbow-threshold 5.0 --profile quality
 ```
 
@@ -369,5 +372,5 @@ Example `sweep.yaml`:
 Run the sweep:
 
 ```bash
-uv run python run_segmentation.py input giant output --sweep sweep.yaml --metrics
+uv run python main.py input giant output --sweep sweep.yaml --metrics
 ```

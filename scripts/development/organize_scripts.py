@@ -43,7 +43,6 @@ def organize_scripts():
     keep_in_root = [
         "manage_model_weights.py",  # Essential for model management
         "restore_models.py",        # Auto-generated, users expect in root
-        "run_segmentation.py",      # Main execution script
         "tree_seg_notebook.py",     # Kaggle notebook
     ]
     
@@ -77,7 +76,7 @@ def organize_scripts():
     print("\n🎉 Organization complete!")
     print("📁 Development scripts: scripts/development/")
     print("🛠️ Utility scripts: scripts/utils/")
-    print("📌 Core scripts remain in root")
+    print("📌 Primary entry points: scripts/")
 
 def create_readme_files(scripts_dir, dev_dir, utils_dir):
     """Create README files for the script directories."""
@@ -96,11 +95,9 @@ This directory contains various scripts organized by purpose.
 
 ## 🚀 Quick Access
 
-Most commonly used scripts remain in the project root:
-- `manage_model_weights.py` - Model weight management
-- `restore_models.py` - Restore cached model weights  
-- `run_segmentation.py` - Main segmentation execution
-- `tree_seg_notebook.py` - Kaggle notebook version
+Key entry points now live directly in this directory:
+- `run_segmentation.py` - Main segmentation execution CLI (use `uv run python main.py ...`)
+- `generate_docs_images.py` - Documentation image generation sweep (use `uv run python scripts/generate_docs_images.py ...`)
 """)
     
     # Development README

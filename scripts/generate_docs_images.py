@@ -6,7 +6,10 @@ Single script that runs the complete documentation image generation sweep
 and organizes the results into the proper docs structure.
 
 Usage:
-    python generate_docs_images.py [input_image] [--clean]
+    uv run python scripts/generate_docs_images.py [input_image] [--clean]
+
+Direct execution remains available:
+    python scripts/generate_docs_images.py [input_image] [--clean]
     
 Options:
     input_image: Path to input image (default: input/forest.jpg)
@@ -163,8 +166,9 @@ def run_sweep(input_image):
         print()
         
         # Build command (always clean for consistent results)
+        run_script = Path(__file__).parent / "run_segmentation.py"
         cmd = [
-            "python", "run_segmentation.py",
+            "python", str(run_script),
             input_image,
             "base",  # Default model (overridden by sweep)
             "output",

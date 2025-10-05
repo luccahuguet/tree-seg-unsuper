@@ -2,18 +2,16 @@
 # Batch Processing Example
 # Process multiple images automatically
 
-import sys
 import os
 from collections import defaultdict
-sys.path.append("/kaggle/working/project")
 
 from tree_seg import TreeSegmentation, Config
 
 # %%
 # Setup configuration for batch processing
 config = Config(
-    input_dir="/kaggle/input/drone-10-best",
-    output_dir="/kaggle/working/output",
+    input_dir="input",
+    output_dir="output",
     model_name="base",
     auto_k=True,
     elbow_threshold=5.0,

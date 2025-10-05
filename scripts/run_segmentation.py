@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-"""
-Simple CLI for tree segmentation.
+"""Simple CLI for tree segmentation with sensible defaults.
 
-Usage:
-  python run_segmentation.py [image_path] [model] [output_dir] [options]
+Run without arguments to process every image under ``input/`` and write results to
+``output/`` using the balanced profile:
+
+    uv run python main.py
+
+The CLI still accepts explicit arguments when you need to override defaults:
+
+    uv run python main.py <input_path> <model> <output_dir> [options]
+
+Direct execution remains available if you prefer not to use the `uv` helper:
+
+    python main.py [input_path] [model] [output_dir] [options]
 
 Options:
   --image-size INT           Preprocess resize (square). Default: 1024
@@ -23,7 +32,7 @@ load_dotenv()
 def main():
     parser = argparse.ArgumentParser(description="Tree segmentation CLI")
     parser.add_argument("image_path", nargs="?", default="input/", help="Path to image or directory")
-    parser.add_argument("model", nargs="?", default="giant", help="Model size: small/base/large/giant/mega or full name")
+    parser.add_argument("model", nargs="?", default="base", help="Model size: small/base/large/giant/mega or full name")
     parser.add_argument("output_dir", nargs="?", default="output", help="Output directory")
     parser.add_argument("--image-size", type=int, default=1024, dest="image_size", help="Preprocess resize (square)")
     parser.add_argument("--feature-upsample", type=int, default=2, dest="feature_upsample_factor", help="Upsample feature grid before K-Means")
