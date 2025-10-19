@@ -37,3 +37,6 @@ weights/*
 # Local benchmark outputs
 output_bench_*/
 bench_models.csv
+
+# Pre-commit cache
+.pre-commit-cache/
