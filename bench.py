@@ -307,13 +307,17 @@ def run_comparison_benchmark(args):
     print("\n" + "=" * 60)
     print("COMPARISON RESULTS")
     print("=" * 60)
-    print(f"{'Configuration':<25} {'mIoU':>8} {'Pixel Acc':>10} {'Runtime':>10}")
+    print(f"{'Configuration':<20} {'mIoU':>8} {'Px Acc':>8} {'Per Img':>10} {'Total':>10}")
     print("-" * 60)
 
     for item in all_results:
         label = item["label"]
         r = item["results"]
-        print(f"{label:<25} {r.mean_miou:>8.3f} {r.mean_pixel_accuracy:>10.3f} {r.mean_runtime:>10.2f}s")
+        total_time = r.mean_runtime * r.total_samples
+        print(
+            f"{label:<20} {r.mean_miou:>8.3f} {r.mean_pixel_accuracy:>8.1%} "
+            f"{r.mean_runtime:>9.2f}s {total_time:>9.1f}s"
+        )
 
     print("=" * 60 + "\n")
 
