@@ -139,18 +139,22 @@ def parse_args():
 
 def create_config(args) -> Config:
     """Create Config object from command-line arguments."""
-    # Map method version to float
-    version_map = {"v1": 1.0, "v1.5": 1.5, "v2": 2.0, "v3": 3.0}
-    version = version_map[args.method]
+    # Map method version to version string
+    version_map = {"v1": "v1", "v1.5": "v1.5", "v2": "v2", "v3": "v3"}
+    version = version_map.get(args.method, "v3")
+
+    # Map clustering to refine parameter
+    # "kmeans" = no refinement (None), "slic" = SLIC refinement
+    refine = "slic" if args.clustering == "slic" else None
 
     # Create config
     config = Config(
         version=version,
-        clustering_method=args.clustering,
+        refine=refine,
         model_name=args.model,
         stride=args.stride,
         elbow_threshold=args.elbow_threshold,
-        k=args.fixed_k,
+        n_clusters=args.fixed_k if args.fixed_k else 6,
         auto_k=(args.fixed_k is None),
     )
 
@@ -166,7 +170,8 @@ def run_single_benchmark(args, config: Config):
         import datetime
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        method_str = f"v{config.version}_{config.clustering_method}"
+        refine_str = config.refine if config.refine else "kmeans"
+        method_str = f"{config.version}_{refine_str}"
         model_str = config.model_display_name.lower().replace(" ", "_")
         output_dir = Path("results") / f"{method_str}_{model_str}_{timestamp}"
 
@@ -186,12 +191,12 @@ def run_single_benchmark(args, config: Config):
         "method": results.method_name,
         "config": {
             "version": config.version,
-            "clustering_method": config.clustering_method,
+            "refine": config.refine,
             "model": config.model_display_name,
             "stride": config.stride,
             "elbow_threshold": config.elbow_threshold,
             "auto_k": config.auto_k,
-            "fixed_k": config.k,
+            "fixed_k": config.n_clusters if not config.auto_k else None,
         },
         "metrics": {
             "mean_miou": float(results.mean_miou),
@@ -234,15 +239,15 @@ def run_comparison_benchmark(args):
         {"model_name": "small", "label": "model_small"},
         {"model_name": "base", "label": "model_base"},
         {"model_name": "large", "label": "model_large"},
-        # Different clustering methods
-        {"clustering_method": "kmeans", "label": "cluster_kmeans"},
-        {"clustering_method": "slic", "label": "cluster_slic"},
+        # Different refinement methods
+        {"refine": None, "label": "refine_kmeans"},
+        {"refine": "slic", "label": "refine_slic"},
     ]
 
     # Base config from args
     base_config_dict = {
-        "version": {"v1": 1.0, "v1.5": 1.5, "v2": 2.0, "v3": 3.0}[args.method],
-        "clustering_method": args.clustering,
+        "version": {"v1": "v1", "v1.5": "v1.5", "v2": "v2", "v3": "v3"}.get(args.method, "v3"),
+        "refine": "slic" if args.clustering == "slic" else None,
         "model_name": args.model,
         "stride": args.stride,
         "elbow_threshold": args.elbow_threshold,

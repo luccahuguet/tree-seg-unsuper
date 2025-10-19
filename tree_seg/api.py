@@ -4,6 +4,7 @@ Modern, clean API for tree segmentation.
 
 import os
 import torch
+import numpy as np
 from typing import Optional, List
 from pathlib import Path
 
@@ -32,11 +33,18 @@ class TreeSegmentation:
         self.config.validate()
         
         self.output_manager = OutputManager(self.config)
-        # Pick best available device (CUDA > MPS > CPU)
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            self.device = torch.device("mps")
+        # Default to CPU (safer for limited GPU RAM)
+        # Set FORCE_GPU=1 to force GPU usage
+        force_gpu = os.environ.get("FORCE_GPU", "").lower() in ("1", "true", "yes")
+
+        if force_gpu:
+            if torch.cuda.is_available():
+                self.device = torch.device("cuda")
+            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                self.device = torch.device("mps")
+            else:
+                print("⚠️  FORCE_GPU=1 but no GPU available, using CPU")
+                self.device = torch.device("cpu")
         else:
             self.device = torch.device("cpu")
         self.model = None
@@ -59,6 +67,35 @@ class TreeSegmentation:
             self.preprocess = get_preprocess(self.config.image_size)
             print("✅ Model initialized")
     
+    def segment_image(self, image: "np.ndarray") -> SegmentationResults:
+        """
+        Segment an image from a numpy array (for benchmarking).
+
+        Args:
+            image: RGB image array (H, W, 3)
+
+        Returns:
+            SegmentationResults with labels and metadata
+        """
+        import tempfile
+        import numpy as np
+        from PIL import Image as PILImage
+
+        # Save to temporary file
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+            tmp_path = tmp.name
+            PILImage.fromarray(image.astype(np.uint8)).save(tmp_path)
+
+        try:
+            # Process using existing method
+            results = self.process_single_image(tmp_path)
+            return results
+        finally:
+            # Clean up temp file
+            import os
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
     def process_single_image(self, image_path: str) -> SegmentationResults:
         """
         Process a single image for tree segmentation.

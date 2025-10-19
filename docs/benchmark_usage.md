@@ -13,8 +13,15 @@ Follow the instructions in `data/isprs_potsdam/README.md` to download and organi
 ### 2. Run a Simple Benchmark
 
 ```bash
-# Run V1.5 baseline on 5 sample images
+# Run V1.5 baseline on 5 sample images (uses GPU by default)
 uv run python scripts/run_benchmark.py \
+  --dataset data/isprs_potsdam \
+  --method v1.5 \
+  --num-samples 5 \
+  --save-viz
+
+# Force CPU usage (if GPU has limited RAM)
+FORCE_CPU=1 uv run python scripts/run_benchmark.py \
   --dataset data/isprs_potsdam \
   --method v1.5 \
   --num-samples 5 \

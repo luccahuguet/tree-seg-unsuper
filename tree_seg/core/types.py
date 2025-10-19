@@ -40,7 +40,7 @@ class Config:
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results
-    verbose: bool = True  # Print detailed processing information
+    verbose: bool = False  # Print detailed processing information (default: quiet for benchmarking)
     
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent

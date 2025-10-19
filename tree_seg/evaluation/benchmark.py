@@ -107,7 +107,7 @@ class BenchmarkRunner:
         runtime = time.time() - start_time
 
         # Get segmentation labels
-        pred_labels = results.labels
+        pred_labels = results.labels_resized
 
         # Resize prediction to match ground truth if needed
         if pred_labels.shape != gt_labels.shape:
@@ -134,7 +134,7 @@ class BenchmarkRunner:
             miou=eval_results.miou,
             pixel_accuracy=eval_results.pixel_accuracy,
             per_class_iou=eval_results.per_class_iou,
-            num_clusters=results.k,
+            num_clusters=results.n_clusters_used,
             runtime_seconds=runtime,
             image_shape=image.shape,
         )
@@ -143,7 +143,7 @@ class BenchmarkRunner:
             print(
                 f"  mIoU: {eval_results.miou:.3f}, "
                 f"Pixel Acc: {eval_results.pixel_accuracy:.3f}, "
-                f"K: {results.k}, "
+                f"K: {results.n_clusters_used}, "
                 f"Time: {runtime:.2f}s"
             )
 
@@ -177,7 +177,7 @@ class BenchmarkRunner:
         if verbose:
             print(f"\nRunning benchmark on {end_idx - start_idx} samples...")
             print(f"Dataset: {self.dataset.dataset_path.name}")
-            print(f"Method: V{self.config.version} ({self.config.clustering_method})")
+            print(f"Method: {self.config.version} (refine={self.config.refine})")
             print(f"Model: {self.config.model_display_name}")
             print(f"Config: stride={self.config.stride}, " f"elbow_threshold={self.config.elbow_threshold}\n")
 
@@ -193,9 +193,10 @@ class BenchmarkRunner:
         mean_runtime = np.mean([s.runtime_seconds for s in sample_results])
 
         # Create benchmark results
+        refine_str = self.config.refine if self.config.refine else "kmeans"
         results = BenchmarkResults(
             dataset_name=self.dataset.dataset_path.name,
-            method_name=f"V{self.config.version}_{self.config.clustering_method}",
+            method_name=f"{self.config.version}_{refine_str}",
             config=self.config,
             samples=sample_results,
             mean_miou=mean_miou,

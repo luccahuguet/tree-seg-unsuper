@@ -85,19 +85,31 @@ class ISPRSPotsdamDataset:
 
         for image_path in image_files:
             # Infer label path
-            # ISPRS format: top_potsdam_2_10_RGB.tif -> top_potsdam_2_10_label.tif
             image_stem = image_path.stem
-            if "_RGB" in image_stem or "_IRRG" in image_stem:
-                label_stem = image_stem.replace("_RGB", "_label").replace("_IRRG", "_label")
-            else:
-                label_stem = f"{image_stem}_label"
 
-            # Try different extensions
+            # Try different naming conventions
+            label_candidates = []
+
+            # Convention 1: ISPRS official (top_potsdam_2_10_RGB.tif -> top_potsdam_2_10_label.tif)
+            if "_RGB" in image_stem or "_IRRG" in image_stem:
+                label_candidates.append(image_stem.replace("_RGB", "_label").replace("_IRRG", "_label"))
+
+            # Convention 2: Image_N -> Label_N (Kaggle dataset)
+            if image_stem.startswith("Image_"):
+                label_candidates.append(image_stem.replace("Image_", "Label_"))
+
+            # Convention 3: Just add _label suffix
+            label_candidates.append(f"{image_stem}_label")
+
+            # Try all candidates with different extensions
             label_path = None
-            for ext in [".tif", ".tiff", ".png"]:
-                potential_path = self.labels_path / f"{label_stem}{ext}"
-                if potential_path.exists():
-                    label_path = potential_path
+            for label_stem in label_candidates:
+                for ext in [".tif", ".tiff", ".png"]:
+                    potential_path = self.labels_path / f"{label_stem}{ext}"
+                    if potential_path.exists():
+                        label_path = potential_path
+                        break
+                if label_path:
                     break
 
             if label_path is None:
