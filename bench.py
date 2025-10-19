@@ -142,7 +142,7 @@ def parse_args():
     parser.add_argument(
         "--smart-grid",
         action="store_true",
-        help="Smart grid search: test best combinations (base/mega × elbow 10/20 × kmeans/slic = 8 configs)",
+        help="Smart grid search: test best combinations (small/base × elbow 10/20 × kmeans/slic = 8 configs)",
     )
 
     return parser.parse_args()
@@ -242,16 +242,16 @@ def run_comparison_benchmark(args):
     # Smart grid search: Test best combinations
     if args.smart_grid:
         configs_to_test = [
+            # small × thresholds × refinement (4 configs)
+            {"model_name": "small", "elbow_threshold": 10.0, "refine": None, "label": "small_e10_km"},
+            {"model_name": "small", "elbow_threshold": 10.0, "refine": "slic", "label": "small_e10_slic"},
+            {"model_name": "small", "elbow_threshold": 20.0, "refine": None, "label": "small_e20_km"},
+            {"model_name": "small", "elbow_threshold": 20.0, "refine": "slic", "label": "small_e20_slic"},
             # base × thresholds × refinement (4 configs)
             {"model_name": "base", "elbow_threshold": 10.0, "refine": None, "label": "base_e10_km"},
             {"model_name": "base", "elbow_threshold": 10.0, "refine": "slic", "label": "base_e10_slic"},
             {"model_name": "base", "elbow_threshold": 20.0, "refine": None, "label": "base_e20_km"},
             {"model_name": "base", "elbow_threshold": 20.0, "refine": "slic", "label": "base_e20_slic"},
-            # mega × thresholds × refinement (4 configs)
-            {"model_name": "mega", "elbow_threshold": 10.0, "refine": None, "label": "mega_e10_km"},
-            {"model_name": "mega", "elbow_threshold": 10.0, "refine": "slic", "label": "mega_e10_slic"},
-            {"model_name": "mega", "elbow_threshold": 20.0, "refine": None, "label": "mega_e20_km"},
-            {"model_name": "mega", "elbow_threshold": 20.0, "refine": "slic", "label": "mega_e20_slic"},
         ]
     else:
         # OFAT: One-factor-at-time exploration
