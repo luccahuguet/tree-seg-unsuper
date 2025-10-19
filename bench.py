@@ -4,10 +4,10 @@ Benchmark execution script for evaluating segmentation methods.
 
 Example usage:
     # Run V1.5 baseline with default settings
-    python scripts/run_benchmark.py --dataset data/isprs_potsdam --method v1.5
+    python bench.py --dataset data/isprs_potsdam --method v1.5
 
     # Run with specific model and settings
-    python scripts/run_benchmark.py \
+    python bench.py \
         --dataset data/isprs_potsdam \
         --method v1.5 \
         --model large \
@@ -17,7 +17,7 @@ Example usage:
         --save-viz
 
     # Compare multiple configurations
-    python scripts/run_benchmark.py \
+    python bench.py \
         --dataset data/isprs_potsdam \
         --method v1.5 \
         --model base \
@@ -28,8 +28,13 @@ import argparse
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from tree_seg.core.types import Config
 from tree_seg.evaluation.benchmark import run_benchmark
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def parse_args():
