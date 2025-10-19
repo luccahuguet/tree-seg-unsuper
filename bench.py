@@ -139,6 +139,12 @@ def parse_args():
         help="Run comparison across multiple configurations",
     )
 
+    parser.add_argument(
+        "--smart-grid",
+        action="store_true",
+        help="Smart grid search: test best combinations (base/mega × elbow 10/20 × kmeans/slic = 8 configs)",
+    )
+
     return parser.parse_args()
 
 
@@ -233,21 +239,36 @@ def run_single_benchmark(args, config: Config):
 
 def run_comparison_benchmark(args):
     """Run comparison across multiple configurations."""
-    # Define configurations to compare
-    configs_to_test = [
-        # Different elbow thresholds
-        {"elbow_threshold": 2.5, "label": "elbow_2.5"},
-        {"elbow_threshold": 5.0, "label": "elbow_5.0"},
-        {"elbow_threshold": 10.0, "label": "elbow_10.0"},
-        {"elbow_threshold": 20.0, "label": "elbow_20.0"},
-        # Different models (with default threshold)
-        {"model_name": "small", "label": "model_small"},
-        {"model_name": "base", "label": "model_base"},
-        {"model_name": "large", "label": "model_large"},
-        # Different refinement methods
-        {"refine": None, "label": "refine_kmeans"},
-        {"refine": "slic", "label": "refine_slic"},
-    ]
+    # Smart grid search: Test best combinations
+    if args.smart_grid:
+        configs_to_test = [
+            # base × thresholds × refinement (4 configs)
+            {"model_name": "base", "elbow_threshold": 10.0, "refine": None, "label": "base_e10_km"},
+            {"model_name": "base", "elbow_threshold": 10.0, "refine": "slic", "label": "base_e10_slic"},
+            {"model_name": "base", "elbow_threshold": 20.0, "refine": None, "label": "base_e20_km"},
+            {"model_name": "base", "elbow_threshold": 20.0, "refine": "slic", "label": "base_e20_slic"},
+            # mega × thresholds × refinement (4 configs)
+            {"model_name": "mega", "elbow_threshold": 10.0, "refine": None, "label": "mega_e10_km"},
+            {"model_name": "mega", "elbow_threshold": 10.0, "refine": "slic", "label": "mega_e10_slic"},
+            {"model_name": "mega", "elbow_threshold": 20.0, "refine": None, "label": "mega_e20_km"},
+            {"model_name": "mega", "elbow_threshold": 20.0, "refine": "slic", "label": "mega_e20_slic"},
+        ]
+    else:
+        # OFAT: One-factor-at-time exploration
+        configs_to_test = [
+            # Different elbow thresholds
+            {"elbow_threshold": 2.5, "label": "elbow_2.5"},
+            {"elbow_threshold": 5.0, "label": "elbow_5.0"},
+            {"elbow_threshold": 10.0, "label": "elbow_10.0"},
+            {"elbow_threshold": 20.0, "label": "elbow_20.0"},
+            # Different models (with default threshold)
+            {"model_name": "small", "label": "model_small"},
+            {"model_name": "base", "label": "model_base"},
+            {"model_name": "large", "label": "model_large"},
+            # Different refinement methods
+            {"refine": None, "label": "refine_kmeans"},
+            {"refine": "slic", "label": "refine_slic"},
+        ]
 
     # Base config from args
     base_config_dict = {
