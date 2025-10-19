@@ -1,0 +1,6 @@
+# Ignore all dataset files
+*
+
+# Allow specific files
+!.gitignore
+!*/README.md

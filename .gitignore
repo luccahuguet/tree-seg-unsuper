@@ -40,3 +40,6 @@ bench_models.csv
 
 # Pre-commit cache
 .pre-commit-cache/
+
+# Benchmark results
+results/
