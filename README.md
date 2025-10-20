@@ -14,6 +14,7 @@ For full setup instructions, walkthroughs, and benchmarks, jump to the dedicated
 - Methodology & pipeline details – `docs/methodology.md`
 - Complete end-to-end example – `docs/complete_example.md`
 - Parameter sweeps & analysis – `docs/parameter_analysis.md`
+- CLI usage reference – `docs/text/cli_usage.md`
 - Dataset benchmarks & evaluation plans – `docs/text/benchmarking.md`
 - Technical deep dive – `docs/technical_implementation.md`
 - Architecture notes – `docs/text/ARCHITECTURE.md`
