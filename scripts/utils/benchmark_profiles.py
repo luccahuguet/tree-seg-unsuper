@@ -27,13 +27,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tree_seg import segment_trees  # noqa: E402
-
-
-PROFILES = {
-    'quality': dict(image_size=1280, feature_upsample_factor=2, pca_dim=None, refine='slic', refine_slic_compactness=12.0, refine_slic_sigma=1.5),
-    'balanced': dict(image_size=1024, feature_upsample_factor=2, pca_dim=None, refine='slic', refine_slic_compactness=10.0, refine_slic_sigma=1.0),
-    'speed': dict(image_size=896, feature_upsample_factor=1, pca_dim=128, refine='slic', refine_slic_compactness=20.0, refine_slic_sigma=1.0),
-}
+from tree_seg.presets import PRESETS as PROFILES  # noqa: E402
 
 
 def main():
