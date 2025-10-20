@@ -68,7 +68,7 @@ FORCE_CPU=1 uv run python scripts/bench.py \
   --save-viz
 ```
 
-**Recommended production baseline (base model, elbow 20.0, SLIC refinement, 20 samples):**
+**Recommended production baseline (base model, elbow 20.0, SLIC refinement, 10 samples):**
 
 ```bash
 uv run python scripts/bench.py \
@@ -77,9 +77,9 @@ uv run python scripts/bench.py \
   --model base \
   --clustering slic \
   --elbow-threshold 20.0 \
-  --num-samples 20 \
+  --num-samples 10 \
   --save-viz \
-  --output-dir data/output/results/base_e20_slic_full
+  --output-dir data/output/results/base_e20_slic_run
 ```
 
 Outputs land in `data/output/results/<method>_<model>_<timestamp>/`:
@@ -122,9 +122,9 @@ uv run python scripts/bench.py \
   --model base \
   --clustering slic \
   --elbow-threshold 20.0 \
-  --num-samples 20 \
+  --num-samples 10 \
   --save-viz \
-  --output-dir data/output/results/base_e20_slic_full
+  --output-dir data/output/results/base_e20_slic_run
 ```
 
 ### Comparison grid mode

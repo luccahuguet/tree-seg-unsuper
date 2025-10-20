@@ -142,16 +142,16 @@ UV_CACHE_DIR=.uv_cache uv run python scripts/generate_docs_images.py data/input/
 The benchmark runner shares the same configuration backbone as `main.py`, but evaluates segmentation quality against labeled datasets. Treat it as a companion CLI:
 
 ```bash
-# Recommended baseline on ISPRS Potsdam (20 samples, saves visuals)
+# Recommended baseline on ISPRS Potsdam (10 samples, saves visuals)
 UV_CACHE_DIR=.uv_cache uv run python scripts/bench.py \
   --dataset data/isprs_potsdam \
   --method v1.5 \
   --model base \
   --clustering slic \
   --elbow-threshold 20.0 \
-  --num-samples 20 \
+  --num-samples 10 \
   --save-viz \
-  --output-dir data/output/results/base_e20_slic_full
+  --output-dir data/output/results/base_e20_slic_run
 ```
 
 Need a quick comparison sweep?
