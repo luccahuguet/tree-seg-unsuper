@@ -9,6 +9,8 @@ Tree segmentation using DINOv3 for aerial drone imagery. Modern v3.0 architectur
 - **Dataclass Config**: Centralized, type-safe parameters with validation
 - **Property methods**: Smart getters like `model_display_name` for name mapping
 - **Validation**: Early error detection with clear messages
+- **Quality Presets**: `tree_seg/presets.py` - PRESETS dict (quality/balanced/speed)
+- **Research Grids**: `tree_seg/evaluation/grids.py` - GRIDS dict (ofat/smart/full)
 
 ### 2. Result Objects  
 - **SegmentationResults**: Structured returns instead of tuples
@@ -72,10 +74,15 @@ Tree segmentation using DINOv3 for aerial drone imagery. Modern v3.0 architectur
 # Quick usage
 results = segment_trees("image.jpg", model="base", auto_k=True)
 
-# Advanced usage  
+# Advanced usage
 config = Config(model_name="base", elbow_threshold=5.0)
 segmenter = TreeSegmentation(config)
 results, paths = segmenter.process_and_visualize("image.jpg")
+
+# Using quality presets
+from tree_seg import PRESETS
+config = Config(**PRESETS['balanced'])  # or 'quality', 'speed'
+segmenter = TreeSegmentation(config)
 
 # Satellite-optimized for maximum accuracy
 config = Config(model_name="mega", elbow_threshold=0.05)  # ViT-7B/16
