@@ -54,18 +54,32 @@ The benchmark harness evaluates segmentation quality (mIoU, pixel accuracy) and 
 ### Quick start
 ```bash
 # Baseline V1.5 run on 5 samples (GPU if available)
-uv run python scripts/run_benchmark.py \
+uv run python scripts/bench.py \
   --dataset data/isprs_potsdam \
   --method v1.5 \
   --num-samples 5 \
   --save-viz
 
 # Force CPU if necessary
-FORCE_CPU=1 uv run python scripts/run_benchmark.py \
+FORCE_CPU=1 uv run python scripts/bench.py \
   --dataset data/isprs_potsdam \
   --method v1.5 \
   --num-samples 5 \
   --save-viz
+```
+
+**Recommended production baseline (base model, elbow 20.0, SLIC refinement, 20 samples):**
+
+```bash
+uv run python scripts/bench.py \
+  --dataset data/isprs_potsdam \
+  --method v1.5 \
+  --model base \
+  --clustering slic \
+  --elbow-threshold 20.0 \
+  --num-samples 20 \
+  --save-viz \
+  --output-dir data/output/results/base_e20_slic_full
 ```
 
 Outputs land in `data/output/results/<method>_<model>_<timestamp>/`:
@@ -91,29 +105,32 @@ Outputs land in `data/output/results/<method>_<model>_<timestamp>/`:
 
 ```bash
 # Compare elbow thresholds
-uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --elbow-threshold 2.5 --num-samples 5
-uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --elbow-threshold 20.0 --num-samples 5
+uv run python scripts/bench.py --dataset data/isprs_potsdam --elbow-threshold 2.5 --num-samples 5
+uv run python scripts/bench.py --dataset data/isprs_potsdam --elbow-threshold 20.0 --num-samples 5
 
 # Model comparison
-uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --model small --num-samples 5
-uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --model mega --num-samples 5
+uv run python scripts/bench.py --dataset data/isprs_potsdam --model small --num-samples 5
+uv run python scripts/bench.py --dataset data/isprs_potsdam --model mega --num-samples 5
 
 # K-means vs. SLIC refinement
-uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --clustering slic --num-samples 5
+uv run python scripts/bench.py --dataset data/isprs_potsdam --clustering slic --num-samples 5
 
 # Full run with explicit destination
-uv run python scripts/run_benchmark.py \
+uv run python scripts/bench.py \
   --dataset data/isprs_potsdam \
   --method v1.5 \
-  --model large \
+  --model base \
+  --clustering slic \
+  --elbow-threshold 20.0 \
+  --num-samples 20 \
   --save-viz \
-  --output-dir data/output/results/v1_5_full_eval
+  --output-dir data/output/results/base_e20_slic_full
 ```
 
 ### Comparison grid mode
 
 ```bash
-uv run python scripts/run_benchmark.py \
+uv run python scripts/bench.py \
   --dataset data/isprs_potsdam \
   --compare-configs \
   --num-samples 5
@@ -139,7 +156,7 @@ Predicted clusters are matched to ground-truth labels using the Hungarian algori
 2. **Benchmark infrastructure**
    - Core metric implementations (`tree_seg/evaluation/metrics.py`)
    - Batch runner (`tree_seg/evaluation/benchmark.py`) with Hungarian matching
-   - CLI entry point (`scripts/run_benchmark.py`)
+   - CLI entry point (`scripts/bench.py`)
 
 3. **Baseline experiments**
    - V1.5 with multiple elbow thresholds and models
