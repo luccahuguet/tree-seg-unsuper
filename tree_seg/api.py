@@ -271,7 +271,7 @@ class TreeSegmentation:
 # Convenience function for quick usage
 def segment_trees(
     input_path: str,
-    output_dir: str = "output", 
+    output_dir: str = "data/output",
     model: str = "base",
     auto_k: bool = True,
     web_optimize: bool = False,

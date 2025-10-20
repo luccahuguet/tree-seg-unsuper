@@ -168,17 +168,17 @@ SLIC refinement improves all configurations:
 ## Files Generated
 
 ### OFAT Exploration (9 configs)
-- `results/comparison_summary.json` - Initial OFAT results
-- `results/comparison_*/` - Individual run directories
+- `data/output/results/comparison_summary.json` - Initial OFAT results
+- `data/output/results/comparison_*/` - Individual run directories
 
 ### Smart Grid Search (8 configs)
-- `results/comparison_summary.json` - Smart grid results (updated)
-- `results/comparison_small_e*_*/` - Small model configurations
-- `results/comparison_base_e*_*/` - Base model configurations
+- `data/output/results/comparison_summary.json` - Smart grid results (updated)
+- `data/output/results/comparison_small_e*_*/` - Small model configurations
+- `data/output/results/comparison_base_e*_*/` - Base model configurations
 - Each directory contains:
   - `results.json` - Per-sample metrics
   - `visualizations/` - Comparison images (if --save-viz)
 
 ## Raw Data
 
-See `results/comparison_summary.json` for complete per-configuration metrics from the latest run (smart grid).
+See `data/output/results/comparison_summary.json` for complete per-configuration metrics from the latest run (smart grid).

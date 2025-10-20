@@ -10,8 +10,8 @@ from tree_seg import TreeSegmentation, Config
 # %%
 # Setup configuration for batch processing
 config = Config(
-    input_dir="input",
-    output_dir="output",
+    input_dir="data/input",
+    output_dir="data/output",
     model_name="base",
     auto_k=True,
     elbow_threshold=5.0,

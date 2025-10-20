@@ -8,7 +8,7 @@ from pathlib import Path
 
 def load_benchmark_data():
     """Load and parse benchmark data from JSONL file."""
-    log_file = Path("output/performance_log.jsonl")
+    log_file = Path("data/output/performance_log.jsonl")
     if not log_file.exists():
         print(f"❌ Performance log not found: {log_file}")
         return None

@@ -14,8 +14,8 @@ class Config:
     Centralized configuration for tree segmentation.
     """
     # Input/Output
-    input_dir: str = "input"
-    output_dir: str = "output"
+    input_dir: str = "data/input"
+    output_dir: str = "data/output"
     filename: Optional[str] = None  # If None, process all images
     
     # Model settings

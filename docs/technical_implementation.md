@@ -57,7 +57,7 @@ config = Config(
 To generate all parameter analysis configurations:
 
 ```bash
-uv run python scripts/generate_docs_images.py input/forest2.jpeg
+uv run python scripts/generate_docs_images.py data/input/forest2.jpeg
 ```
 
 This script:

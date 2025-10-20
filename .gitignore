@@ -5,12 +5,12 @@ env/
 .uv/
 
 # Output files
-output/
+data/output/
 
-# Input images (keep the folder, ignore images)
-input/*.jpg
-input/*.jpeg
-input/*.png
+# Input images in data/input (keep the folder, ignore images)
+data/input/*.jpg
+data/input/*.jpeg
+data/input/*.png
 
 # Environment variables and secrets
 .env
@@ -20,8 +20,8 @@ input/*.png
 # OS files
 .DS_Store
 .aider*
-input
-\n+# Model weights and caches
+
+# Model weights and caches
 # Ignore local weight directories and common weight files
 models/weights/
 weights/*
@@ -34,15 +34,11 @@ weights/*
 *.onnx
 *.h5
  
-# Local benchmark outputs
-output_bench_*/
-bench_models.csv
-
 # Pre-commit cache
 .pre-commit-cache/
 
-# Benchmark results
-results/
+# Local benchmark outputs
+bench_models.csv
 
 # Build artifacts
 *.egg-info/

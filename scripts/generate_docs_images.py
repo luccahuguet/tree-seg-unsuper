@@ -12,7 +12,7 @@ Direct execution remains available:
     python scripts/generate_docs_images.py [input_image] [--clean]
     
 Options:
-    input_image: Path to input image (default: input/forest.jpg)
+    input_image: Path to input image (default: data/input/forest.jpg)
     --clean: Clean output directories before generation
 """
 
@@ -171,7 +171,7 @@ def run_sweep(input_image):
             "python", str(run_script),
             input_image,
             "base",  # Default model (overridden by sweep)
-            "output",
+            "data/output",
             "--sweep", temp_sweep_file,
             "--clean-output",
             "--verbose"
@@ -201,7 +201,7 @@ def organize_images():
     print("\n🗂️  Organizing documentation images...")
     
     # Base paths
-    sweep_base = Path("output/sweeps")
+    sweep_base = Path("data/output/sweeps")
     docs_results = Path("docs/results")
     
     # Clean existing docs results for fresh start
@@ -372,19 +372,19 @@ def organize_images():
 
 def main():
     parser = argparse.ArgumentParser(description="Generate documentation images")
-    parser.add_argument("input_image", nargs="?", default="input/forest2.jpeg", 
-                       help="Path to input image (default: input/forest2.jpeg)")
+    parser.add_argument("input_image", nargs="?", default="data/input/forest2.jpeg", 
+                       help="Path to input image (default: data/input/forest2.jpeg)")
     
     args = parser.parse_args()
     
     # Check if input image exists
     if not os.path.exists(args.input_image):
         print(f"❌ Input image not found: {args.input_image}")
-        print("Available images in input/:")
+        print("Available images in data/input/:")
         if os.path.exists("input"):
             for f in os.listdir("input"):
                 if f.lower().endswith(('.jpg', '.jpeg', '.png', '.tif', '.tiff')):
-                    print(f"  - input/{f}")
+                    print(f"  - data/input/{f}")
         return 1
     
     print("🎨 Documentation Image Generation")

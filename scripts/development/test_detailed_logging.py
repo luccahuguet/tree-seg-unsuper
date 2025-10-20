@@ -33,8 +33,8 @@ def test_model_loading():
     
     try:
         segment_trees(
-            input_path="input/forest.jpg",
-            output_dir="output",
+            input_path="data/input/forest.jpg",
+            output_dir="data/output",
             model="dinov3_vits16",
             auto_k=True,
             elbow_threshold=0.15
@@ -51,8 +51,8 @@ def test_model_loading():
     
     try:
         segment_trees(
-            input_path="input/forest.jpg",
-            output_dir="output", 
+            input_path="data/input/forest.jpg",
+            output_dir="data/output", 
             model="dinov3_vitb16",
             auto_k=True,
             elbow_threshold=0.15

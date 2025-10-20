@@ -17,7 +17,7 @@ git clone https://github.com/luccahuguet/tree-seg-unsuper.git
 cd tree-seg-unsuper
 uv sync
 
-# Run segmentation (processes every image in `input/` → `output/`)
+# Run segmentation (processes every image in `data/input/` → `data/output/`)
 uv run python main.py --verbose
 
 # Test installation

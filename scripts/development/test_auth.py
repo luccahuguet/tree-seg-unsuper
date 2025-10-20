@@ -39,8 +39,8 @@ def test_auth():
     
     try:
         segment_trees(
-            input_path="input/forest.jpg",
-            output_dir="output",
+            input_path="data/input/forest.jpg",
+            output_dir="data/output",
             model="dinov3_vitl16",  # Large model - gated
             auto_k=True,
             elbow_threshold=0.15

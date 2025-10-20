@@ -34,8 +34,8 @@ def compare_results():
     print("="*80)
     
     # Load both datasets
-    pre_auth = load_jsonl("output/performance_log_pre_auth.jsonl")
-    with_auth = load_jsonl("output/performance_log.jsonl")
+    pre_auth = load_jsonl("data/output/performance_log_pre_auth.jsonl")
+    with_auth = load_jsonl("data/output/performance_log.jsonl")
     
     if not pre_auth or not with_auth:
         print("❌ Missing benchmark data files")

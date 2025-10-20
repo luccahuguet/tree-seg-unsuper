@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Simple CLI for tree segmentation with sensible defaults.
 
-Run without arguments to process every image under ``input/`` and write results to
-``output/`` using the balanced profile:
+Run without arguments to process every image under ``data/input/`` and write results to
+``data/output/`` using the balanced profile:
 
     uv run python main.py
 
@@ -31,9 +31,9 @@ load_dotenv()
 
 def main():
     parser = argparse.ArgumentParser(description="Tree segmentation CLI")
-    parser.add_argument("image_path", nargs="?", default="input/", help="Path to image or directory")
+    parser.add_argument("image_path", nargs="?", default="data/input", help="Path to image or directory")
     parser.add_argument("model", nargs="?", default="base", help="Model size: small/base/large/giant/mega or full name")
-    parser.add_argument("output_dir", nargs="?", default="output", help="Output directory")
+    parser.add_argument("output_dir", nargs="?", default="data/output", help="Output directory")
     parser.add_argument("--image-size", type=int, default=1024, dest="image_size", help="Preprocess resize (square)")
     parser.add_argument("--feature-upsample", type=int, default=2, dest="feature_upsample_factor", help="Upsample feature grid before K-Means")
     parser.add_argument("--pca-dim", type=int, default=None, dest="pca_dim", help="Optional PCA target dimension (e.g., 128)")
@@ -48,7 +48,7 @@ def main():
     parser.add_argument("--sweep", type=str, default=None,
                         help="Path to JSON/YAML file with a list of config overrides to run in sequence")
     parser.add_argument("--sweep-prefix", type=str, default="sweeps",
-                        help="Subfolder under output/ for sweep runs (default: sweeps)")
+                        help="Subfolder under data/output/ for sweep runs (default: sweeps)")
     parser.add_argument("--clean-output", action="store_true", help="Clear output directory before writing results")
     parser.add_argument("--verbose", action="store_true", default=True, help="Print detailed processing information (default: True)")
     parser.add_argument("--quiet", action="store_true", help="Suppress detailed processing output (opposite of --verbose)")

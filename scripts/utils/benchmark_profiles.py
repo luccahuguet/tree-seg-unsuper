@@ -6,7 +6,7 @@ Writes a CSV with runtime, VRAM, and configuration per image.
 
 Usage:
   uv run python scripts/utils/benchmark_profiles.py \
-    --input input --output-csv bench.csv \
+    --input data/input --output-csv bench.csv \
     --profiles quality balanced speed \
     --models small base
 
@@ -52,15 +52,18 @@ def main():
         if first_write:
             writer.writeheader()
 
+        base_output_dir = Path("data/output") / "benchmarks"
+        base_output_dir.mkdir(parents=True, exist_ok=True)
+
         for profile in args.profiles:
             cfg = PROFILES[profile]
             for model in args.models:
-                out_dir = f"output_bench_{profile}_{model}"
+                out_dir = base_output_dir / f"{profile}_{model}"
                 results = segment_trees(
                     args.input,
                     model=model,
                     auto_k=True,
-                    output_dir=out_dir,
+                    output_dir=str(out_dir),
                     metrics=True,
                     **cfg,
                 )

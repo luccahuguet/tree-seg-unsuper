@@ -9,7 +9,7 @@ from pathlib import Path
 import argparse
 from datetime import datetime
 
-def load_benchmarks(file_path="output/performance_log.jsonl"):
+def load_benchmarks(file_path="data/output/performance_log.jsonl"):
     """Load benchmark data from JSONL file."""
     log_file = Path(file_path)
     if not log_file.exists():
@@ -141,7 +141,7 @@ def view_raw(df):
 
 def main():
     parser = argparse.ArgumentParser(description='View DINOv3 benchmark results')
-    parser.add_argument('--file', '-f', default='output/performance_log.jsonl',
+    parser.add_argument('--file', '-f', default='data/output/performance_log.jsonl',
                        help='Path to benchmark JSONL file')
     parser.add_argument('--mode', '-m', choices=['summary', 'analysis', 'raw', 'all'], 
                        default='all', help='Display mode')

@@ -129,7 +129,7 @@ def parse_args():
         "--output-dir",
         type=Path,
         default=None,
-        help="Output directory for results (default: results/<method>_<timestamp>)",
+        help="Output directory for results (default: data/output/results/<method>_<timestamp>)",
     )
 
     parser.add_argument(
@@ -190,7 +190,9 @@ def run_single_benchmark(args, config: Config):
         refine_str = config.refine if config.refine else "kmeans"
         method_str = f"{config.version}_{refine_str}"
         model_str = config.model_display_name.lower().replace(" ", "_")
-        output_dir = Path("results") / f"{method_str}_{model_str}_{timestamp}"
+        output_dir = Path("data/output/results") / f"{method_str}_{model_str}_{timestamp}"
+
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     # Run benchmark
     results = run_benchmark(
@@ -274,7 +276,7 @@ def run_comparison_benchmark(args):
 
         # Update args for this run
         args_copy = argparse.Namespace(**vars(args))
-        args_copy.output_dir = Path("results") / f"comparison_{label}"
+        args_copy.output_dir = Path("data/output/results") / f"comparison_{label}"
 
         results = run_single_benchmark(args_copy, config)
         all_results.append({"label": label, "config": config_dict, "results": results})
@@ -283,7 +285,7 @@ def run_comparison_benchmark(args):
     print("\n" + format_comparison_table(all_results) + "\n")
 
     # Save comparison summary
-    comparison_path = Path("results") / "comparison_summary.json"
+    comparison_path = Path("data/output/results") / "comparison_summary.json"
     save_comparison_summary(all_results, comparison_path)
     print(f"Comparison summary saved to: {comparison_path}\n")
 
