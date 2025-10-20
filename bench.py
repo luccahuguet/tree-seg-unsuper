@@ -32,6 +32,12 @@ from dotenv import load_dotenv
 
 from tree_seg.core.types import Config
 from tree_seg.evaluation.benchmark import run_benchmark
+from tree_seg.evaluation.grids import get_grid
+from tree_seg.evaluation.formatters import (
+    format_comparison_table,
+    save_comparison_summary,
+    config_to_dict,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -200,15 +206,7 @@ def run_single_benchmark(args, config: Config):
     results_dict = {
         "dataset": results.dataset_name,
         "method": results.method_name,
-        "config": {
-            "version": config.version,
-            "refine": config.refine,
-            "model": config.model_display_name,
-            "stride": config.stride,
-            "elbow_threshold": config.elbow_threshold,
-            "auto_k": config.auto_k,
-            "fixed_k": config.n_clusters if not config.auto_k else None,
-        },
+        "config": config_to_dict(config),
         "metrics": {
             "mean_miou": float(results.mean_miou),
             "mean_pixel_accuracy": float(results.mean_pixel_accuracy),
@@ -239,36 +237,14 @@ def run_single_benchmark(args, config: Config):
 
 def run_comparison_benchmark(args):
     """Run comparison across multiple configurations."""
-    # Smart grid search: Test best combinations
-    if args.smart_grid:
-        configs_to_test = [
-            # small × thresholds × refinement (4 configs)
-            {"model_name": "small", "elbow_threshold": 10.0, "refine": None, "label": "small_e10_km"},
-            {"model_name": "small", "elbow_threshold": 10.0, "refine": "slic", "label": "small_e10_slic"},
-            {"model_name": "small", "elbow_threshold": 20.0, "refine": None, "label": "small_e20_km"},
-            {"model_name": "small", "elbow_threshold": 20.0, "refine": "slic", "label": "small_e20_slic"},
-            # base × thresholds × refinement (4 configs)
-            {"model_name": "base", "elbow_threshold": 10.0, "refine": None, "label": "base_e10_km"},
-            {"model_name": "base", "elbow_threshold": 10.0, "refine": "slic", "label": "base_e10_slic"},
-            {"model_name": "base", "elbow_threshold": 20.0, "refine": None, "label": "base_e20_km"},
-            {"model_name": "base", "elbow_threshold": 20.0, "refine": "slic", "label": "base_e20_slic"},
-        ]
-    else:
-        # OFAT: One-factor-at-time exploration
-        configs_to_test = [
-            # Different elbow thresholds
-            {"elbow_threshold": 2.5, "label": "elbow_2.5"},
-            {"elbow_threshold": 5.0, "label": "elbow_5.0"},
-            {"elbow_threshold": 10.0, "label": "elbow_10.0"},
-            {"elbow_threshold": 20.0, "label": "elbow_20.0"},
-            # Different models (with default threshold)
-            {"model_name": "small", "label": "model_small"},
-            {"model_name": "base", "label": "model_base"},
-            {"model_name": "large", "label": "model_large"},
-            # Different refinement methods
-            {"refine": None, "label": "refine_kmeans"},
-            {"refine": "slic", "label": "refine_slic"},
-        ]
+    # Select grid based on args
+    grid_name = "smart" if args.smart_grid else "ofat"
+    grid = get_grid(grid_name)
+    configs_to_test = grid["configs"]
+
+    print(f"\nUsing grid: {grid['name']}")
+    print(f"Description: {grid['description']}")
+    print(f"Configurations: {len(configs_to_test)}\n")
 
     # Base config from args
     base_config_dict = {
@@ -304,43 +280,11 @@ def run_comparison_benchmark(args):
         all_results.append({"label": label, "config": config_dict, "results": results})
 
     # Print comparison table
-    print("\n" + "=" * 60)
-    print("COMPARISON RESULTS")
-    print("=" * 60)
-    print(f"{'Configuration':<20} {'mIoU':>8} {'Px Acc':>8} {'Per Img':>10} {'Total':>10}")
-    print("-" * 60)
-
-    for item in all_results:
-        label = item["label"]
-        r = item["results"]
-        total_time = r.mean_runtime * r.total_samples
-        print(
-            f"{label:<20} {r.mean_miou:>8.3f} {r.mean_pixel_accuracy:>8.1%} "
-            f"{r.mean_runtime:>9.2f}s {total_time:>9.1f}s"
-        )
-
-    print("=" * 60 + "\n")
+    print("\n" + format_comparison_table(all_results) + "\n")
 
     # Save comparison summary
     comparison_path = Path("results") / "comparison_summary.json"
-    comparison_path.parent.mkdir(parents=True, exist_ok=True)
-
-    comparison_dict = {
-        "configurations": [
-            {
-                "label": item["label"],
-                "config": item["config"],
-                "mean_miou": float(item["results"].mean_miou),
-                "mean_pixel_accuracy": float(item["results"].mean_pixel_accuracy),
-                "mean_runtime": float(item["results"].mean_runtime),
-            }
-            for item in all_results
-        ]
-    }
-
-    with open(comparison_path, "w") as f:
-        json.dump(comparison_dict, f, indent=2)
-
+    save_comparison_summary(all_results, comparison_path)
     print(f"Comparison summary saved to: {comparison_path}\n")
 
 
