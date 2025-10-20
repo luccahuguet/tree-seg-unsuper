@@ -1,2 +1,0 @@
-scripts
-tree_seg

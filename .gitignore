@@ -43,3 +43,6 @@ bench_models.csv
 
 # Benchmark results
 results/
+
+# Build artifacts
+*.egg-info/
