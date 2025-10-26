@@ -42,6 +42,7 @@ Cross-cutting standards:
 - **Deliverables:** `sam_polish` stage and configuration.
 - **Gate:** Configurable threshold such that edge-F improves by ≥ *X%* with precision loss ≤ *Y%*.
 - **Implementation note:** Mask2Former checkpoints must be accessible. If direct downloads from `dl.fbaipublicfiles.com` are blocked, set `DINOV3_MASK2FORMER_WEIGHTS` and `DINOV3_BACKBONE_WEIGHTS` to local paths before running.
+- **Resource warning:** Loading the official ViT-7B backbone (~26 GB) plus Mask2Former head (~3.5 GB) consumes more than 40 GB of RAM in float32. Expect CPU-only workstations with ≤32 GB to crash; run V4 benchmarks on a high-memory remote server or GPU box (≥64 GB RAM or A100-class GPU) and record the requirement in documentation.
 
 ---
 

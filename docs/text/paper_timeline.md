@@ -135,6 +135,7 @@
 3. **Optional V4 SAM polishing**
    - Auto-generate prompts, enforce vegetation gating, and log precision/edge-F trade-offs
    - Save pre/post overlays and prompt metadata for audits
+   - Run on high-memory infrastructure (≥64 GB RAM or 48 GB GPU); local CPU boxes may crash loading ViT-7B + Mask2Former
 
 4. **Ground-truth subset & scoring**
    - Maintain Hungarian-aligned mIoU, pixel accuracy, and edge-F
