@@ -91,6 +91,13 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--image-size",
+        type=int,
+        default=1024,
+        help="Image resize dimension (default: 1024; V4 defaults to 896 if not specified)",
+    )
+
+    parser.add_argument(
         "--elbow-threshold",
         type=float,
         default=5.0,
@@ -163,10 +170,13 @@ def create_config(args) -> Config:
     if version == "v4":
         if args.model != "mega":
             print("⚠️  Mask2Former head only supports the ViT-7B backbone; overriding model to 'mega'.")
+        image_size = args.image_size or 896
+        if image_size == 1024:
+            image_size = 896
         return Config(
             version="v4",
             model_name="mega",
-            image_size=args.image_size,
+            image_size=image_size,
             auto_k=False,
             n_clusters=6,
             refine=None,
@@ -187,6 +197,7 @@ def create_config(args) -> Config:
         elbow_threshold=args.elbow_threshold,
         n_clusters=args.fixed_k if args.fixed_k else 6,
         auto_k=(args.fixed_k is None),
+        image_size=args.image_size,
     )
 
     return config
