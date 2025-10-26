@@ -11,7 +11,7 @@ nav_order: 4
 
 ## V1.5 Foundation: Parameter Analysis for Future Architecture
 
-This comprehensive analysis establishes the baseline performance characteristics for our current DINOv3 + K-means architecture (V1.5), providing the foundation for evaluating future advances in V2 (U2Seg) and beyond. These findings directly inform the design decisions for upcoming architectural versions.
+This comprehensive analysis establishes the baseline performance characteristics for our current DINOv3 + K-means architecture (V1.5), providing the foundation for evaluating the upcoming head-refinement (V2) and tree-focused (V3) upgrades. These findings directly inform the design decisions for the gate-driven roadmap.
 
 ## Overview: 13-Configuration Systematic Study
 
@@ -132,26 +132,27 @@ This baseline configuration demonstrates the complete pipeline using balanced se
 - **Feature Quality Varies**: Different models provide varying feature representations affecting clustering quality
 - **Diminishing Returns**: Base→Large shows significant improvement, Large→Giant marginal
 - **Optimal Choice**: Base model provides best quality/speed balance for V1.5
-- **V2+ Implications**: U2Seg's unified approach should improve clustering quality regardless of model size
+- **V2+ Implications**: Soft/EM head refinements can leverage higher-quality tokens without a full architecture swap.
 
 ### 2. Elbow Method Validation (Foundation for Advanced Methods)
 - **Consistent Behavior**: Eliminates stride-dependent paradoxes seen in curvature methods
 - **Predictable Thresholds**: 2.5%-20.0% range covers broad segmentation spectrum
 - **Intuitive Configuration**: Percentage-based thresholds provide direct control over clustering sensitivity
 - **Bug Resolution**: Fixed index mapping and safety override issues that masked threshold sensitivity
-- **V2+ Integration**: This robust K-selection framework will serve as fallback for U2Seg's adaptive clustering
+- **V2+ Integration**: This robust K-selection framework now initializes the V2 head refinement and remains the fallback for experimental clustering.
 
 ### 3. Configuration Interactions (Architectural Design Lessons)
 - **Compound Effects**: Giant + stride 2 + SLIC = maximum quality baseline
 - **Efficiency**: Small + stride 4 + no refinement = maximum speed baseline
 - **Balance**: Base + stride 4 + default settings = optimal general use
-- **V3+ Planning**: DynaSeg's dynamic fusion should eliminate need for manual configuration trade-offs
+- **V3+ Planning**: Tree-focused heuristics (vegetation gating, shape filters) can selectively apply these configurations to foreground regions.
 
 ### 4. Future Architecture Targets
 Based on these V1.5 findings, upcoming versions target:
-- **V2 (U2Seg)**: Improve segmentation quality without increasing computational cost
-- **V3 (DynaSeg)**: Eliminate manual threshold tuning through dynamic parameter adaptation  
-- **V4 (Multispectral)**: Maintain current processing speeds while adding multi-band capability
+- **V2 (Head Refinement)**: Improve segmentation quality via soft/EM updates without major computational cost.
+- **V3 (Tree Focus)**: Apply vegetation gating and instance separation guided by the validated thresholds.
+- **V4 (SAM Polisher)**: Offer optional boundary cleanup governed by precision/edge gates.
+- **V5 (Multispectral)**: Maintain current processing speeds while adding multi-band capability.
 
 
 For detailed configuration profiles, reproduction steps, and technical implementation details, see **[Technical Implementation]({{ '/technical_implementation' | relative_url }})**.
@@ -162,6 +163,7 @@ For detailed configuration profiles, reproduction steps, and technical implement
 
 This parameter analysis provides the foundation for advancing to V2+ architectures. The validated threshold sensitivity and performance characteristics will inform the design of:
 
-- **V2 (U2Seg)**: Advanced unified segmentation methods
-- **V3 (DynaSeg)**: Dynamic parameter adaptation
-- **V4 (Multispectral)**: Multi-band imagery support
+- **V2 (Head Refinement)**: Soft/EM clustering with spatial blending.
+- **V3 (Tree Focus)**: Vegetation-aware filtering and instance masks.
+- **V4 (SAM Polisher)**: Precision-gated boundary cleanup.
+- **V5 (Multispectral)**: Multi-band imagery support without retraining DINO.

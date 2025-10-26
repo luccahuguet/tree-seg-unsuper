@@ -64,21 +64,14 @@ The systematic model comparison reveals optimal configurations for different use
 
 ## Development Roadmap
 
-### **Current: V1.5 (DINOv3 + K-means)**
-- **Baseline**: Solid foundation with state-of-the-art features
-- **Architecture**: Clean, extensible design ready for advanced methods
+- **V1.5 — Baseline (Active):** Frozen reference built on DINOv3 + K-means (optional SLIC), PCA/overlay artifacts, Hungarian-aligned metrics.
+- **V2 — DINO Head:** Lightweight soft/EM refinement over the K-means init with a single spatial blend; must beat V1.5 on both mIoU and edge-F before adoption.
+- **V3 — Tree Focus (RGB):** Vegetation-gated clustering, shape/area filters, and instance masks (DT + watershed) targeting higher tree precision/recall without edge regressions.
+- **V4 — SAM Polisher (Optional):** Prompted SAM refinement gated by vegetation priors and precision/edge-F thresholds for thin-structure recovery.
+- **V5 — Multispectral:** NDVI/GNDVI/NDRE gating (V5a) plus late fusion of MSI indices with DINO tokens (V5b) evaluated against V3/V4.
+- **V6 — K-means Successors (Spike):** Spherical/soft k-means and DP-means probes; only uplifted if they outscore V2 with similar runtime/VRAM.
 
-### **Next: V2 (U2Seg)**
-**Target**: `tree_seg/clustering/u2seg.py`
-- Advanced unsupervised segmentation beyond K-means
-- Integration point: `core/segmentation.py` routing logic
-- **Paper**: [U2Seg: Unsupervised Universal Image Segmentation](https://arxiv.org/abs/2312.17243)
-
-### **Future: V3 (DynaSeg) + V4 (Multispectral)**
-**Target**: `tree_seg/clustering/dynaseg.py` + `tree_seg/models/multispectral_adapter.py`
-- Dynamic fusion methods + multi-band imagery support
-- Architecture supports both through modular design
-- **Paper**: [DynaSeg: A Deep Dynamic Fusion Method for Unsupervised Image Segmentation](https://arxiv.org/abs/2405.05477)
+Full gate-driven details live in `docs/text/version_roadmap.md`.
 
 ---
 

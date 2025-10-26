@@ -3,10 +3,10 @@
 | Week | Week Starting | Task | Description |
 |------|---------------|------|-------------|
 | **W1** | **Oct 6** | Benchmark baseline evaluation | Select benchmark dataset (NEON AOP / BAMForest / IDTrees), download and prepare data, run V1.5 baseline with multiple configurations, compute mIoU and pixel accuracy scores |
-| **W2** | **Oct 13** | Implement V2 (U2Seg) | Integrate codebase, adapt for DINOv3 features, test on sample images, verify output format |
-| **W3** | **Oct 20** | Implement V3 (DynaSeg) | Integrate codebase, adapt for DINOv3 features, configure dynamic weighting parameters, test on sample images |
-| **W4** | **Oct 27** | Implement V4 (DINOv3 Mask2Former) | Load pretrained segmentor via torch.hub, setup inference pipeline, adapt to drone imagery resolution, test zero-shot performance |
-| **W5** | **Nov 3** | Run full evaluation + analyze results | Execute all methods (V1.5, V2, V3, V4) on complete test set, compute metrics (mIoU, boundary precision, pixel accuracy), generate visualizations, compare results and identify strengths/weaknesses |
+| **W2** | **Oct 13** | Implement V2 (Head Refinement) | Add soft/EM head refinement with spatial blending, validate gains on mIoU and edge-F over V1.5 |
+| **W3** | **Oct 20** | Implement V3 (Tree Focus) | Build vegetation-gated clustering, apply shape filters, generate instance masks with DT + watershed |
+| **W4** | **Oct 27** | Prototype V4 (SAM Polisher) | Configure auto prompts, vegetation gating, and precision guardrails for optional SAM refinement |
+| **W5** | **Nov 3** | Run full evaluation + analyze results | Execute V1.5–V4 on the test set, compute metrics (mIoU, edge-F, pixel accuracy), generate visualizations, compare strengths/weaknesses |
 | **W6** | **Nov 10** | Draft methodology + results sections | Complete methodology writeup (V1.5/V2/V3/V4 pipelines, parameters), draft results section with tables and figures |
 | **W7** | **Nov 17** | Draft related work + introduction | Literature review section (unsupervised segmentation, self-supervised models, forestry applications), introduction and abstract |
 | **W8** | **Nov 24** | Draft discussion + complete first draft | Discussion section (interpret findings, limitations, V5 outlook), integrate all sections into complete draft |
@@ -41,74 +41,71 @@
 
 ---
 
-### V2: Advanced Visual Feature Clustering (U2Seg)
-- **Task 1:** Unsupervised Segmentation
-  - Method: Apply U2Seg model to RGB drone images
-  - U2Seg uses self-supervised features, compatible with DINOv3
-- **Comment:** Uses U2Seg, optimized for RGB imagery
-  - Open-source code: https://github.com/u2seg/U2Seg
-  - Expected competitive mIoU performance
+### V2: Head Refinement (Soft/EM)
+- **Task 1:** Prototype refinement module
+  - Initialize with K-means clusters from V1.5
+  - Run soft/EM updates with temperature (τ) for 3–5 iterations
+- **Task 2:** Spatial blending
+  - Apply a single smoothing/blending pass (weight α) to reinforce local consistency
+- **Evaluation:** Expect higher mIoU and edge-F with minimal runtime overhead
+- **Deliverable:** `head_refine` module, A/B runner, metrics report vs V1.5
 
 ---
 
-### V3: Advanced Visual Feature Clustering (DynaSeg)
-- **Task 1:** Deep Feature Extraction (Model: DINOv3)
-  - Method: Extract dense feature maps from RGB drone images
-- **Task 2:** Unsupervised Segmentation
-  - Method: Apply DynaSeg model to extracted features
-  - DynaSeg balances feature similarity and spatial continuity
-- **Comment:** Uses DynaSeg's dynamic weighting for segmentation
-  - Open-source code: https://github.com/RyersonMultimediaLab/DynaSeg
-  - Strong benchmark performance expected
+### V3: Tree-Focused Segmentation (RGB)
+- **Task 1:** Vegetation gating
+  - Compute ExG/CIVE indices to isolate vegetation pixels
+  - Select clusters by IoU to vegetation mask + green ratio thresholds
+- **Task 2:** Instance shaping
+  - Apply shape/area filters using GSD-aware thresholds
+  - Use distance transform + watershed to emit instance masks
+- **Task 3:** Optional refinement
+  - Keep SLIC snapping; consider light CRF/bilateral smoothing
+- **Evaluation:** Track tree precision/recall and edge-F relative to V2
+- **Deliverable:** Binary tree mask, instance mask, per-tile CSV
 
 ---
 
-### V4: Supervised Segmentation (DINOv3 Mask2Former) [NEW - For Comparison]
-- **Task 1:** Supervised Segmentation Head
-  - Method: Use pretrained DINOv3 + Mask2Former segmentation head
-  - Trained on ADE20K dataset (150 semantic classes)
-  - Zero-shot transfer to tree segmentation task
-- **Architecture:**
-  - **Backbone**: Frozen DINOv3 features (ViT-7B/16 or ViT-L/16)
-  - **Pixel Decoder**: MSDeformAttnPixelDecoder (6 transformer layers)
-  - **Transformer Decoder**: MultiScaleMaskedTransformerDecoder (9 decoder layers, 100 queries)
-- **Implementation:**
-  - Load via: `torch.hub.load(REPO_DIR, 'dinov3_vit7b16_ms', ...)`
-  - Inference code: `dinov3/dinov3/eval/segmentation/inference.py`
-- **Performance:** 63.0% mIoU on ADE20K (SOTA for frozen backbone)
-- **Comment:** Supervised baseline for comparison. Tests whether task-specific unsupervised methods (V1.5) can match or exceed zero-shot supervised performance on tree segmentation
+### V4: SAM Polisher (Optional Assistant)
+- **Task 1:** Prompt generation
+  - Use connected-component centroids as positive points, optional boundary rings as negatives
+  - Provide optional bounding boxes derived from cluster extents
+- **Task 2:** Vegetation-aware gating
+  - Apply NDVI/green masks (or ExG) to constrain SAM expansion
+  - Record pre/post outputs and prompt metadata for audits
+- **Task 3:** Precision guardrails
+  - Enforce configurable thresholds: ≥ X% edge-F gain with ≤ Y% precision loss
+- **Deliverable:** `sam_polish` stage with toggleable integration
 
 ---
 
 ## Key Research Question
 
-**Can unsupervised methods (V1.5) specialized for tree segmentation match or exceed the zero-shot performance of supervised segmentation heads (V4) trained on general scenes?**
+**Can incremental, unsupervised refinements (V2/V3) close the accuracy gap enough that optional SAM polishing (V4) becomes a targeted assist instead of a dependency?**
 
 ### Comparison Framework
-- **V1.5 (Unsupervised)**: DINOv3 features + K-means clustering with automatic K-selection
-- **V4 (Supervised)**: DINOv3 features + Mask2Former head trained on ADE20K
+- **V1.5 (Baseline)**: DINOv3 features + K-means clustering with automatic K-selection
+- **V2 (Head Refinement)**: Soft/EM updates with spatial blending
+- **V3 (Tree Focus)**: Vegetation-informed filtering and instance generation
+- **V4 (SAM Polisher)**: Prompted boundary cleanup gated by precision/edge metrics
 
 ### Expected Outcomes
-- **V1.5 Advantages**: No training data required, domain-specific K-selection tuning
-- **V4 Advantages**: Learned semantic boundaries, richer training signal
-- **Research Gap**: Understanding when unsupervised specialization outperforms supervised generalization
+- **V2 Advantages**: Minimal code change, measurable boosts to mIoU/edge-F
+- **V3 Advantages**: Better tree precision/recall and cleaner instances for forestry tasks
+- **V4 Role**: Optional safety net for thin structures when metrics justify the extra cost
+- **Research Gap**: Quantifying how far unsupervised refinements can go before SAM or multispectral inputs become necessary
 
 ---
 
-### V5: Multispectral Extension (Future Work)
-- **Task 1:** Multispectral Feature Extraction
-  - Method: Adapt DINOv3 or train custom adapter for multispectral bands
-  - Utilize near-infrared (NIR), red-edge, and other spectral bands
-- **Task 2:** Enhanced Unsupervised Segmentation
-  - Method: Apply V1.5 pipeline (K-means + attention) to multispectral features
-  - Alternative: Extend V2 (U2Seg) or V3 (DynaSeg) for multispectral data
-- **Task 3:** RGB vs Multispectral Comparison
-  - Compare segmentation quality between RGB-only and multispectral approaches
-  - Assess vegetation indices (NDVI, GNDVI) integration
-- **Comment:** Future extension addressing secondary research question
-  - Spectral bands provide complementary information for tree species differentiation
-  - NEON AOP dataset supports multispectral analysis
-  - Expected improvement: 5-15% mIoU gain over RGB-only methods
+### V5: Multispectral Extension (MSI)
+- **V5a Vegetation Gating**
+  - Compute NDVI/GNDVI/NDRE to strengthen vegetation masks
+  - Constrain SAM growth and tree-focus stages using MSI thresholds
+- **V5b Late Fusion**
+  - Concatenate normalized MSI indices with DINO tokens
+  - Reuse the V2 head refinement without retraining DINO
+- **Evaluation:** Compare RGB vs MSI runs for tree precision/recall and species purity while monitoring edge-F
+- **Comment:** Future extension once RGB roadmap stabilizes; expected 5–15% mIoU gain when multispectral data is available
 
 ---
 
@@ -127,32 +124,34 @@
 
 ## Evaluation Plan
 
-1. **Implement V4 (DINOv3 + Mask2Former) on RGB drone imagery**
-   - Use pretrained segmentor from DINOv3 codebase
-   - Apply zero-shot inference on tree segmentation task
+1. **Ship V2 head refinement**
+   - Implement soft/EM updates + spatial blend and validate ≥ V1.5 on mIoU + edge-F
+   - Record runtime/VRAM deltas alongside metrics
 
-2. **Compare V1.5 vs V4 outputs on RGB drone images**
-   - Assess tree crown/species patch segmentation
-   - Qualitative analysis of boundary quality
+2. **Add V3 tree-focused pipeline**
+   - Generate vegetation masks (ExG/CIVE), apply cluster gating, and run DT + watershed instances
+   - Track tree precision/recall, edge-F, and instance stats (count, mean area)
 
-3. **Create ground-truth labeled subset**
-   - Compare performance with Pixel Accuracy and mIoU
-   - Use Hungarian algorithm for unsupervised evaluation
-   - **Expected mIoU:** V1.5 (20–30%), V4 (30–50%) for trees
-   - **Expected Pixel Accuracy:** V1.5 (55–65%), V4 (65–80%)
+3. **Optional V4 SAM polishing**
+   - Auto-generate prompts, enforce vegetation gating, and log precision/edge-F trade-offs
+   - Save pre/post overlays and prompt metadata for audits
 
-4. **Analyze trade-offs:**
-   - Zero training data (V1.5) vs supervised pretraining (V4)
-   - Domain specialization vs generalization
-   - Computational cost comparison
+4. **Ground-truth subset & scoring**
+   - Maintain Hungarian-aligned mIoU, pixel accuracy, and edge-F
+   - Add tree P/R and instance metrics for V3+, capturing qualitative galleries
+
+5. **Analyze trade-offs**
+   - Minimal-lift refinements (V2) vs heuristic-heavy tree focus (V3) vs SAM assistance (V4)
+   - Computational cost comparison and decision thresholds for deploying optional stages
 
 ---
 
 ## Relevant Links and References
 
 - DINOv3: https://github.com/facebookresearch/dinov3
-- U2Seg: https://github.com/u2seg/U2Seg
-- DynaSeg: https://github.com/RyersonMultimediaLab/DynaSeg
+- Soft k-means / EM overview: https://web.stanford.edu/class/cs345a/slides/12-clustering.pdf
+- Vegetation indices (ExG/CIVE/NDVI): https://www.indexdatabase.de/db/i.php
+- SAM (Segment Anything): https://segment-anything.com/
 - NEON AOP: https://data.neonscience.org/data-products/DP3.30010.001
 
 ---
@@ -160,7 +159,8 @@
 **Summary:**
 - **V1**: Patch features only
 - **V1.5**: Patch + attention features, automatic K-selection (**current unsupervised baseline**)
-- **V2**: U2Seg (future work)
-- **V3**: DynaSeg (future work)
-- **V4**: DINOv3 + Mask2Former supervised head (**new supervised comparison baseline**)
-- **V5**: Multispectral extension (future work - secondary research question)
+- **V2**: Head refinement (soft/EM + spatial blend)
+- **V3**: Tree-focused segmentation (vegetation gating + instances)
+- **V4**: SAM polisher (optional assistant)
+- **V5**: Multispectral extension (vegetation gating + late fusion)
+- **V6**: K-means successors (spherical/soft, DP-means spike)

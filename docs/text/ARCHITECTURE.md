@@ -142,17 +142,27 @@ Features → K-Selection (elbow) → K-means → Labels (H×W) → Upsampled Lab
 
 ## 🎯 Adding New Features
 
-### **🆕 New Clustering Methods (V2: U2Seg, V3: DynaSeg)**
-**Location**: `tree_seg/clustering/`
+### **🆕 Head Refinements & Tree-Focused Stages (V2/V3)**
+**Locations**: `tree_seg/clustering/`, `tree_seg/core/segmentation.py`, `tree_seg/utils/`
 ```python
-# Create new module
-tree_seg/clustering/u2seg.py
-tree_seg/clustering/dynaseg.py
+# V2 soft/EM head refinement
+tree_seg/clustering/head_refine.py
 
-# Update segmentation.py to route based on config
-if config.clustering_method == "u2seg":
-    return u2seg_cluster(features)
+# V3 vegetation + instance helpers
+tree_seg/utils/vegetation_masks.py
+tree_seg/clustering/tree_focus.py
+
+# Route via segmentation pipeline
+if config.clustering_method == "head_refine":
+    return head_refine.segment(features, config)
+elif config.clustering_method == "tree_focus":
+    return tree_focus.segment(features, metadata, config)
 ```
+
+Key notes:
+- Leverage existing K-means output as the initializer for the V2 refinement stage.
+- Keep shared utilities (normalization, SLIC adjacency) in `tree_seg/utils/` to minimize duplication across V2/V3.
+- Ensure new modules return the same structured results (labels, diagnostics) for downstream visualization.
 
 ### **🔧 New Model Architectures**
 **Location**: `tree_seg/models/`
@@ -254,19 +264,33 @@ opencv-python                    # Image processing
 
 ## 🎓 Research Roadmap Integration
 
-### **📍 Current: V1.5 (DINOv3 + K-means)**
-- ✅ **Baseline**: Solid foundation with state-of-the-art features
-- ✅ **Architecture**: Clean, extensible design ready for advanced methods
+### **📍 Current: V1.5 (Baseline)**
+- ✅ **Status**: Frozen reference with DINOv3 + K-means (optional SLIC), PCA/overlay artifacts, and locked metrics.
 
-### **🎯 Next: V2 (U2Seg)**
-**Target**: `tree_seg/clustering/u2seg.py`
-- Advanced unsupervised segmentation beyond K-means
-- Integration point: `core/segmentation.py` routing logic
+### **🎯 V2: DINO Head Refinement**
+- **Target**: `tree_seg/clustering/head_refine.py`
+- **Focus**: Soft/EM refinement over K-means initialization plus single spatial blend (α).
+- **Gate**: Must improve both mIoU and edge-F relative to V1.5 without major runtime/VRAM increases.
 
-### **🚀 Future: V3 (DynaSeg) + V4 (Multispectral)**
-**Target**: `tree_seg/clustering/dynaseg.py` + `tree_seg/models/multispectral_adapter.py`
-- Dynamic fusion methods + multi-band imagery support
-- Architecture supports both through modular design
+### **🌳 V3: Tree Focus (RGB)**
+- **Target**: `tree_seg/clustering/tree_focus.py` + vegetation utilities.
+- **Focus**: Vegetation gating (ExG/CIVE), cluster selection heuristics, shape/area filters, DT + watershed instances.
+- **Gate**: Higher tree precision/recall vs V2 with stable edge metrics.
+
+### **✨ V4: SAM Polisher (Optional)**
+- **Target**: `tree_seg/postprocess/sam_polish.py`
+- **Focus**: Auto prompts, vegetation gating, precision-safety checks, optional UI logging.
+- **Gate**: Configurable edge-F lift with minimal precision loss.
+
+### **🌈 V5: Multispectral Expansion**
+- **Targets**: `tree_seg/utils/msi_indices.py`, fusion hooks in head refine.
+- **Focus**: NDVI/GNDVI/NDRE gating (V5a) plus late fusion of MSI indices with DINO tokens (V5b).
+- **Gate**: Improved tree precision/recall or species purity while keeping edge-F stable.
+
+### **🧪 V6: K-Means Successors (Spike)**
+- **Targets**: `tree_seg/clustering/experimental/`
+- **Focus**: Spherical + soft k-means, DP-means auto-K exploration.
+- **Gate**: Adopt only if outperforming V2 on mIoU/edge-F at similar compute cost; otherwise archive results.
 
 ---
 

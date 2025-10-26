@@ -163,13 +163,13 @@ Predicted clusters are matched to ground-truth labels using the Hungarian algori
    - Persist `results.json` tables and visual comparisons
 
 4. **Future comparisons**
-   - Re-run the same suite with forthcoming V2 (U2Seg) and V3 (DynaSeg)
-   - Track mIoU, pixel accuracy, runtime, memory, and cluster stability
+   - Re-run the same suite with V2 (head refinement), V3 (tree focus), and optional V4 (SAM polisher)
+   - Track mIoU, pixel accuracy, runtime, memory, edge-F, and cluster stability
 
 5. **Suggested timeline**
    - Days 1–2: dataset download + verification
    - Days 3–4: metric + benchmark implementation
    - Day 5: execute V1.5 baselines
-   - Days 6–7: analyze results, prepare write-up, and plan V2/V3 evaluations
+   - Days 6–7: analyze results, prepare write-up, and plan V2/V3 evaluations under the gate-driven roadmap
 
 With the dataset in place and the benchmark script configured, you can iterate quickly on new segmentation approaches and track improvements quantitatively.
