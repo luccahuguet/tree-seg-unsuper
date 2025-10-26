@@ -41,6 +41,7 @@ Cross-cutting standards:
 - **Scope:** Auto prompts from connected-component centroids (positive) and rings (negative), optional boxes, vegetation prior gating, optional interactive click UI, persist pre/post images and prompt logs.
 - **Deliverables:** `sam_polish` stage and configuration.
 - **Gate:** Configurable threshold such that edge-F improves by ≥ *X%* with precision loss ≤ *Y%*.
+- **Implementation note:** Mask2Former checkpoints must be accessible. If direct downloads from `dl.fbaipublicfiles.com` are blocked, set `DINOV3_MASK2FORMER_WEIGHTS` and `DINOV3_BACKBONE_WEIGHTS` to local paths before running.
 
 ---
 

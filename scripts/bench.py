@@ -63,7 +63,7 @@ def parse_args():
         "--method",
         type=str,
         default="v1.5",
-        choices=["v1", "v1.5", "v2", "v3"],
+        choices=["v1", "v1.5", "v2", "v3", "v4"],
         help="Segmentation method version (default: v1.5)",
     )
 
@@ -157,8 +157,22 @@ def parse_args():
 def create_config(args) -> Config:
     """Create Config object from command-line arguments."""
     # Map method version to version string
-    version_map = {"v1": "v1", "v1.5": "v1.5", "v2": "v2", "v3": "v3"}
+    version_map = {"v1": "v1", "v1.5": "v1.5", "v2": "v2", "v3": "v3", "v4": "v4"}
     version = version_map.get(args.method, "v3")
+
+    if version == "v4":
+        if args.model != "mega":
+            print("⚠️  Mask2Former head only supports the ViT-7B backbone; overriding model to 'mega'.")
+        return Config(
+            version="v4",
+            model_name="mega",
+            image_size=args.image_size,
+            auto_k=False,
+            n_clusters=6,
+            refine=None,
+            metrics=True,
+            verbose=not args.quiet,
+        )
 
     # Map clustering to refine parameter
     # "kmeans" = no refinement (None), "slic" = SLIC refinement

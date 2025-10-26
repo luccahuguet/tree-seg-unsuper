@@ -3,16 +3,19 @@ Modern, clean API for tree segmentation.
 """
 
 import os
-import torch
-import numpy as np
-from typing import Optional, List
+import time
 from pathlib import Path
+from typing import List, Optional
+
+import numpy as np
+import torch
 
 from .constants import SUPPORTED_IMAGE_EXTS
 
 from .core.types import Config, SegmentationResults, OutputPaths
 from .core.output_manager import OutputManager
-from .models import initialize_model, get_preprocess
+from .models import get_preprocess, initialize_model
+from .models.mask2former import Mask2FormerConfig, Mask2FormerSegmentor
 from .core.segmentation import process_image
 from .visualization.plotting import generate_visualizations
 
@@ -49,6 +52,7 @@ class TreeSegmentation:
             self.device = torch.device("cpu")
         self.model = None
         self.preprocess = None
+        self.mask2former_segmentor: Optional[Mask2FormerSegmentor] = None
         
         print("🌳 TreeSegmentation initialized")
         print(f"📱 Selected device: {self.device}")
@@ -106,6 +110,9 @@ class TreeSegmentation:
         Returns:
             SegmentationResults with processed data
         """
+        if self.config.version == "v4":
+            return self._process_with_mask2former(image_path)
+
         self.initialize_model()
         
         print(f"🖼️ Processing: {os.path.basename(image_path)}")
@@ -171,6 +178,64 @@ class TreeSegmentation:
             processing_stats=stats
         )
     
+    def _ensure_mask2former(self) -> None:
+        """Lazy-load the pretrained Mask2Former segmentor."""
+        if self.mask2former_segmentor is None:
+            weights = os.environ.get("DINOV3_MASK2FORMER_WEIGHTS")
+            backbone_weights = os.environ.get("DINOV3_BACKBONE_WEIGHTS")
+            check_hash_env = os.environ.get("DINOV3_CHECK_HASH")
+            check_hash = True if check_hash_env is None else check_hash_env.strip().lower() not in {"0", "false", "no"}
+            cfg = Mask2FormerConfig(
+                image_size=self.config.image_size or 896,
+                weights=weights,
+                backbone_weights=backbone_weights,
+                check_hash=check_hash,
+            )
+            try:
+                self.mask2former_segmentor = Mask2FormerSegmentor(
+                    device=self.device,
+                    cfg=cfg,
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    "Failed to load the Mask2Former segmentor. Set"
+                    " DINOV3_MASK2FORMER_WEIGHTS and DINOV3_BACKBONE_WEIGHTS"
+                    " to local checkpoint paths if direct downloads are blocked."
+                ) from exc
+
+    def _process_with_mask2former(self, image_path: str) -> SegmentationResults:
+        """Process an image using the pretrained DINOv3 + Mask2Former head."""
+        from PIL import Image as PILImage
+
+        print(f"🖼️ Processing (Mask2Former): {os.path.basename(image_path)}")
+        self._ensure_mask2former()
+
+        start_time = time.time()
+        image = PILImage.open(image_path).convert("RGB")
+        image_np = np.array(image)
+        labels = self.mask2former_segmentor.predict(image_np)
+        runtime = time.time() - start_time
+
+        n_segments = int(np.unique(labels).size)
+
+        stats = {
+            "original_size": image_np.shape[:2],
+            "labels_shape": labels.shape,
+            "model": "dinov3_vit7b16",
+            "decoder": "mask2former_m2f",
+            "runtime_s": runtime,
+            "num_decoder_classes": self.mask2former_segmentor.cfg.num_classes,
+        }
+
+        return SegmentationResults(
+            image_np=image_np,
+            labels_resized=labels,
+            n_clusters_used=n_segments,
+            image_path=image_path,
+            processing_stats=stats,
+            n_clusters_requested=None,
+        )
+    
     def generate_visualizations(self, results: SegmentationResults) -> OutputPaths:
         """
         Generate visualization outputs for segmentation results.
@@ -215,9 +280,12 @@ class TreeSegmentation:
         output_paths = self.generate_visualizations(results)
         
         print(f"✅ Completed: {os.path.basename(image_path)}")
-        print(f"🎯 Used K = {results.n_clusters_used}")
+        if self.config.version == "v4":
+            print(f"🎯 Segments detected: {results.n_clusters_used}")
+        else:
+            print(f"🎯 Used K = {results.n_clusters_used}")
         
-        if self.config.auto_k:
+        if self.config.auto_k and self.config.version != "v4":
             print(f"📊 Method: elbow (threshold: {self.config.elbow_threshold})")
         
         return results, output_paths

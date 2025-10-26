@@ -177,7 +177,10 @@ class BenchmarkRunner:
         if verbose:
             print(f"\nRunning benchmark on {end_idx - start_idx} samples...")
             print(f"Dataset: {self.dataset.dataset_path.name}")
-            print(f"Method: {self.config.version} (refine={self.config.refine})")
+            if self.config.version == "v4":
+                print("Method: v4 (Mask2Former decoder)")
+            else:
+                print(f"Method: {self.config.version} (refine={self.config.refine})")
             print(f"Model: {self.config.model_display_name}")
             print(f"Config: stride={self.config.stride}, " f"elbow_threshold={self.config.elbow_threshold}\n")
 
@@ -193,7 +196,7 @@ class BenchmarkRunner:
         mean_runtime = np.mean([s.runtime_seconds for s in sample_results])
 
         # Create benchmark results
-        refine_str = self.config.refine if self.config.refine else "kmeans"
+        refine_str = "mask2former" if self.config.version == "v4" else (self.config.refine if self.config.refine else "kmeans")
         results = BenchmarkResults(
             dataset_name=self.dataset.dataset_path.name,
             method_name=f"{self.config.version}_{refine_str}",

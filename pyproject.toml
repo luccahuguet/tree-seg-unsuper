@@ -22,6 +22,7 @@ dependencies = [
     "safetensors>=0.5.3",
     "scikit-image>=0.22.0",
     "kaggle>=1.7.4.5",
+    "termcolor>=2.4.0",
 ]
 
 [dependency-groups]
