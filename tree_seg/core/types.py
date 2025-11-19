@@ -86,8 +86,8 @@ class Config:
             raise ValueError("stride must be between 2 and 8")
         if self.elbow_threshold <= 0:
             raise ValueError("elbow_threshold must be positive")
-        if not (2 <= self.n_clusters <= 20):
-            raise ValueError("n_clusters must be between 2 and 20")
+        if not (2 <= self.n_clusters <= 50):
+            raise ValueError("n_clusters must be between 2 and 50")
         if self.image_size < 128 or self.image_size > 2048:
             raise ValueError("image_size must be between 128 and 2048")
         if self.feature_upsample_factor < 1 or self.feature_upsample_factor > 8:

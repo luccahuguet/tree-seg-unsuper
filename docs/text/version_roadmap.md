@@ -101,14 +101,19 @@ DINOv3 Feature Extraction (captures texture, color, pattern)
 
 ## V3.1 — Species-Level Semantic Clustering (Active)
 - **Goal:** Segment vegetation into species-level regions without instance separation
+- **Status:** Feature analysis complete ✅ - DINOv3 naturally separates vegetation (0.95+ correlation)
 - **Scope:**
-  - Start from V1.5 semantic clusters (test higher K=15-20)
-  - Vegetation filtering: Keep only vegetation clusters (ExG/NDVI)
-  - Optional: Merge adjacent clusters with similar DINOv3 features
+  - V1.5 semantic clusters (K=15-30 for species granularity)
+  - **Vegetation filtering**: Cluster-level ExG thresholding (mean ExG > 0.10)
   - Output: Semantic map where each label = distinct species/vegetation type
   - **Important**: Multiple disconnected regions of same species will have different labels (e.g., label 3 = pine patch A, label 7 = pine patch B). We're not doing species classification, just clustering by visual similarity.
-- **Deliverables:** Species-level segmentation maps, vegetation vs non-vegetation separation, visual evaluation
-- **Gate:** Qualitative assessment - do clusters align with visible species boundaries? Does it separate vegetation from non-vegetation? Are visually similar regions (same species) getting similar cluster labels?
+- **Key Finding:** DINOv3 + K-means already does most of the work! Simple cluster-level ExG filter sufficient (no complex multi-index fusion needed).
+- **Deliverables:**
+  - Minimal vegetation filter module (cluster-level ExG)
+  - Species-level segmentation maps
+  - Visual evaluation on diverse samples
+- **Gate:** Qualitative assessment - do filtered clusters align with visible species boundaries? Does ExG filtering remove non-vegetation? Are visually similar regions getting similar cluster labels?
+- **Documentation:** See `docs/text/dinov3_vegetation_analysis.md` for detailed feature analysis results
 
 ---
 

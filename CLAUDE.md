@@ -1,26 +1,39 @@
 # Claude Development Learnings
 
 ## Project Context
-Tree segmentation using DINOv3 for aerial drone imagery. Modern v3.0 architecture with clean API.
+Species-level vegetation segmentation using DINOv3 for aerial imagery. Goal: Cluster vegetation by species/type, separate from non-vegetation.
+
+## Critical Findings (V3.1 Feature Analysis)
+
+**DINOv3 naturally encodes vegetation with 0.95+ correlation!**
+- Tested on OAM-TCD aerial imagery (10cm GSD)
+- K-means clustering on DINOv3 features automatically separates vegetation from non-vegetation
+- Simple cluster-level ExG filter (threshold = 0.10) is sufficient
+- **No complex multi-index fusion needed** - DINOv3 already learned vegetation patterns
+
+**Implication**: V3.1 requires minimal filtering (~20 lines of code), not complex feature engineering.
+
+See `docs/text/dinov3_vegetation_analysis.md` for detailed analysis.
 
 ## Version Roadmap Summary
 
-**Current status**: V1.5 (baseline locked)
-**Sequencing**: V1.5 → V2 → V3 → V4 → V5 → (V6 parallel research)
+**Current status**: V3.1 (species clustering) - Feature analysis complete
+**Updated Sequencing**: V1.5 → V3.1 (species clustering) → V2 (optional refinement) → V5 (multispectral)
 
-### Version Roles
+### Version Roles (Updated)
 - **V1.5** (Baseline): DINOv3 + K-means + SLIC. Frozen reference point.
-- **V2** (Refinement): Soft/EM refinement in feature space. Complementary to SLIC (image space).
-- **V3** (Tree Logic): Vegetation filtering, IoU-based cluster selection, instance segmentation.
+- **V3** (DEPRECATED): Instance segmentation via watershed - wrong approach for species clustering.
+- **V3.1** (Active): Species-level semantic clustering via vegetation filtering (cluster-level ExG).
+- **V2** (Future): Soft/EM refinement in feature space. May not be needed if V3.1 works well.
 - **V4** (Supervised Baseline): Mask2Former (NOT SAM). Requires >40 GB RAM. Comparison point only.
-- **V5** (Multispectral): NDVI/GNDVI/NDRE gating and late fusion with DINOv3 tokens.
-- **V6** (Clustering Variants): Research spike exploring spherical/soft/DP-means as K-means replacements.
+- **V5** (Multispectral): NDVI/GNDVI/NDRE for better species distinction (needs NIR imagery).
+- **V6** (Clustering Variants): Research spike exploring alternatives to K-means.
 
 ### Key Clarifications
-- **SLIC vs V2**: SLIC operates in image space (RGB edges), V2 in feature space (DINOv3 embeddings). Both can be combined.
-- **Soft k-means**: Lives in V6 as a clustering algorithm, NOT in V2 as refinement.
-- **V4 is Mask2Former**: V4 implements DINOv3 + Mask2Former supervised baseline for comparison. SAM is future work (not implemented).
-- **V2 before V3**: V2 improves general clustering quality; V3 applies tree-specific logic. V3's gate compares against V2.
+- **V3 vs V3.1**: V3 did instance segmentation (wrong), V3.1 does semantic species clustering (correct).
+- **Dataset mismatch**: OAM-TCD has "group of trees" labels (semantic), not individual instances. V3 metrics were meaningless.
+- **Goal clarification**: We want species-level regions (pines, firs, grass), not individual tree crowns.
+- **DINOv3 power**: Pre-trained features capture vegetation/texture/color patterns without fine-tuning.
 
 ## Key Architecture Decisions
 
