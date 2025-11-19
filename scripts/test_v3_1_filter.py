@@ -8,6 +8,7 @@ Tests the minimal vegetation filtering module on sample images.
 from pathlib import Path
 import matplotlib.pyplot as plt
 import cv2
+import numpy as np
 
 from tree_seg import TreeSegmentation, Config
 
@@ -98,26 +99,27 @@ def test_v3_1_filter(
     axes[1, 0].set_title(f"V3.1: Vegetation Only ({results_v3_1.n_clusters_used} clusters)")
     axes[1, 0].axis('off')
 
-    # 4. Show only removed non-vegetation with red hatching
+    # 4. Show removed non-vegetation with subtle red tint (no hatching)
     v1_5_mask = results_v1_5.labels_resized > 0
     v3_1_mask = results_v3_1.labels_resized > 0
     removed_mask = v1_5_mask & ~v3_1_mask
 
-    axes[1, 1].imshow(image_np)
+    # Create image with removed regions tinted red
+    display_image = image_np.copy().astype(float)
+    if removed_mask.any():
+        # Apply red tint to removed regions
+        display_image[removed_mask] = display_image[removed_mask] * 0.5 + np.array([128, 0, 0]) * 0.5
 
-    # Draw only removed regions with red hatching
+    axes[1, 1].imshow(display_image.astype(np.uint8))
+
+    # Draw boundaries of removed regions
     if removed_mask.any():
         removed_labels = results_v1_5.labels_resized * removed_mask
-        for cluster_id in range(1, results_v1_5.n_clusters_used + 1):
-            mask = removed_labels == cluster_id
-            if mask.any():
-                axes[1, 1].contourf(mask.astype(int), levels=[0.5, 1.5],
-                                   colors=['red'], alpha=0.3, hatches=['\\\\\\'])
         removed_boundaries = skimage_seg.find_boundaries(removed_labels.astype(int), mode='thick')
         axes[1, 1].contour(removed_boundaries, levels=[0.5], colors='red',
                           linewidths=2, alpha=0.8, linestyles='--')
 
-    axes[1, 1].set_title(f"Removed Non-Vegetation (Red=Filtered Out)\n"
+    axes[1, 1].set_title(f"Removed Non-Vegetation (Red Tint=Filtered Out)\n"
                         f"Removed: {removed_mask.sum():,} px ({100*removed_mask.sum()/(v1_5_mask.sum()):.1f}%)")
     axes[1, 1].axis('off')
 
