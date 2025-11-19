@@ -23,6 +23,9 @@ dependencies = [
     "scikit-image>=0.22.0",
     "kaggle>=1.7.4.5",
     "termcolor>=2.4.0",
+    "datasets>=4.4.1",
+    "huggingface-hub>=0.34.4",
+    "scipy>=1.15.3",
 ]
 
 [dependency-groups]
