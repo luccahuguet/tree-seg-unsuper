@@ -6,7 +6,6 @@ Tests the minimal vegetation filtering module on sample images.
 """
 
 from pathlib import Path
-import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 
@@ -73,7 +72,9 @@ def test_v3_1_filter(
     print(f"  V3.1: {results_v3_1.n_clusters_used} vegetation clusters")
     print()
 
-    # Create visualization
+    # Create visualization with outlines
+    from skimage import segmentation as skimage_seg
+
     fig, axes = plt.subplots(2, 2, figsize=(16, 16))
 
     # 1. Original image
@@ -81,34 +82,46 @@ def test_v3_1_filter(
     axes[0, 0].set_title("Original Image")
     axes[0, 0].axis('off')
 
-    # 2. V1.5 clusters
-    axes[0, 1].imshow(results_v1_5.labels_resized, cmap='tab20')
+    # 2. V1.5 clusters with boundaries
+    axes[0, 1].imshow(image_np)
+    # Draw cluster boundaries in white
+    boundaries = skimage_seg.find_boundaries(results_v1_5.labels_resized, mode='thick')
+    axes[0, 1].contour(boundaries, levels=[0.5], colors='white', linewidths=1.5, alpha=0.8)
     axes[0, 1].set_title(f"V1.5: All Clusters (K={results_v1_5.n_clusters_used})")
     axes[0, 1].axis('off')
 
-    # 3. V3.1 filtered vegetation
-    axes[1, 0].imshow(results_v3_1.labels_resized, cmap='tab20')
+    # 3. V3.1 filtered vegetation with boundaries
+    axes[1, 0].imshow(image_np)
+    # Only draw boundaries where vegetation exists
+    veg_boundaries = skimage_seg.find_boundaries(results_v3_1.labels_resized, mode='thick')
+    axes[1, 0].contour(veg_boundaries, levels=[0.5], colors='lime', linewidths=2, alpha=0.9)
     axes[1, 0].set_title(f"V3.1: Vegetation Only ({results_v3_1.n_clusters_used} clusters)")
     axes[1, 0].axis('off')
 
-    # 4. Overlay comparison
-    # Create binary masks
+    # 4. Side-by-side comparison: removed vs kept
     v1_5_mask = results_v1_5.labels_resized > 0
     v3_1_mask = results_v3_1.labels_resized > 0
+    removed_mask = v1_5_mask & ~v3_1_mask
 
-    # Compute difference
-    removed = v1_5_mask & ~v3_1_mask  # Pixels removed by filter
-    kept = v3_1_mask  # Pixels kept
+    axes[1, 1].imshow(image_np)
 
-    comparison = np.zeros((*image_np.shape[:2], 3), dtype=np.uint8)
-    comparison[removed] = [255, 0, 0]  # Red = removed (non-vegetation)
-    comparison[kept] = [0, 255, 0]  # Green = kept (vegetation)
+    # Draw removed regions in red
+    if removed_mask.any():
+        removed_boundaries = skimage_seg.find_boundaries(
+            (results_v1_5.labels_resized * removed_mask).astype(int),
+            mode='thick'
+        )
+        axes[1, 1].contour(removed_boundaries, levels=[0.5], colors='red',
+                          linewidths=2, alpha=0.8, linestyles='--')
 
-    axes[1, 1].imshow(image_np, alpha=0.5)
-    axes[1, 1].imshow(comparison, alpha=0.5)
-    axes[1, 1].set_title(f"Filtering Effect\n"
-                        f"Green=Vegetation ({kept.sum():,} px), "
-                        f"Red=Removed ({removed.sum():,} px)")
+    # Draw kept vegetation in green
+    if v3_1_mask.any():
+        kept_boundaries = skimage_seg.find_boundaries(results_v3_1.labels_resized, mode='thick')
+        axes[1, 1].contour(kept_boundaries, levels=[0.5], colors='lime',
+                          linewidths=2, alpha=0.9)
+
+    axes[1, 1].set_title(f"Comparison: Green=Kept Vegetation, Red=Removed\n"
+                        f"Kept: {v3_1_mask.sum():,} px, Removed: {removed_mask.sum():,} px")
     axes[1, 1].axis('off')
 
     plt.tight_layout()
@@ -133,7 +146,7 @@ def test_v3_1_filter(
 
     v1_5_pixels = v1_5_mask.sum()
     v3_1_pixels = v3_1_mask.sum()
-    removed_pixels = removed.sum()
+    removed_pixels = removed_mask.sum()
 
     print(f"  V1.5 pixels: {v1_5_pixels:,} (100.0%)")
     print(f"  V3.1 vegetation pixels: {v3_1_pixels:,} ({100*v3_1_pixels/v1_5_pixels:.1f}%)")
