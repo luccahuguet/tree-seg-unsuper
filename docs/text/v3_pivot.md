@@ -1,5 +1,8 @@
 # V3 Pivot: From Instance to Species Segmentation
 
+**Date:** 2025-11-19
+**Status:** ✅ V3.1 Implementation Complete
+
 ## What Happened
 
 **Original V3**: Individual tree crown instance segmentation using watershed
@@ -8,6 +11,11 @@
 - Result: 2,437 predictions vs 199 ground truth (12x over-detection)
 
 **Critical Discovery**: Wrong problem, wrong approach, wrong dataset
+
+**V3.1 Solution**: Minimal vegetation filtering for species-level semantic segmentation
+- Cluster-level ExG thresholding → vegetation-only clusters
+- ~150 lines of code, fully integrated into pipeline
+- Successfully filters non-vegetation while preserving species-level clusters
 
 ## Why V3 Instance Segmentation Failed
 

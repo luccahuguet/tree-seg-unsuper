@@ -82,66 +82,43 @@ def test_v3_1_filter(
     axes[0, 0].set_title("Original Image")
     axes[0, 0].axis('off')
 
-    # 2. V1.5 clusters with boundaries and light hatching
+    # 2. V1.5 clusters with boundaries (no hatching)
     axes[0, 1].imshow(image_np)
-    # Add semi-transparent hatching for each cluster
-    for cluster_id in range(1, results_v1_5.n_clusters_used + 1):
-        mask = results_v1_5.labels_resized == cluster_id
-        if mask.any():
-            axes[0, 1].contourf(mask.astype(int), levels=[0.5, 1.5],
-                               colors=['none'], hatches=['///'], alpha=0.3)
     # Draw cluster boundaries in white
     boundaries = skimage_seg.find_boundaries(results_v1_5.labels_resized, mode='thick')
     axes[0, 1].contour(boundaries, levels=[0.5], colors='white', linewidths=1.5, alpha=0.8)
     axes[0, 1].set_title(f"V1.5: All Clusters (K={results_v1_5.n_clusters_used})")
     axes[0, 1].axis('off')
 
-    # 3. V3.1 filtered vegetation with boundaries and green hatching
+    # 3. V3.1 filtered vegetation with boundaries only (no hatching)
     axes[1, 0].imshow(image_np)
-    # Add green hatching for vegetation clusters
-    for cluster_id in range(1, results_v3_1.n_clusters_used + 1):
-        mask = results_v3_1.labels_resized == cluster_id
-        if mask.any():
-            axes[1, 0].contourf(mask.astype(int), levels=[0.5, 1.5],
-                               colors=['lime'], alpha=0.15, hatches=['|||'])
     # Draw vegetation boundaries
     veg_boundaries = skimage_seg.find_boundaries(results_v3_1.labels_resized, mode='thick')
     axes[1, 0].contour(veg_boundaries, levels=[0.5], colors='lime', linewidths=2, alpha=0.9)
     axes[1, 0].set_title(f"V3.1: Vegetation Only ({results_v3_1.n_clusters_used} clusters)")
     axes[1, 0].axis('off')
 
-    # 4. Side-by-side comparison: removed vs kept with hatching
+    # 4. Show only removed non-vegetation with red hatching
     v1_5_mask = results_v1_5.labels_resized > 0
     v3_1_mask = results_v3_1.labels_resized > 0
     removed_mask = v1_5_mask & ~v3_1_mask
 
     axes[1, 1].imshow(image_np)
 
-    # Draw removed regions with red hatching
+    # Draw only removed regions with red hatching
     if removed_mask.any():
         removed_labels = results_v1_5.labels_resized * removed_mask
         for cluster_id in range(1, results_v1_5.n_clusters_used + 1):
             mask = removed_labels == cluster_id
             if mask.any():
                 axes[1, 1].contourf(mask.astype(int), levels=[0.5, 1.5],
-                                   colors=['red'], alpha=0.2, hatches=['\\\\\\'])
+                                   colors=['red'], alpha=0.3, hatches=['\\\\\\'])
         removed_boundaries = skimage_seg.find_boundaries(removed_labels.astype(int), mode='thick')
         axes[1, 1].contour(removed_boundaries, levels=[0.5], colors='red',
                           linewidths=2, alpha=0.8, linestyles='--')
 
-    # Draw kept vegetation with green hatching
-    if v3_1_mask.any():
-        for cluster_id in range(1, results_v3_1.n_clusters_used + 1):
-            mask = results_v3_1.labels_resized == cluster_id
-            if mask.any():
-                axes[1, 1].contourf(mask.astype(int), levels=[0.5, 1.5],
-                                   colors=['lime'], alpha=0.15, hatches=['|||'])
-        kept_boundaries = skimage_seg.find_boundaries(results_v3_1.labels_resized, mode='thick')
-        axes[1, 1].contour(kept_boundaries, levels=[0.5], colors='lime',
-                          linewidths=2, alpha=0.9)
-
-    axes[1, 1].set_title(f"Comparison: Green=Kept Vegetation, Red=Removed\n"
-                        f"Kept: {v3_1_mask.sum():,} px, Removed: {removed_mask.sum():,} px")
+    axes[1, 1].set_title(f"Removed Non-Vegetation (Red=Filtered Out)\n"
+                        f"Removed: {removed_mask.sum():,} px ({100*removed_mask.sum()/(v1_5_mask.sum()):.1f}%)")
     axes[1, 1].axis('off')
 
     plt.tight_layout()
