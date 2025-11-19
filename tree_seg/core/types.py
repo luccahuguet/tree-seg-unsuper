@@ -41,11 +41,14 @@ class Config:
     refine_slic_compactness: float = 10.0
     refine_slic_sigma: float = 1.0
 
-    # V3-specific settings (tree-focused segmentation)
+    # V3-specific settings (DEPRECATED - instance segmentation, use v3_1 instead)
     v3_preset: str = "balanced"  # V3 preset: "permissive", "balanced", "strict"
     v3_vegetation_method: str = "exg"  # Vegetation index: "exg", "cive", "green_ratio", "combined"
     v3_iou_threshold: float = 0.3  # Min IoU with vegetation mask
     v3_gsd_cm: float = 10.0  # Ground Sample Distance (cm/pixel)
+
+    # V3.1-specific settings (species-level semantic clustering)
+    v3_1_exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results
@@ -96,8 +99,8 @@ class Config:
             raise ValueError("pca_dim must be between 1 and 1024 when set")
         if self.refine not in (None, "slic"):
             raise ValueError("refine must be None or 'slic'")
-        if self.pipeline not in ("v1_5", "v3"):
-            raise ValueError("pipeline must be 'v1_5' or 'v3'")
+        if self.pipeline not in ("v1_5", "v3", "v3_1"):
+            raise ValueError("pipeline must be 'v1_5', 'v3' (deprecated), or 'v3_1'")
         if self.v3_preset not in ("permissive", "balanced", "strict"):
             raise ValueError("v3_preset must be 'permissive', 'balanced', or 'strict'")
 

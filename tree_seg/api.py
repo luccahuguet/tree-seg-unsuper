@@ -144,6 +144,7 @@ class TreeSegmentation:
             v3_vegetation_method=self.config.v3_vegetation_method,
             v3_iou_threshold=self.config.v3_iou_threshold,
             v3_gsd_cm=self.config.v3_gsd_cm,
+            v3_1_exg_threshold=self.config.v3_1_exg_threshold,
         )
         
         # Support info tuple

@@ -27,7 +27,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  collect_metrics: bool = False, model_name=None, output_dir="data/output",
                  verbose: bool = True, pipeline: str = "v1_5",
                  v3_preset: str = "balanced", v3_vegetation_method: str = "exg",
-                 v3_iou_threshold: float = 0.3, v3_gsd_cm: float = 10.0):
+                 v3_iou_threshold: float = 0.3, v3_gsd_cm: float = 10.0,
+                 v3_1_exg_threshold: float = 0.10):
     """
     Process a single image for tree segmentation.
     
@@ -244,10 +245,10 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 )
                 t_refine_end = time.perf_counter()
 
-        # V3 tree-specific processing (if enabled)
+        # V3 tree-specific processing (DEPRECATED - if enabled)
         if pipeline == "v3":
             if verbose:
-                print("🌳 Applying V3 tree-specific segmentation...")
+                print("🌳 Applying V3 tree-specific segmentation (DEPRECATED)...")
             labels_resized = _apply_v3_tree_logic(
                 image_np,
                 labels_resized,
@@ -255,6 +256,17 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 vegetation_method=v3_vegetation_method,
                 iou_threshold=v3_iou_threshold,
                 gsd_cm=v3_gsd_cm,
+                verbose=verbose
+            )
+
+        # V3.1 species-level semantic clustering (if enabled)
+        if pipeline == "v3_1":
+            if verbose:
+                print("🌳 Applying V3.1 vegetation filtering...")
+            labels_resized = _apply_v3_1_vegetation_filter(
+                image_np,
+                labels_resized,
+                exg_threshold=v3_1_exg_threshold,
                 verbose=verbose
             )
 
@@ -346,6 +358,47 @@ def _apply_v3_tree_logic(
     except Exception as e:
         if verbose:
             print(f"  ⚠️  V3 processing failed: {e}, returning original clusters")
+        return cluster_labels
+
+
+def _apply_v3_1_vegetation_filter(
+    image_np: np.ndarray,
+    cluster_labels: np.ndarray,
+    exg_threshold: float = 0.10,
+    verbose: bool = True
+) -> np.ndarray:
+    """
+    Apply V3.1 vegetation filtering (species-level semantic clustering).
+
+    Args:
+        image_np: RGB image (H, W, 3)
+        cluster_labels: V1.5 cluster labels (H, W)
+        exg_threshold: ExG threshold for vegetation classification
+        verbose: Print progress
+
+    Returns:
+        Filtered labels (H, W) with only vegetation clusters (0 = background)
+    """
+    try:
+        from ..vegetation_filter import apply_vegetation_filter
+
+        # Apply vegetation filter
+        filtered_labels, filter_info = apply_vegetation_filter(
+            image_np,
+            cluster_labels,
+            exg_threshold=exg_threshold,
+            verbose=verbose
+        )
+
+        if verbose:
+            print(f"  ✓ Filtered to {filter_info['n_vegetation_clusters']} vegetation clusters")
+            print(f"  ✓ Vegetation coverage: {filter_info['vegetation_percentage']:.1f}%")
+
+        return filtered_labels
+
+    except Exception as e:
+        if verbose:
+            print(f"  ⚠️  V3.1 filtering failed: {e}, returning original clusters")
         return cluster_labels
 
 
