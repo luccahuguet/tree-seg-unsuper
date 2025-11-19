@@ -99,21 +99,27 @@ DINOv3 Feature Extraction (captures texture, color, pattern)
 - **What we learned:** OAM-TCD has incomplete instance annotations; watershed creates too many false positives; doesn't align with species clustering goal
 - **Pivot:** Moving to V3.1 for semantic species clustering instead
 
-## V3.1 — Species-Level Semantic Clustering (Active)
+## V3.1 — Species-Level Semantic Clustering (Complete ✅)
 - **Goal:** Segment vegetation into species-level regions without instance separation
-- **Status:** Feature analysis complete ✅ - DINOv3 naturally separates vegetation (0.95+ correlation)
+- **Status:** ✅ Implementation complete - minimal vegetation filtering working well
 - **Scope:**
   - V1.5 semantic clusters (K=15-30 for species granularity)
   - **Vegetation filtering**: Cluster-level ExG thresholding (mean ExG > 0.10)
   - Output: Semantic map where each label = distinct species/vegetation type
   - **Important**: Multiple disconnected regions of same species will have different labels (e.g., label 3 = pine patch A, label 7 = pine patch B). We're not doing species classification, just clustering by visual similarity.
 - **Key Finding:** DINOv3 + K-means already does most of the work! Simple cluster-level ExG filter sufficient (no complex multi-index fusion needed).
-- **Deliverables:**
-  - Minimal vegetation filter module (cluster-level ExG)
-  - Species-level segmentation maps
-  - Visual evaluation on diverse samples
-- **Gate:** Qualitative assessment - do filtered clusters align with visible species boundaries? Does ExG filtering remove non-vegetation? Are visually similar regions getting similar cluster labels?
-- **Documentation:** See `docs/text/dinov3_vegetation_analysis.md` for detailed feature analysis results
+- **Implementation:**
+  - Module: `tree_seg/vegetation_filter.py` (~150 lines)
+  - Integration: Config parameter `v3_1_exg_threshold=0.10`, pipeline flag `pipeline="v3_1"`
+  - Testing: `scripts/test_v3_1_filter.py` with 4-panel visualization
+- **Validation:**
+  - Sample 4363: 20→9 clusters, 55.4% filtered (soil/roads)
+  - Sample 545: 20→13 clusters, 39.8% filtered (black regions/roads)
+  - Successfully removes non-vegetation while preserving species diversity
+- **Gate:** ✅ Passed qualitative assessment - filtered clusters align with visible species boundaries, ExG removes non-vegetation effectively
+- **Documentation:**
+  - Feature analysis: `docs/text/dinov3_vegetation_analysis.md`
+  - Implementation details: `docs/text/v3_pivot.md`
 
 ---
 

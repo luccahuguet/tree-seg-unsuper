@@ -126,10 +126,55 @@ Output: Species-level semantic map
 - `docs/text/version_roadmap.md`: Deprecated V3, added V3.1 scope
 - `docs/text/v3_pivot.md`: This document
 
+## V3.1 Implementation Details
+
+### Module Structure
+- **File**: `tree_seg/vegetation_filter.py` (~150 lines)
+- **Integration**: Config parameter `v3_1_exg_threshold`, pipeline flag `pipeline="v3_1"`
+- **Testing**: `scripts/test_v3_1_filter.py` with 4-panel visualization
+
+### Key Functions
+```python
+def compute_cluster_vegetation_scores(image, cluster_labels) -> Dict[int, float]:
+    """Compute mean ExG per cluster."""
+    exg = 2*G - R - B  # Excess Green Index
+    return {cluster_id: mean_exg for each cluster}
+
+def filter_vegetation_clusters(labels, scores, threshold=0.10):
+    """Keep only clusters with ExG >= threshold."""
+    vegetation_clusters = [cid for cid, score in scores.items() if score >= threshold]
+    # Sequential relabeling to remove gaps
+    return filtered_labels, veg_clusters, removed_clusters
+
+def apply_vegetation_filter(image, cluster_labels, exg_threshold=0.10):
+    """Complete pipeline: score → filter → relabel."""
+    return filtered_labels, filter_info
+```
+
+### Validation Results
+**Sample 4363** (dense mixed vegetation):
+- V1.5: 20 clusters → V3.1: 9 vegetation clusters
+- Removed: 55.4% (soil, roads, structures)
+- Successfully filtered non-vegetation while preserving species diversity
+
+**Sample 545** (sparse with black regions):
+- V1.5: 20 clusters → V3.1: 13 vegetation clusters
+- Removed: 39.8% (black regions, roads, bare ground)
+- Successfully handled challenging black/shadow regions
+
+### Visualization Approach
+4-panel comparison:
+1. Original image
+2. V1.5 all clusters (white outlines)
+3. V3.1 vegetation only (green outlines)
+4. **Removed non-vegetation** (red hatching) - clearly shows what was filtered
+
 ## Next Steps
 
 1. ✅ Update documentation
-2. ⏳ Commit current state
-3. ⏳ Test V1.5 with K=15-25
-4. ⏳ Implement vegetation filtering
-5. ⏳ Visual evaluation on diverse samples
+2. ✅ Commit current state
+3. ✅ Test V1.5 with K=15-25
+4. ✅ Implement vegetation filtering
+5. ✅ Visual evaluation on diverse samples
+6. ⏳ Optionally: Full OAM-TCD evaluation with V3.1
+7. ⏳ Proceed to V2 (feature space refinement)
