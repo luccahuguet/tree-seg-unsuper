@@ -138,7 +138,12 @@ class TreeSegmentation:
             collect_metrics=self.config.metrics,
             model_name=self.config.model_display_name,
             output_dir=self.config.output_dir,
-            verbose=getattr(self.config, 'verbose', True)
+            verbose=getattr(self.config, 'verbose', True),
+            pipeline=self.config.pipeline,
+            v3_preset=self.config.v3_preset,
+            v3_vegetation_method=self.config.v3_vegetation_method,
+            v3_iou_threshold=self.config.v3_iou_threshold,
+            v3_gsd_cm=self.config.v3_gsd_cm,
         )
         
         # Support info tuple

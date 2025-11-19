@@ -23,7 +23,10 @@ class Config:
     version: str = "v3"  # Now using DINOv3
     stride: int = 4
     image_size: int = 1024  # Preprocess resize (square)
-    
+
+    # Pipeline settings
+    pipeline: str = "v1_5"  # Pipeline version: "v1_5" (baseline) or "v3" (tree-specific)
+
     # Clustering settings
     auto_k: bool = True
     n_clusters: int = 6  # Used when auto_k=False
@@ -32,11 +35,17 @@ class Config:
     use_pca: bool = False
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
     feature_upsample_factor: int = 2  # Upsample HxW feature grid before K-Means
-    
+
     # Refinement settings
     refine: Optional[str] = "slic"  # Default to SLIC refinement
     refine_slic_compactness: float = 10.0
     refine_slic_sigma: float = 1.0
+
+    # V3-specific settings (tree-focused segmentation)
+    v3_preset: str = "balanced"  # V3 preset: "permissive", "balanced", "strict"
+    v3_vegetation_method: str = "exg"  # Vegetation index: "exg", "cive", "green_ratio", "combined"
+    v3_iou_threshold: float = 0.3  # Min IoU with vegetation mask
+    v3_gsd_cm: float = 10.0  # Ground Sample Distance (cm/pixel)
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results
@@ -87,6 +96,10 @@ class Config:
             raise ValueError("pca_dim must be between 1 and 1024 when set")
         if self.refine not in (None, "slic"):
             raise ValueError("refine must be None or 'slic'")
+        if self.pipeline not in ("v1_5", "v3"):
+            raise ValueError("pipeline must be 'v1_5' or 'v3'")
+        if self.v3_preset not in ("permissive", "balanced", "strict"):
+            raise ValueError("v3_preset must be 'permissive', 'balanced', or 'strict'")
 
 
 @dataclass

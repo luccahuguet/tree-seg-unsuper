@@ -25,7 +25,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  feature_upsample_factor: int = 1, refine: str | None = None,
                  refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
                  collect_metrics: bool = False, model_name=None, output_dir="data/output",
-                 verbose: bool = True):
+                 verbose: bool = True, pipeline: str = "v1_5",
+                 v3_preset: str = "balanced", v3_vegetation_method: str = "exg",
+                 v3_iou_threshold: float = 0.3, v3_gsd_cm: float = 10.0):
     """
     Process a single image for tree segmentation.
     
@@ -242,6 +244,20 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 )
                 t_refine_end = time.perf_counter()
 
+        # V3 tree-specific processing (if enabled)
+        if pipeline == "v3":
+            if verbose:
+                print("🌳 Applying V3 tree-specific segmentation...")
+            labels_resized = _apply_v3_tree_logic(
+                image_np,
+                labels_resized,
+                preset=v3_preset,
+                vegetation_method=v3_vegetation_method,
+                iou_threshold=v3_iou_threshold,
+                gsd_cm=v3_gsd_cm,
+                verbose=verbose
+            )
+
         # Info / Metrics
         metrics = {'k_requested': k_requested}
         if collect_metrics:
@@ -276,6 +292,58 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             print(f"Error processing {image_path}: {e}")
             traceback.print_exc()
         return None, None
+
+
+def _apply_v3_tree_logic(
+    image_np: np.ndarray,
+    cluster_labels: np.ndarray,
+    preset: str = "balanced",
+    vegetation_method: str = "exg",
+    iou_threshold: float = 0.3,
+    gsd_cm: float = 10.0,
+    verbose: bool = True
+) -> np.ndarray:
+    """
+    Apply V3 tree-specific segmentation logic.
+
+    Args:
+        image_np: RGB image (H, W, 3)
+        cluster_labels: V1.5 cluster labels (H, W)
+        preset: V3 preset ("permissive", "balanced", "strict")
+        vegetation_method: Vegetation index method
+        iou_threshold: IoU threshold for cluster selection
+        gsd_cm: Ground Sample Distance in cm/pixel
+        verbose: Print progress
+
+    Returns:
+        Instance labels (H, W) with unique ID per tree (0 = background)
+    """
+    try:
+        from ..tree_focus.v3_pipeline import V3Pipeline, V3Config
+
+        # Create V3 config from parameters
+        config = V3Config(
+            vegetation_preset=preset,
+            vegetation_method=vegetation_method,
+            iou_threshold=iou_threshold,
+            gsd_cm=gsd_cm,
+        )
+
+        # Initialize and run V3 pipeline
+        pipeline = V3Pipeline(config)
+        results = pipeline.process(image_np, cluster_labels)
+
+        if verbose:
+            print(f"  ✓ Detected {results.num_trees} trees")
+            print(f"  ✓ Selected {len(results.selected_cluster_ids)}/{len(results.cluster_stats)} clusters as trees")
+
+        # Return instance labels
+        return results.instance_labels
+
+    except Exception as e:
+        if verbose:
+            print(f"  ⚠️  V3 processing failed: {e}, returning original clusters")
+        return cluster_labels
 
 
 def _refine_with_slic(image_np: np.ndarray, labels_resized: np.ndarray,
