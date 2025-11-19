@@ -269,18 +269,19 @@ opencv-python                    # Image processing
 
 ### **🎯 V2: DINO Head Refinement**
 - **Target**: `tree_seg/clustering/head_refine.py`
-- **Focus**: Soft/EM refinement over K-means initialization plus single spatial blend (α).
-- **Gate**: Must improve both mIoU and edge-F relative to V1.5 without major runtime/VRAM increases.
+- **Focus**: Soft/EM refinement over K-means initialization plus single spatial blend (α). Operates in feature space (DINOv3 embeddings), complementary to SLIC which operates in image space (RGB).
+- **Gate**: Must improve both mIoU and edge-F relative to V1.5 without major runtime/VRAM increases. Test with and without SLIC to find best configuration.
 
 ### **🌳 V3: Tree Focus (RGB)**
 - **Target**: `tree_seg/clustering/tree_focus.py` + vegetation utilities.
 - **Focus**: Vegetation gating (ExG/CIVE), cluster selection heuristics, shape/area filters, DT + watershed instances.
 - **Gate**: Higher tree precision/recall vs V2 with stable edge metrics.
 
-### **✨ V4: SAM Polisher (Optional)**
-- **Target**: `tree_seg/postprocess/sam_polish.py`
-- **Focus**: Auto prompts, vegetation gating, precision-safety checks, optional UI logging.
-- **Gate**: Configurable edge-F lift with minimal precision loss.
+### **✨ V4: Supervised Baseline (Mask2Former)**
+- **Target**: `tree_seg/models/mask2former.py` (already implemented)
+- **Focus**: DINOv3 ViT-7B/16 + Mask2Former head pretrained on ADE20K for supervised comparison baseline.
+- **Gate**: Document performance vs V1.5-V3 for paper discussion. No improvement gate—serves as reference point.
+- **Note**: Requires >40 GB RAM. Only ViT-7B/16 has pretrained weights.
 
 ### **🌈 V5: Multispectral Expansion**
 - **Targets**: `tree_seg/utils/msi_indices.py`, fusion hooks in head refine.
@@ -289,7 +290,8 @@ opencv-python                    # Image processing
 
 ### **🧪 V6: K-Means Successors (Spike)**
 - **Targets**: `tree_seg/clustering/experimental/`
-- **Focus**: Spherical + soft k-means, DP-means auto-K exploration.
+- **Focus**: Explore alternative clustering algorithms: (1) Spherical k-means (cosine metric), (2) Soft k-means (as clustering algorithm, not refinement), (3) DP-means (automatic K selection).
+- **Clarification**: Soft k-means here is a clustering algorithm choice. This is distinct from V2's soft/EM refinement which operates on K-means output. V6 outputs can feed into V2 refinement.
 - **Gate**: Adopt only if outperforming V2 on mIoU/edge-F at similar compute cost; otherwise archive results.
 
 ---

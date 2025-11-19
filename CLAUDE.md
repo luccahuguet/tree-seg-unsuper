@@ -3,6 +3,25 @@
 ## Project Context
 Tree segmentation using DINOv3 for aerial drone imagery. Modern v3.0 architecture with clean API.
 
+## Version Roadmap Summary
+
+**Current status**: V1.5 (baseline locked)
+**Sequencing**: V1.5 → V2 → V3 → V4 → V5 → (V6 parallel research)
+
+### Version Roles
+- **V1.5** (Baseline): DINOv3 + K-means + SLIC. Frozen reference point.
+- **V2** (Refinement): Soft/EM refinement in feature space. Complementary to SLIC (image space).
+- **V3** (Tree Logic): Vegetation filtering, IoU-based cluster selection, instance segmentation.
+- **V4** (Supervised Baseline): Mask2Former (NOT SAM). Requires >40 GB RAM. Comparison point only.
+- **V5** (Multispectral): NDVI/GNDVI/NDRE gating and late fusion with DINOv3 tokens.
+- **V6** (Clustering Variants): Research spike exploring spherical/soft/DP-means as K-means replacements.
+
+### Key Clarifications
+- **SLIC vs V2**: SLIC operates in image space (RGB edges), V2 in feature space (DINOv3 embeddings). Both can be combined.
+- **Soft k-means**: Lives in V6 as a clustering algorithm, NOT in V2 as refinement.
+- **V4 is Mask2Former**: V4 implements DINOv3 + Mask2Former supervised baseline for comparison. SAM is future work (not implemented).
+- **V2 before V3**: V2 improves general clustering quality; V3 applies tree-specific logic. V3's gate compares against V2.
+
 ## Key Architecture Decisions
 
 ### 1. Configuration Management

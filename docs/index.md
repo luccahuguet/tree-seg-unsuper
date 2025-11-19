@@ -32,10 +32,10 @@ This research presents a systematic study of unsupervised tree segmentation usin
 
 1. **Evaluate DINOv3 effectiveness** for forestry applications across multiple model sizes (V1.5)
 2. **Develop automatic K-selection** using elbow method for optimal cluster determination (V1.5)
-3. **Advance beyond K-means** with unified unsupervised segmentation methods (V2)
-4. **Implement dynamic fusion** techniques for adaptive segmentation (V3)
-5. **Enable multispectral analysis** for enhanced forest monitoring (V4)
-6. **Establish performance benchmarks** across architectural versions and methods
+3. **Advance beyond K-means** with feature-space refinement methods (V2) and clustering algorithm exploration (V6)
+4. **Implement tree-focused filtering** with vegetation gating and instance segmentation (V3)
+5. **Enable multispectral analysis** for enhanced forest monitoring (V5)
+6. **Establish performance benchmarks** across unsupervised methods vs supervised baselines (V4)
 7. **Create extensible pipeline** supporting modular segmentation approaches
 
 ## Key Contributions
@@ -65,13 +65,13 @@ The systematic model comparison reveals optimal configurations for different use
 ## Development Roadmap
 
 - **V1.5 — Baseline (Active):** Frozen reference built on DINOv3 + K-means (optional SLIC), PCA/overlay artifacts, Hungarian-aligned metrics.
-- **V2 — DINO Head:** Lightweight soft/EM refinement over the K-means init with a single spatial blend; must beat V1.5 on both mIoU and edge-F before adoption.
+- **V2 — DINO Head Refinement:** Lightweight soft/EM refinement in feature space (DINOv3 embeddings) complementary to SLIC (image space); must beat V1.5 on both mIoU and edge-F before adoption.
 - **V3 — Tree Focus (RGB):** Vegetation-gated clustering, shape/area filters, and instance masks (DT + watershed) targeting higher tree precision/recall without edge regressions.
-- **V4 — SAM Polisher (Optional):** Prompted SAM refinement gated by vegetation priors and precision/edge-F thresholds for thin-structure recovery.
+- **V4 — Supervised Baseline (Mask2Former):** DINOv3 ViT-7B/16 + Mask2Former pretrained on ADE20K. Comparison baseline only (requires >40 GB RAM). Not SAM—SAM is future work.
 - **V5 — Multispectral:** NDVI/GNDVI/NDRE gating (V5a) plus late fusion of MSI indices with DINO tokens (V5b) evaluated against V3/V4.
-- **V6 — K-means Successors (Spike):** Spherical/soft k-means and DP-means probes; only uplifted if they outscore V2 with similar runtime/VRAM.
+- **V6 — K-means Successors (Spike):** Explore clustering algorithms (spherical k-means, soft k-means as clustering choice, DP-means auto-K); only uplifted if they outscore V2 with similar runtime/VRAM. V6 outputs can feed into V2 refinement.
 
-Full gate-driven details live in `docs/text/version_roadmap.md`.
+Full gate-driven details and pipeline composition live in `docs/text/version_roadmap.md`.
 
 ---
 
