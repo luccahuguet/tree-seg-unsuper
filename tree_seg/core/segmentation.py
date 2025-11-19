@@ -319,19 +319,22 @@ def _apply_v3_tree_logic(
         Instance labels (H, W) with unique ID per tree (0 = background)
     """
     try:
-        from ..tree_focus.v3_pipeline import V3Pipeline, V3Config
+        from ..tree_focus.v3_pipeline import V3Pipeline, create_v3_preset
 
-        # Create V3 config from parameters
-        config = V3Config(
-            vegetation_preset=preset,
-            vegetation_method=vegetation_method,
-            iou_threshold=iou_threshold,
-            gsd_cm=gsd_cm,
-        )
+        # Create V3 config from preset (this sets all thresholds correctly)
+        config = create_v3_preset(preset)
+
+        # Override specific parameters if provided
+        if vegetation_method != "exg":
+            config.vegetation_method = vegetation_method
+        if iou_threshold != 0.3:  # Only override if explicitly changed
+            config.iou_threshold = iou_threshold
+        if gsd_cm != 10.0:  # Only override if explicitly changed
+            config.gsd_cm = gsd_cm
 
         # Initialize and run V3 pipeline
         pipeline = V3Pipeline(config)
-        results = pipeline.process(image_np, cluster_labels)
+        results = pipeline.process(image_np, cluster_labels, verbose=verbose)
 
         if verbose:
             print(f"  ✓ Detected {results.num_trees} trees")

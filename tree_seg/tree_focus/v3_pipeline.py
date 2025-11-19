@@ -87,7 +87,8 @@ class V3Pipeline:
     def process(
         self,
         image: np.ndarray,
-        cluster_labels: np.ndarray
+        cluster_labels: np.ndarray,
+        verbose: bool = False
     ) -> V3Results:
         """
         Run full V3 pipeline.
@@ -95,6 +96,7 @@ class V3Pipeline:
         Args:
             image: RGB image (H, W, 3)
             cluster_labels: Cluster labels from V1.5 (H, W) with 0=background
+            verbose: Print detailed progress
 
         Returns:
             V3Results with all outputs and statistics
@@ -115,15 +117,18 @@ class V3Pipeline:
             )
 
         # Step 2: Select tree clusters based on vegetation overlap
+        # NOTE: We don't filter by area here because V1.5 clusters are coarse semantic regions.
+        # Area filtering happens after watershed splits them into individual instances.
         tree_mask, cluster_stats = select_tree_clusters(
             image=image,
             cluster_labels=cluster_labels,
             vegetation_mask=vegetation_mask,
             iou_threshold=self.config.iou_threshold,
             veg_score_threshold=self.config.veg_score_threshold,
-            min_area_m2=self.config.min_tree_area_m2,
-            max_area_m2=self.config.max_tree_area_m2,
-            gsd_cm=self.config.gsd_cm
+            min_area_m2=0.0,  # No minimum - allow all sizes
+            max_area_m2=1e9,  # No maximum - allow all sizes
+            gsd_cm=self.config.gsd_cm,
+            verbose=verbose
         )
 
         # Step 3: Separate into individual tree instances

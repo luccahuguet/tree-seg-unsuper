@@ -96,7 +96,8 @@ def select_tree_clusters(
     veg_score_threshold: float = 0.4,
     min_area_m2: float = 1.0,
     max_area_m2: float = 500.0,
-    gsd_cm: float = 10.0
+    gsd_cm: float = 10.0,
+    verbose: bool = False
 ) -> Tuple[np.ndarray, List[Dict]]:
     """
     Select tree clusters based on vegetation overlap and characteristics.
@@ -110,6 +111,7 @@ def select_tree_clusters(
         min_area_m2: Minimum tree area in m²
         max_area_m2: Maximum tree area in m²
         gsd_cm: Ground Sample Distance in cm/pixel
+        verbose: Print cluster metrics
 
     Returns:
         tree_mask: Binary mask of selected tree clusters (H, W)
@@ -121,6 +123,9 @@ def select_tree_clusters(
     tree_mask = np.zeros_like(cluster_labels, dtype=bool)
     cluster_stats = []
 
+    if verbose:
+        print(f"\nCluster Selection (thresholds: IoU≥{iou_threshold:.2f}, VegScore≥{veg_score_threshold:.2f}, Area=[{min_area_m2:.1f}, {max_area_m2:.1f}] m²)")
+
     for label in unique_labels:
         cluster_mask = cluster_labels == label
 
@@ -131,18 +136,28 @@ def select_tree_clusters(
 
         # Apply filters
         is_tree = True
+        reasons = []
 
         # Filter 1: IoU with vegetation
         if metrics['iou'] < iou_threshold:
             is_tree = False
+            reasons.append(f"IoU={metrics['iou']:.3f}<{iou_threshold}")
 
         # Filter 2: Vegetation score
         if metrics['vegetation_score'] < veg_score_threshold:
             is_tree = False
+            reasons.append(f"VegScore={metrics['vegetation_score']:.3f}<{veg_score_threshold}")
 
         # Filter 3: Area constraints (GSD-aware)
         if metrics['area_m2'] < min_area_m2 or metrics['area_m2'] > max_area_m2:
             is_tree = False
+            reasons.append(f"Area={metrics['area_m2']:.1f} m² outside [{min_area_m2}, {max_area_m2}]")
+
+        if verbose:
+            status = "✓ TREE" if is_tree else "✗ rejected"
+            reason_str = "" if is_tree else f" ({', '.join(reasons)})"
+            print(f"  Cluster {label}: IoU={metrics['iou']:.3f}, VegScore={metrics['vegetation_score']:.3f}, "
+                  f"Area={metrics['area_m2']:.1f} m² ({metrics['area_pixels']} px) -> {status}{reason_str}")
 
         # Add to tree mask if passes all filters
         if is_tree:
