@@ -1,6 +1,14 @@
-# Tree Segmentation with DINOv3
+# Tree Species Segmentation with DINOv3
 
-Modern unsupervised tree segmentation for aerial imagery powered by DINOv3 Vision Transformers and configuration-driven workflows.
+Unsupervised species-level semantic segmentation for aerial vegetation imagery powered by DINOv3 Vision Transformers.
+
+## Goal
+Segment aerial imagery into **species-level regions** where visually similar vegetation (same species/type) is grouped together:
+- Separate vegetation from non-vegetation (soil, roads, buildings)
+- Distinguish different tree/vegetation species based on visual features (texture, color, pattern)
+- Output semantic maps where each region represents a distinct species/vegetation type
+
+**Not instance segmentation**: We don't separate individual tree crowns. Instead, we cluster regions by species (e.g., "this area is pines", "this area is firs").
 
 ## Quick Start
 - Install dependencies: `uv sync`

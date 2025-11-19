@@ -1,7 +1,18 @@
 # Version Roadmap (Gate-Driven)
 
+## Project Goal: Species-Level Semantic Segmentation
+
+**Primary objective**: Segment aerial imagery into species-level vegetation regions where:
+- Visually similar vegetation (same species) is grouped together
+- Different species are separated (pines ≠ firs ≠ birch)
+- Non-vegetation (soil, roads, buildings) is filtered out
+
+**NOT instance segmentation**: We don't separate individual tree crowns. We cluster by species/type.
+
 ## Sequencing Overview
-`V1.5 → V2 → V3 → V4 → V5a → V5b → (optional) V6`
+`V1.5 → V3.1 (species clustering) → V2 (optional refinement) → V5 (multispectral) → V6 (clustering variants)`
+
+**Status Update**: V3 instance segmentation (watershed) was wrong approach for species clustering. Pivoting to V3.1.
 
 Cross-cutting standards:
 - Fixed data splits and random seeds
@@ -11,35 +22,32 @@ Cross-cutting standards:
 
 ---
 
-## Pipeline Composition
-
-The versions form a modular pipeline where each layer addresses a different concern:
+## Pipeline Composition (Updated)
 
 ```
-DINOv3 Feature Extraction
+DINOv3 Feature Extraction (captures texture, color, pattern)
     ↓
-[Clustering Layer] — V1.5 (vanilla K-means) OR V6 variants (spherical/soft/DP-means)
+[Clustering Layer] — V1.5 (K-means) finds visually similar regions
     ↓
 [Refinement Layer] — Optional: V2 soft/EM refinement (feature space)
     ↓
-[Boundary Snapping] — Optional: SLIC (image space, complementary to V2)
+[Boundary Snapping] — SLIC (image space) for clean edges
     ↓
-[Domain Logic] — V3 tree-specific filtering and instance segmentation
+[Vegetation Filtering] — V3.1: Keep only vegetation clusters, merge similar species
     ↓
-[Comparison/Polish] — V4 supervised baseline (ram problem) OR future SAM refinement
+[Multispectral] — V5 MSI fusion (NDVI/GNDVI/NDRE for better species distinction)
     ↓
-[Multispectral] — V5 MSI fusion (vegetation gating, late fusion)
+[Clustering Variants] — V6 (spherical/soft/DP-means alternatives to K-means)
 ```
 
-**Valid pipeline combinations:**
-- **V1.5 alone**: Baseline (K-means + SLIC)
-- **V1.5 → V2**: Refined clusters via feature-space EM
-- **V1.5 → V2 → V3**: Refined clusters + tree selection
-- **V6 → V2 → V3**: Better clustering algorithm + refinement + tree logic
-- **Any above → V4**: Compare against supervised baseline
-- **Any above → V5**: Add multispectral information
+**Pipeline philosophy**: DINOv3 features already encode species-level differences (texture/color). Our job is to cluster and filter these features, not segment individual objects.
 
-**Key principle:** V2 (refinement) and V6 (clustering) are complementary. V6 explores better clustering algorithms; V2 refines whatever clustering is chosen.
+**Valid pipeline combinations:**
+- **V1.5 alone**: Baseline semantic clustering (may already separate species with high K)
+- **V1.5 → V3.1**: Semantic clusters + vegetation filtering + species merging
+- **V1.5 → V2 → V3.1**: Refined clusters + vegetation filtering
+- **V1.5 → V3.1 → V5**: RGB clusters + multispectral enhancement
+- **V6 → V3.1**: Alternative clustering + vegetation filtering
 
 ---
 
@@ -85,11 +93,22 @@ DINOv3 Feature Extraction
 
 ---
 
-## V3 — Tree Focus (RGB Only, No SAM)
-- **Goal:** Produce robust tree/non-tree masks plus instances.
-- **Scope:** Vegetation prefiltering (ExG/CIVE), cluster selection driven by IoU to veg mask + green ratio, shape/area filters with GSD awareness, distance-transform + watershed instance split, optional CRF or bilateral smoothing, retain SLIC snapping.
-- **Deliverables:** Binary tree mask, instance mask, per-tile CSV summaries.
-- **Gate:** Higher tree precision/recall than V2 without regressing edge-F.
+## V3 — Tree Instance Segmentation (DEPRECATED)
+- **Status:** ❌ Wrong approach for species-level semantic segmentation
+- **Original Goal:** Individual tree crown detection via watershed
+- **What we learned:** OAM-TCD has incomplete instance annotations; watershed creates too many false positives; doesn't align with species clustering goal
+- **Pivot:** Moving to V3.1 for semantic species clustering instead
+
+## V3.1 — Species-Level Semantic Clustering (Active)
+- **Goal:** Segment vegetation into species-level regions without instance separation
+- **Scope:**
+  - Start from V1.5 semantic clusters (test higher K=15-20)
+  - Vegetation filtering: Keep only vegetation clusters (ExG/NDVI)
+  - Optional: Merge adjacent clusters with similar DINOv3 features
+  - Output: Semantic map where each label = distinct species/vegetation type
+  - **Important**: Multiple disconnected regions of same species will have different labels (e.g., label 3 = pine patch A, label 7 = pine patch B). We're not doing species classification, just clustering by visual similarity.
+- **Deliverables:** Species-level segmentation maps, vegetation vs non-vegetation separation, visual evaluation
+- **Gate:** Qualitative assessment - do clusters align with visible species boundaries? Does it separate vegetation from non-vegetation? Are visually similar regions (same species) getting similar cluster labels?
 
 ---
 
