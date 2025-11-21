@@ -1,5 +1,5 @@
 """
-Vegetation Filter Module (V3.1)
+Vegetation Filter Module (V3 - Species Clustering)
 
 Minimal cluster-level vegetation filtering based on ExG indices.
 DINOv3 analysis showed 0.95+ correlation between clusters and vegetation,
@@ -8,7 +8,27 @@ so we only need simple ExG thresholding per cluster.
 
 import numpy as np
 from typing import Tuple, List, Dict
-from tree_seg.tree_focus.vegetation_indices import excess_green_index
+
+
+def excess_green_index(image: np.ndarray) -> np.ndarray:
+    """
+    Compute Excess Green Index (ExG) for vegetation detection.
+
+    ExG = 2*G - R - B (normalized)
+
+    Args:
+        image: RGB image (H, W, 3) in [0, 255]
+
+    Returns:
+        ExG values (H, W) in range approximately [-1, 1]
+    """
+    # Normalize to [0, 1]
+    r, g, b = image[:, :, 0] / 255.0, image[:, :, 1] / 255.0, image[:, :, 2] / 255.0
+
+    # ExG formula
+    exg = 2 * g - r - b
+
+    return exg
 
 
 def compute_cluster_vegetation_scores(
@@ -149,7 +169,7 @@ def apply_vegetation_filter(
     """
     if verbose:
         print("=" * 60)
-        print("V3.1 Vegetation Filter")
+        print("V3 Vegetation Filter (Species Clustering)")
         print("=" * 60)
         print()
 

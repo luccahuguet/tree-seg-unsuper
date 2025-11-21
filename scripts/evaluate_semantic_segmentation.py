@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 """
-Benchmark execution script for evaluating segmentation methods.
+Evaluate Semantic Segmentation Quality
+
+Generic evaluation script for semantic segmentation methods on labeled datasets.
+Computes mIoU, pixel accuracy, and edge-F scores using Hungarian matching.
+
+Works with any dataset that has:
+- RGB images
+- Semantic segmentation ground truth labels
+- Class definitions
 
 Example usage:
     # Run V1.5 baseline with default settings
-    python bench.py --dataset data/isprs_potsdam --method v1.5
+    python evaluate_semantic_segmentation.py --dataset data/isprs_potsdam --method v1.5
 
     # Run with specific model and settings
-    python bench.py \
+    python evaluate_semantic_segmentation.py \
         --dataset data/isprs_potsdam \
         --method v1.5 \
         --model large \
@@ -17,7 +25,7 @@ Example usage:
         --save-viz
 
     # Compare multiple configurations
-    python bench.py \
+    python evaluate_semantic_segmentation.py \
         --dataset data/isprs_potsdam \
         --method v1.5 \
         --model base \

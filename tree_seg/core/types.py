@@ -25,7 +25,7 @@ class Config:
     image_size: int = 1024  # Preprocess resize (square)
 
     # Pipeline settings
-    pipeline: str = "v1_5"  # Pipeline version: "v1_5" (baseline) or "v3" (tree-specific)
+    pipeline: str = "v1_5"  # Pipeline version: "v1_5" (baseline) or "v3" (species clustering)
 
     # Clustering settings
     auto_k: bool = True
@@ -41,14 +41,8 @@ class Config:
     refine_slic_compactness: float = 10.0
     refine_slic_sigma: float = 1.0
 
-    # V3-specific settings (DEPRECATED - instance segmentation, use v3_1 instead)
-    v3_preset: str = "balanced"  # V3 preset: "permissive", "balanced", "strict"
-    v3_vegetation_method: str = "exg"  # Vegetation index: "exg", "cive", "green_ratio", "combined"
-    v3_iou_threshold: float = 0.3  # Min IoU with vegetation mask
-    v3_gsd_cm: float = 10.0  # Ground Sample Distance (cm/pixel)
-
-    # V3.1-specific settings (species-level semantic clustering)
-    v3_1_exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
+    # V3-specific settings (species-level semantic clustering via vegetation filtering)
+    v3_exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results

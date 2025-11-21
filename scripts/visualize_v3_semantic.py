@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Visualize V3.1 semantic clustering with distinct colors per region.
+Visualize V3 semantic clustering with distinct colors per region.
 
 Shows vegetation clusters as distinct colored regions, with non-vegetation
 as a separate background cluster.
@@ -15,18 +15,18 @@ import numpy as np
 from tree_seg import TreeSegmentation, Config
 
 
-def visualize_v3_1_semantic(
+def visualize_v3_semantic(
     image_path: str,
-    k_value: int = 20,
+    elbow_threshold: float = 5.0,
     exg_threshold: float = 0.10,
-    output_dir: str = "data/output/v3_1_semantic"
+    output_dir: str = "data/output/v3_semantic"
 ):
     """
-    Visualize V3.1 as semantic segmentation with colored regions.
+    Visualize V3 as semantic segmentation with colored regions.
 
     Args:
         image_path: Path to input image
-        k_value: Number of clusters
+        elbow_threshold: Elbow threshold for auto K selection (default: 5.0)
         exg_threshold: ExG threshold for vegetation
         output_dir: Output directory
     """
@@ -36,7 +36,7 @@ def visualize_v3_1_semantic(
     image_name = Path(image_path).stem
 
     print("=" * 80)
-    print(f"V3.1 Semantic Visualization: {image_name}")
+    print(f"V3 Semantic Visualization: {image_name}")
     print("=" * 80)
     print()
 
@@ -44,25 +44,25 @@ def visualize_v3_1_semantic(
     image_np = cv2.imread(image_path)
     image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
 
-    # Run V3.1
-    print(f"Running V3.1 (K={k_value}, ExG threshold={exg_threshold})...")
-    config_v3_1 = Config(
-        pipeline="v3_1",
-        auto_k=False,
-        n_clusters=k_value,
-        v3_1_exg_threshold=exg_threshold,
+    # Run V3
+    print(f"Running V3 (auto K with elbow threshold={elbow_threshold}, ExG threshold={exg_threshold})...")
+    config_v3 = Config(
+        pipeline="v3",
+        auto_k=True,
+        elbow_threshold=elbow_threshold,
+        v3_exg_threshold=exg_threshold,
         verbose=True
     )
 
-    seg_v3_1 = TreeSegmentation(config_v3_1)
-    results_v3_1 = seg_v3_1.process_single_image(image_path)
+    seg_v3 = TreeSegmentation(config_v3)
+    results_v3 = seg_v3.process_single_image(image_path)
 
     # Also run V1.5 to get non-vegetation regions
-    print(f"\nRunning V1.5 for comparison (K={k_value})...")
+    print(f"\nRunning V1.5 for comparison (auto K with elbow threshold={elbow_threshold})...")
     config_v1_5 = Config(
         pipeline="v1_5",
-        auto_k=False,
-        n_clusters=k_value,
+        auto_k=True,
+        elbow_threshold=elbow_threshold,
         verbose=False
     )
 
@@ -71,15 +71,15 @@ def visualize_v3_1_semantic(
 
     # Create semantic maps
     v1_5_labels = results_v1_5.labels_resized
-    v3_1_labels = results_v3_1.labels_resized
+    v3_labels = results_v3.labels_resized
 
     # Create non-vegetation mask
     v1_5_mask = v1_5_labels > 0
-    v3_1_mask = v3_1_labels > 0
-    non_veg_mask = v1_5_mask & ~v3_1_mask
+    v3_mask = v3_labels > 0
+    non_veg_mask = v1_5_mask & ~v3_mask
 
     # Create combined semantic map: vegetation clusters + non-veg as cluster 0
-    semantic_map = v3_1_labels.copy()
+    semantic_map = v3_labels.copy()
     # Set non-vegetation to label 0 (background)
     semantic_map[non_veg_mask] = 0
 
@@ -117,12 +117,12 @@ def visualize_v3_1_semantic(
     cbar1 = plt.colorbar(im1, ax=axes[0, 1], fraction=0.046, pad=0.04)
     cbar1.set_label('Cluster ID', rotation=270, labelpad=15)
 
-    # 3. V3.1 semantic map (vegetation only)
+    # 3. V3 semantic map (vegetation only)
     # Create map without background for cleaner visualization
-    veg_only_map = v3_1_labels.copy()
-    veg_only_map[~v3_1_mask] = 0
+    veg_only_map = v3_labels.copy()
+    veg_only_map[~v3_mask] = 0
     im2 = axes[1, 0].imshow(veg_only_map, cmap='tab20', interpolation='nearest')
-    axes[1, 0].set_title(f"V3.1: Vegetation Clusters Only ({results_v3_1.n_clusters_used})",
+    axes[1, 0].set_title(f"V3: Vegetation Clusters Only ({results_v3.n_clusters_used})",
                         fontsize=14, fontweight='bold')
     axes[1, 0].axis('off')
     cbar2 = plt.colorbar(im2, ax=axes[1, 0], fraction=0.046, pad=0.04)
@@ -134,10 +134,10 @@ def visualize_v3_1_semantic(
 
     # Calculate coverage
     non_veg_pct = 100 * non_veg_mask.sum() / semantic_map.size
-    veg_pct = 100 * v3_1_mask.sum() / semantic_map.size
+    veg_pct = 100 * v3_mask.sum() / semantic_map.size
 
     axes[1, 1].set_title(
-        f"V3.1: Semantic Map\n"
+        f"V3: Semantic Map\n"
         f"Gray=Non-Veg ({non_veg_pct:.1f}%), Colors=Vegetation ({veg_pct:.1f}%)",
         fontsize=14, fontweight='bold'
     )
@@ -168,21 +168,21 @@ def visualize_v3_1_semantic(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Visualize V3.1 semantic clustering")
+    parser = argparse.ArgumentParser(description="Visualize V3 semantic clustering")
     parser.add_argument("--image", type=str, required=True,
                        help="Path to input image")
-    parser.add_argument("--k", type=int, default=20,
-                       help="Number of clusters")
+    parser.add_argument("--elbow-threshold", type=float, default=5.0,
+                       help="Elbow threshold for auto K selection (default: 5.0)")
     parser.add_argument("--threshold", type=float, default=0.10,
                        help="ExG threshold for vegetation")
-    parser.add_argument("--output", type=str, default="data/output/v3_1_semantic",
+    parser.add_argument("--output", type=str, default="data/output/v3_semantic",
                        help="Output directory")
 
     args = parser.parse_args()
 
-    visualize_v3_1_semantic(
+    visualize_v3_semantic(
         image_path=args.image,
-        k_value=args.k,
+        elbow_threshold=args.elbow_threshold,
         exg_threshold=args.threshold,
         output_dir=args.output
     )

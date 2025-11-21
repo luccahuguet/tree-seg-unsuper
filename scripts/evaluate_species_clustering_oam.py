@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Evaluate V3 on OAM-TCD Test Set
+Evaluate Species Clustering on OAM-TCD Dataset
 
-Runs V3 tree detection on OAM-TCD test images and computes metrics.
+Dataset-specific wrapper for evaluating V3 species clustering on OAM-TCD.
+Thin wrapper over generic species clustering evaluation logic.
 """
 
 import json
@@ -18,16 +19,16 @@ def run_v3_on_oam_tcd(
     dataset_path: str = "data/oam_tcd",
     output_dir: str = "data/oam_tcd/v3_predictions",
     max_samples: int = None,
-    preset: str = "balanced"
+    exg_threshold: float = 0.10
 ):
     """
-    Run V3 on OAM-TCD test set.
+    Run V3 species clustering on OAM-TCD test set.
 
     Args:
         dataset_path: Path to OAM-TCD dataset
         output_dir: Directory to save predictions
         max_samples: Max samples to process (None = all)
-        preset: V3 preset ("permissive", "balanced", "strict")
+        exg_threshold: ExG threshold for vegetation filtering
     """
     # Load test set
     test_path = Path(dataset_path) / "test"
@@ -35,7 +36,7 @@ def run_v3_on_oam_tcd(
     test_data = load_from_disk(str(test_path))
 
     num_samples = min(len(test_data), max_samples) if max_samples else len(test_data)
-    print(f"Processing {num_samples} test samples with V3 (preset: {preset})")
+    print(f"Processing {num_samples} test samples with V3 (ExG threshold: {exg_threshold})")
 
     # Create output directory
     output_path = Path(output_dir)
@@ -44,9 +45,9 @@ def run_v3_on_oam_tcd(
     # Initialize V3 pipeline
     config = Config(
         pipeline="v3",
-        v3_preset=preset,
         auto_k=True,
-        elbow_threshold=10.0,  # Conservative
+        elbow_threshold=5.0,  # Default
+        v3_exg_threshold=exg_threshold,
         verbose=False  # Quiet for batch processing
     )
     segmenter = TreeSegmentation(config)
@@ -70,11 +71,11 @@ def run_v3_on_oam_tcd(
         # Run V3
         try:
             results = segmenter.process_single_image(str(temp_path))
-            instance_labels = results.labels_resized
+            semantic_labels = results.labels_resized
 
             # Save prediction
             pred_path = output_path / f"{image_id}_prediction.png"
-            cv2.imwrite(str(pred_path), instance_labels.astype(np.uint16))
+            cv2.imwrite(str(pred_path), semantic_labels.astype(np.uint16))
 
             # Clean up temp file
             temp_path.unlink()
@@ -148,11 +149,10 @@ if __name__ == "__main__":
         help="Max samples to process (default: all)"
     )
     parser.add_argument(
-        "--preset",
-        type=str,
-        default="balanced",
-        choices=["permissive", "balanced", "strict"],
-        help="V3 preset"
+        "--exg-threshold",
+        type=float,
+        default=0.10,
+        help="ExG threshold for vegetation filtering (default: 0.10)"
     )
     parser.add_argument(
         "--skip-inference",
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    predictions_dir = f"data/oam_tcd/v3_predictions_{args.preset}"
+    predictions_dir = f"data/oam_tcd/v3_predictions_exg{args.exg_threshold}"
 
     # Run inference (unless skipped)
     if not args.skip_inference:
@@ -170,13 +170,13 @@ if __name__ == "__main__":
             dataset_path=args.dataset,
             output_dir=predictions_dir,
             max_samples=args.max_samples,
-            preset=args.preset
+            exg_threshold=args.exg_threshold
         )
 
     # Evaluate
     evaluate_v3_results(
         dataset_path=args.dataset,
         predictions_dir=predictions_dir,
-        output_json=f"results/v3_{args.preset}_oam_tcd.json",
+        output_json=f"results/v3_exg{args.exg_threshold}_oam_tcd.json",
         max_samples=args.max_samples
     )

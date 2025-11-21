@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate V3.1 semantic visualizations for multiple OAM-TCD samples.
+Generate V3 semantic visualizations for multiple OAM-TCD samples.
 """
 
 from pathlib import Path
@@ -8,14 +8,14 @@ from datasets import load_from_disk
 import numpy as np
 from PIL import Image
 
-from visualize_v3_1_semantic import visualize_v3_1_semantic
+from visualize_v3_semantic import visualize_v3_semantic
 
 
 def generate_semantic_samples(
     n_samples: int = 10,
-    k_value: int = 20,
+    elbow_threshold: float = 5.0,
     exg_threshold: float = 0.10,
-    output_dir: str = "data/output/v3_1_semantic",
+    output_dir: str = "data/output/v3_semantic",
     seed: int = 42
 ):
     """
@@ -23,7 +23,7 @@ def generate_semantic_samples(
 
     Args:
         n_samples: Number of samples to visualize
-        k_value: Number of clusters
+        elbow_threshold: Elbow threshold for auto K selection (default: 5.0)
         exg_threshold: ExG threshold for vegetation
         output_dir: Output directory
         seed: Random seed for sample selection
@@ -32,7 +32,7 @@ def generate_semantic_samples(
     output_path.mkdir(parents=True, exist_ok=True)
 
     print("=" * 80)
-    print(f"Generating V3.1 Semantic Visualizations (n={n_samples})")
+    print(f"Generating V3 Semantic Visualizations (n={n_samples})")
     print("=" * 80)
     print()
 
@@ -68,9 +68,9 @@ def generate_semantic_samples(
 
         # Generate visualization
         try:
-            visualize_v3_1_semantic(
+            visualize_v3_semantic(
                 image_path=str(temp_path),
-                k_value=k_value,
+                elbow_threshold=elbow_threshold,
                 exg_threshold=exg_threshold,
                 output_dir=output_dir
             )
@@ -99,11 +99,12 @@ def generate_semantic_samples(
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Generate V3.1 semantic visualizations")
+    parser = argparse.ArgumentParser(description="Generate V3 semantic visualizations")
     parser.add_argument("--n", type=int, default=10, help="Number of samples")
-    parser.add_argument("--k", type=int, default=20, help="Number of clusters")
+    parser.add_argument("--elbow-threshold", type=float, default=5.0,
+                       help="Elbow threshold for auto K selection (default: 5.0)")
     parser.add_argument("--threshold", type=float, default=0.10, help="ExG threshold")
-    parser.add_argument("--output", type=str, default="data/output/v3_1_semantic",
+    parser.add_argument("--output", type=str, default="data/output/v3_semantic",
                        help="Output directory")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
 
@@ -111,7 +112,7 @@ if __name__ == "__main__":
 
     generate_semantic_samples(
         n_samples=args.n,
-        k_value=args.k,
+        elbow_threshold=args.elbow_threshold,
         exg_threshold=args.threshold,
         output_dir=args.output,
         seed=args.seed
