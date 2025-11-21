@@ -26,22 +26,31 @@ We are developing an unsupervised tree segmentation pipeline using DINOv3 featur
 
 ## What We Need
 
-An **annotated dataset of individual trees from aerial/drone/satellite top-down view** with:
+> **⭐ IDEAL DATASET (Updated 2025-11-21):**
+> Drone imagery with **species-level semantic region annotations** (NOT instance-level).
+> - **Why:** Our V3 pipeline performs species clustering (semantic segmentation), not individual tree detection
+> - **Ideal format:** Polygons/masks labeled by species (e.g., "pine region", "fir region", "grass patch")
+> - **Key benefit:** Directly validates whether DINOv3 clusters align with actual species boundaries
+> - **Validation metric:** Cluster-species alignment (do our clusters match annotated species regions?)
 
-### Minimum Requirements
+An **annotated dataset of trees from aerial/drone/satellite top-down view** with:
+
+### Minimum Requirements (Instance-Level - Less Ideal)
 - **Imagery type:** Aerial, drone, or satellite (top-down perspective)
 - **Annotations:** Instance-level tree segmentation masks
   - Each tree as a separate instance/polygon
   - Binary tree/non-tree distinction
 - **Format:** Common formats (COCO, Pascal VOC, GeoJSON, shapefiles, or labeled images)
 - **Coverage:** Preferably diverse tree types and environments
+- **⚠️ Limitation:** Instance annotations don't validate species clustering (our actual goal)
 
-### Desired Features (Priority Order)
-1. **Species labels** per tree instance (enables V5 species purity evaluation)
-2. **RGB + Multispectral** imagery (NIR, RedEdge for NDVI/GNDVI - V5 fusion)
-3. **Similar to our use case:** Drone imagery at ~5-20cm GSD, temperate/tropical trees
-4. **Moderate size:** 100+ annotated images or 1000+ tree instances
-5. **Crown characteristics:** Tree height, crown diameter, health status (nice-to-have)
+### Desired Features (Priority Order - Updated)
+1. **🌟 Species-level semantic regions** (HIGHEST VALUE - directly validates V3 clustering)
+2. **Species labels** per tree instance or region (enables species-cluster alignment evaluation)
+3. **RGB + Multispectral** imagery (NIR, RedEdge for NDVI/GNDVI - V5 fusion)
+4. **Similar to our use case:** Drone imagery at ~5-20cm GSD, temperate/tropical trees
+5. **Moderate size:** 100+ annotated images covering multiple species
+6. **Crown characteristics:** Tree height, crown diameter, health status (nice-to-have)
 
 ### What We DON'T Need
 - ❌ Street-level/ground perspective images

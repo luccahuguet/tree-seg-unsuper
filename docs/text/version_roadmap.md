@@ -10,9 +10,9 @@
 **NOT instance segmentation**: We don't separate individual tree crowns. We cluster by species/type.
 
 ## Sequencing Overview
-`V1.5 → V3.1 (species clustering) → V2 (optional refinement) → V5 (multispectral) → V6 (clustering variants)`
+`V1.5 → V3 (species clustering) → V2 (optional refinement) → V5 (multispectral) → V6 (clustering variants)`
 
-**Status Update**: V3 instance segmentation (watershed) was wrong approach for species clustering. Pivoting to V3.1.
+**Status Update**: V3 instance segmentation (watershed) was wrong approach for species clustering. Pivoting to V3.
 
 Cross-cutting standards:
 - Fixed data splits and random seeds
@@ -33,7 +33,7 @@ DINOv3 Feature Extraction (captures texture, color, pattern)
     ↓
 [Boundary Snapping] — SLIC (image space) for clean edges
     ↓
-[Vegetation Filtering] — V3.1: Keep only vegetation clusters, merge similar species
+[Vegetation Filtering] — V3: Keep only vegetation clusters, merge similar species
     ↓
 [Multispectral] — V5 MSI fusion (NDVI/GNDVI/NDRE for better species distinction)
     ↓
@@ -44,10 +44,10 @@ DINOv3 Feature Extraction (captures texture, color, pattern)
 
 **Valid pipeline combinations:**
 - **V1.5 alone**: Baseline semantic clustering (may already separate species with high K)
-- **V1.5 → V3.1**: Semantic clusters + vegetation filtering + species merging
-- **V1.5 → V2 → V3.1**: Refined clusters + vegetation filtering
-- **V1.5 → V3.1 → V5**: RGB clusters + multispectral enhancement
-- **V6 → V3.1**: Alternative clustering + vegetation filtering
+- **V1.5 → V3**: Semantic clusters + vegetation filtering + species merging
+- **V1.5 → V2 → V3**: Refined clusters + vegetation filtering
+- **V1.5 → V3 → V5**: RGB clusters + multispectral enhancement
+- **V6 → V3**: Alternative clustering + vegetation filtering
 
 ---
 
@@ -97,9 +97,9 @@ DINOv3 Feature Extraction (captures texture, color, pattern)
 - **Status:** ❌ Wrong approach for species-level semantic segmentation
 - **Original Goal:** Individual tree crown detection via watershed
 - **What we learned:** OAM-TCD has incomplete instance annotations; watershed creates too many false positives; doesn't align with species clustering goal
-- **Pivot:** Moving to V3.1 for semantic species clustering instead
+- **Pivot:** Moving to V3 for semantic species clustering instead
 
-## V3.1 — Species-Level Semantic Clustering (Complete ✅)
+## V3 — Species-Level Semantic Clustering (Complete ✅)
 - **Goal:** Segment vegetation into species-level regions without instance separation
 - **Status:** ✅ Implementation complete - minimal vegetation filtering working well
 - **Scope:**
@@ -110,8 +110,8 @@ DINOv3 Feature Extraction (captures texture, color, pattern)
 - **Key Finding:** DINOv3 + K-means already does most of the work! Simple cluster-level ExG filter sufficient (no complex multi-index fusion needed).
 - **Implementation:**
   - Module: `tree_seg/vegetation_filter.py` (~150 lines)
-  - Integration: Config parameter `v3_1_exg_threshold=0.10`, pipeline flag `pipeline="v3_1"`
-  - Testing: `scripts/test_v3_1_filter.py` with 4-panel visualization
+  - Integration: Config parameter `v3_exg_threshold=0.10`, pipeline flag `pipeline="v3"`
+  - Testing: `scripts/test_v3_filter.py` with 4-panel visualization
 - **Validation:**
   - Sample 4363: 20→9 clusters, 55.4% filtered (soil/roads)
   - Sample 545: 20→13 clusters, 39.8% filtered (black regions/roads)

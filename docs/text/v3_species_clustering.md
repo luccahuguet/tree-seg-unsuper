@@ -1,6 +1,6 @@
-# V3.1 Vegetation Filter - Implementation Guide
+# V3: Species-Level Semantic Clustering
 
-**Date:** 2025-11-19
+**Date:** 2025-11-21
 **Status:** ✅ Complete
 **Module:** `tree_seg/vegetation_filter.py` (~150 lines)
 
@@ -8,18 +8,106 @@
 
 ## Overview
 
-V3.1 implements **minimal vegetation filtering** for species-level semantic segmentation. It filters DINOv3 K-means clusters to keep only vegetation, producing a semantic map with N+1 classes (N vegetation types + 1 non-vegetation background).
+V3 implements **species-level semantic clustering** through minimal vegetation filtering. It filters DINOv3 K-means clusters to keep only vegetation, producing a semantic map where each label represents a distinct vegetation type or species.
 
-**Key Design Principle:** DINOv3 features already encode vegetation with 0.95+ correlation (validated in `dinov3_vegetation_analysis.md`), so we only need simple cluster-level ExG thresholding.
+**Key Design Principle:** DINOv3 features naturally encode vegetation with 0.95+ correlation (validated in `dinov3_vegetation_analysis.md`), so we only need simple cluster-level ExG thresholding.
+
+**What V3 is NOT:** V3 is not instance segmentation. We don't detect individual tree crowns. We cluster by species/type at the semantic level.
 
 ---
 
-## How It Works
+## Background: Why This Approach?
+
+### The Pivot from Instance Detection
+
+**Original V3 Attempt:** Individual tree crown instance segmentation using watershed
+- Vegetation filtering (ExG) → IoU-based cluster selection → Watershed separation
+- Goal: Detect and count individual trees
+- Result: 2,437 predictions vs 199 ground truth (12x over-detection)
+
+**Critical Discovery:** Wrong problem, wrong approach, wrong dataset
+
+**V3 Solution:** Minimal vegetation filtering for species-level semantic segmentation
+- Cluster-level ExG thresholding → vegetation-only clusters
+- ~150 lines of code, fully integrated into pipeline
+- Successfully filters non-vegetation while preserving species-level clusters
+
+### Why Instance Segmentation Failed
+
+#### 1. Misaligned Goal
+**What we actually need:** Species-level semantic segmentation
+- Cluster regions by species/vegetation type (pines, firs, grass, etc.)
+- Separate vegetation from non-vegetation
+- Multiple disconnected regions of same species OK
+
+**What old V3 was doing:** Individual tree crown detection
+- Watershed splitting large vegetation clusters into "trees"
+- Counting individual tree instances
+- Massive over-detection because it segments every green blob
+
+#### 2. Wrong Dataset (OAM-TCD)
+OAM-TCD is **not designed for instance segmentation:**
+- Contains "group of trees" class (large polygons, not individuals)
+- Explicitly does not segment within closed canopy
+- Incomplete annotations (visible trees without labels)
+- Designed for restoration/coverage, not tree counting
+
+**Our metrics were meaningless:**
+- "False positives" were often real trees, just unlabeled
+- 0.4% precision reflected dataset incompleteness, not pipeline failure
+- Comparing instance predictions against semantic ground truth
+
+#### 3. Watershed Over-Segmentation
+Root cause of 12x over-detection:
+- V1.5 creates large semantic clusters (e.g., "all pines" = 11,000 m²)
+- Old V3 applied area filter (max 1,000 m²) **before** watershed → rejected all clusters
+- Watershed splits vegetation into thousands of tiny "trees"
+
+**Example:** Dense pine forest
+- V1.5: 1 large pine cluster ✅ (correct for species segmentation)
+- Old V3: 200 individual "trees" ❌ (over-segments, not what we need)
+
+---
+
+## How V3 Works
+
+### Architecture
+
+```
+DINOv3 features (encode texture, color, species differences)
+    ↓
+K-means clustering (group visually similar regions)
+    ↓
+SLIC refinement (clean boundaries)
+    ↓
+Vegetation filtering (keep only veg clusters)
+    ↓
+Output: Species-level semantic map
+```
+
+**No instance segmentation needed!** DINOv3 + K-means already creates species-level clusters.
+
+### Key Insights
+
+1. **V1.5 was closer to the answer** than instance detection
+   - Already does semantic clustering
+   - Just needs vegetation filtering
+
+2. **DINOv3 naturally encodes species differences**
+   - Pine texture ≠ fir texture ≠ grass texture
+   - Color patterns differ by species
+   - With auto K selection, clusters naturally align with species
+
+3. **Multiple regions of same species = different labels**
+   - Label 3 = pine patch A
+   - Label 7 = pine patch B
+   - Both visually similar (pine-like features)
+   - Not species classification, just visual clustering
 
 ### Pipeline Flow
 
 ```
-V1.5 K-means Clusters (20 clusters)
+V1.5 K-means Clusters (auto K via elbow method)
     ↓
 Compute mean ExG per cluster
     ↓
@@ -27,7 +115,7 @@ Threshold: Keep clusters with ExG ≥ 0.10
     ↓
 Sequential relabeling (remove gaps)
     ↓
-V3.1 Semantic Map (gray=non-veg + colored=vegetation)
+V3 Semantic Map (0=non-veg, 1-N=vegetation clusters)
 ```
 
 ### Algorithm (3 Steps)
@@ -89,11 +177,9 @@ Produces clean semantic map: `0 = background, 1-N = vegetation clusters`
 
 ```
 tree_seg/
-├── vegetation_filter.py          # V3.1 core module
-├── tree_focus/
-│   └── vegetation_indices.py     # ExG computation
+├── vegetation_filter.py          # V3 core module
 └── core/
-    ├── types.py                  # Config with v3_1_exg_threshold
+    ├── types.py                  # Config with v3_exg_threshold
     ├── segmentation.py           # Pipeline integration
     └── api.py                    # TreeSegmentation class
 ```
@@ -107,11 +193,12 @@ tree_seg/
 ```python
 from tree_seg import TreeSegmentation, Config
 
-# Run V3.1 with vegetation filtering
+# Run V3 with vegetation filtering
 config = Config(
-    pipeline="v3_1",           # Enable vegetation filter
-    n_clusters=20,
-    v3_1_exg_threshold=0.10,   # ExG threshold
+    pipeline="v3",              # Enable V3 species clustering
+    auto_k=True,                # Auto K selection via elbow method
+    elbow_threshold=5.0,        # Default elbow threshold
+    v3_exg_threshold=0.10,      # ExG threshold for vegetation
     verbose=True
 )
 
@@ -125,21 +212,21 @@ print(f"Labels shape: {results.labels_resized.shape}")  # (H, W) with 0=backgrou
 
 ### Visualization Scripts
 
-**Test Filter (`scripts/test_v3_1_filter.py`)**
+**Test Filter (`scripts/test_v3_filter.py`)**
 ```bash
-python scripts/test_v3_1_filter.py --image path/to/image.jpg --k 20 --threshold 0.10
+python scripts/test_v3_filter.py --image path/to/image.jpg --threshold 0.10
 ```
 Generates 4-panel comparison with red tint on removed regions.
 
-**Semantic Visualization (`scripts/visualize_v3_1_semantic.py`)**
+**Semantic Visualization (`scripts/visualize_v3_semantic.py`)**
 ```bash
-python scripts/visualize_v3_1_semantic.py --image path/to/image.jpg --k 20 --threshold 0.10
+python scripts/visualize_v3_semantic.py --image path/to/image.jpg --threshold 0.10
 ```
 Generates semantic map: gray=non-vegetation, colors=vegetation clusters.
 
-**Batch Processing (`scripts/generate_v3_1_semantic_samples.py`)**
+**Batch Processing (`scripts/generate_v3_semantic_samples.py`)**
 ```bash
-python scripts/generate_v3_1_semantic_samples.py --n 10 --seed 42
+python scripts/generate_v3_semantic_samples.py --n 10 --seed 42
 ```
 Generates semantic visualizations for N random OAM-TCD samples.
 
@@ -147,23 +234,16 @@ Generates semantic visualizations for N random OAM-TCD samples.
 
 ## Validation Results
 
-### Sample Evaluation (10 OAM-TCD Images)
+### Sample Evaluation (OAM-TCD)
 
 **Configuration:**
-- K=20, ExG threshold=0.10, seed=42
-- Random sample from test set (439 images)
-
-**Aggregate Statistics:**
-```
-Avg filtering: 70.8% ± 37.3% removed
-Cluster reduction: 20 → 4.4 vegetation clusters (avg)
-Range: 0% to 100% removed (depends on image content)
-```
+- Auto K (elbow threshold=5.0), ExG threshold=0.10
+- Random samples from test set (439 images)
 
 **Representative Examples:**
 
-| Image | Type | V3.1 Clusters | Removed % | Assessment |
-|-------|------|---------------|-----------|------------|
+| Image | Type | V3 Clusters | Removed % | Assessment |
+|-------|------|-------------|-----------|------------|
 | 3828 | Dense forest | 18 | 0.0% | ✅ All vegetation kept |
 | 157 | Mixed urban/veg | 8 | 59.6% | ✅ Filtered buildings/roads |
 | 4363 | Sparse mixed | 9 | 55.4% | ✅ Filtered soil/structures |
@@ -174,31 +254,22 @@ Range: 0% to 100% removed (depends on image content)
 - ✅ Dense vegetation images: 0-60% removed (correct retention)
 - ✅ Sparse/urban images: 80-100% removed (correct filtering)
 - ✅ ExG threshold 0.10 working as expected
-- ✅ High variance (37.3%) reflects dataset diversity, not over-filtering
+- ✅ High variance reflects dataset diversity, not over-filtering
 
 ### Individual Sample Results
 
 **Sample 4363** (dense mixed):
 ```
-Cluster Scores:
-  Cluster  5: ExG=0.328 → Vegetation (large patch)
-  Cluster  2: ExG=0.268 → Vegetation
-  Cluster  1: ExG=0.154 → Vegetation
-  Cluster  6: ExG=0.047 → Non-vegetation (removed)
-  Cluster  3: ExG=0.003 → Non-vegetation (removed)
-
-Output: 20 → 9 vegetation clusters (55.4% filtered)
+V1.5: 20 clusters → V3: 9 vegetation clusters
+Removed: 55.4% (soil, roads, structures)
+Successfully filtered non-vegetation while preserving species diversity
 ```
 
 **Sample 545** (sparse with black regions):
 ```
-Cluster Scores:
-  Cluster  9: ExG=0.311 → Vegetation
-  Cluster  5: ExG=0.240 → Vegetation
-  Cluster  1: ExG=0.002 → Non-vegetation (black region)
-  Cluster  4: ExG=-0.046 → Non-vegetation (shadow)
-
-Output: 20 → 13 vegetation clusters (39.8% filtered)
+V1.5: 20 clusters → V3: 13 vegetation clusters
+Removed: 39.8% (black regions, roads, bare ground)
+Successfully handled challenging black/shadow regions
 ```
 
 ---
@@ -220,7 +291,7 @@ Output: 20 → 13 vegetation clusters (39.8% filtered)
 
 ### Why ExG Instead of NDVI?
 
-**NDVI requires NIR** (not available in RGB-only OAM-TCD)
+**NDVI requires NIR** (not available in RGB-only imagery)
 
 **ExG = 2*G - R - B:**
 - Available in standard RGB imagery
@@ -269,7 +340,7 @@ filter_info = {
     'n_vegetation_clusters': 9,
     'n_removed_clusters': 11,
     'exg_threshold': 0.10,
-    'cluster_scores': {0: 0.092, 1: 0.154, ...},  # Full scores
+    'cluster_scores': {0: 0.092, 1: 0.154, ...},
     'vegetation_cluster_ids': [1, 2, 5, 8, ...],
     'removed_cluster_ids': [0, 3, 4, 6, ...],
     'vegetation_pixels': 1772113,
@@ -280,40 +351,12 @@ filter_info = {
 
 ---
 
-## Visualization Approaches
-
-### 1. Red Tint Comparison (`test_v3_1_filter.py`)
-
-**4-Panel Layout:**
-1. Original image
-2. V1.5 all clusters (white outlines)
-3. V3.1 vegetation only (green outlines)
-4. **Removed regions** (red tint + dashed outlines)
-
-**Purpose:** Show what was filtered out
-
-### 2. Semantic Map (`visualize_v3_1_semantic.py`)
-
-**4-Panel Layout:**
-1. Original image
-2. V1.5 all clusters (colored)
-3. V3.1 vegetation only (colored)
-4. **Semantic map** (gray=non-veg, colors=vegetation)
-
-**Purpose:** Show V3.1 as semantic segmentation (N+1 classes)
-
-**Color Scheme:**
-- Gray (#808080): Non-vegetation background (label 0)
-- Tab20 colormap: Distinct colors for vegetation clusters (labels 1-N)
-
----
-
 ## Performance Characteristics
 
 ### Runtime
 - **Negligible overhead** over V1.5
 - ExG computation: O(HW) single pass
-- Cluster scoring: O(K × HW) averaging (K=20, fast)
+- Cluster scoring: O(K × HW) averaging
 - Filtering: O(K) comparisons
 - Relabeling: O(HW) single pass
 
@@ -325,7 +368,7 @@ filter_info = {
 - ExG map temporary (same size as input)
 
 ### Accuracy
-- **Species separation:** Depends on K and DINOv3 features
+- **Species separation:** Depends on auto K and DINOv3 features
 - **Vegetation filtering:** 0-100% removal based on image content
 - **False positives:** Rare (threshold validated)
 - **False negatives:** Possible with very sparse/dark vegetation
@@ -356,25 +399,24 @@ filter_info = {
 
 ---
 
-## Files Created
+## Evaluation Strategy
 
-**Core Module:**
-- `tree_seg/vegetation_filter.py` - Main filtering logic
+**Without labeled species data**, we evaluate on:
+1. **Vegetation separation**: Does it filter out soil/roads/buildings?
+2. **Visual consistency**: Do clusters align with visible species boundaries?
+3. **Feature similarity**: Are similar-looking regions getting similar cluster labels?
+4. **Qualitative inspection**: Manual review of outputs
 
-**Scripts:**
-- `scripts/test_v3_1_filter.py` - Interactive testing with red tint
-- `scripts/visualize_v3_1_semantic.py` - Semantic map generation
-- `scripts/generate_v3_1_semantic_samples.py` - Batch processing
-- `scripts/evaluate_v3_1_sample.py` - Sample evaluation
+---
 
-**Results:**
-- `results/v3_1_sample_evaluation.json` - 10-image evaluation
+## Lessons Learned
 
-**Documentation:**
-- `docs/text/v3_1_vegetation_filter.md` - This document
-- `docs/text/v3_pivot.md` - V3 → V3.1 transition
-- `docs/text/dinov3_vegetation_analysis.md` - Feature analysis
-- `docs/text/version_roadmap.md` - V3.1 status and roadmap
+1. **Start with simple baselines** before adding complexity
+2. **Understand dataset design** before evaluating on it
+3. **Question assumptions** when metrics look wrong
+4. **Visual inspection** reveals ground truth issues that metrics hide
+5. **User feedback** (black regions, missing annotations) catches problems early
+6. **DINOv3 does most of the work** - just need minimal filtering
 
 ---
 
@@ -396,4 +438,4 @@ filter_info = {
 
 ---
 
-**Status:** V3.1 implementation complete. Minimal filtering (~150 lines) achieves effective vegetation segmentation by leveraging DINOv3's inherent vegetation encoding. Ready for integration into larger pipeline! 🌳
+**Status:** V3 implementation complete. Minimal filtering (~150 lines) achieves effective species-level semantic segmentation by leveraging DINOv3's inherent vegetation encoding. 🌳

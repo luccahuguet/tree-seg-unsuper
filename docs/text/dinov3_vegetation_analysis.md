@@ -149,20 +149,25 @@ Do vegetation clusters at K=20-30 correspond to species boundaries?
 
 ## Implementation Priority
 
-**Phase 1** (Immediate): Implement minimal vegetation filter
+**Phase 1** (Immediate): Implement minimal vegetation filter ✅
 - Cluster-level ExG computation
 - Threshold-based filtering
 - Test on diverse samples
 
-**Phase 2** (Next): Species separation analysis
+**Phase 2** (Next): Species separation analysis ✅
 - Test K=20, 25, 30 on filtered vegetation
 - Visual inspection: Do clusters align with species?
 - Refine if needed
 
 **Phase 3** (Future): Dataset validation
-- BAMFORESTS (5cm GSD) for higher-resolution testing
-- TreeSatAI (species labels) for quantitative species metrics
-- Custom UAV data (2-3cm GSD) for ultimate resolution
+- **🌟 IDEAL DATASET NEEDED:** Drone imagery with species-level semantic region annotations
+  - **What we need:** Polygons/masks labeled by species (e.g., "pine region", "fir region")
+  - **Why:** Direct validation of whether DINOv3 clusters align with actual species boundaries
+  - **Current limitation:** OAM-TCD has instance annotations (tree vs non-tree), not species regions
+  - **Validation metric:** Cluster-species alignment score (Hungarian matching between clusters and species polygons)
+- BAMFORESTS (5cm GSD) for higher-resolution testing (if has species labels)
+- TreeSatAI (species labels) for quantitative species metrics (satellite, not drone)
+- Custom UAV data (2-3cm GSD) for ultimate resolution (would need manual annotation)
 
 ## Visualizations Generated
 

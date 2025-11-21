@@ -93,10 +93,8 @@ class Config:
             raise ValueError("pca_dim must be between 1 and 1024 when set")
         if self.refine not in (None, "slic"):
             raise ValueError("refine must be None or 'slic'")
-        if self.pipeline not in ("v1_5", "v3", "v3_1"):
-            raise ValueError("pipeline must be 'v1_5', 'v3' (deprecated), or 'v3_1'")
-        if self.v3_preset not in ("permissive", "balanced", "strict"):
-            raise ValueError("v3_preset must be 'permissive', 'balanced', or 'strict'")
+        if self.pipeline not in ("v1_5", "v3"):
+            raise ValueError("pipeline must be 'v1_5' or 'v3'")
 
 
 @dataclass
