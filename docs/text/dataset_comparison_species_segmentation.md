@@ -5,6 +5,8 @@ Comprehensive comparison of available datasets for species-level semantic segmen
 **Last Updated:** 2025-01-26
 **Context:** Evaluating datasets for DINOv3-based species clustering research with 2.5 week timeline
 
+--> See more: https://github.com/blutjens/awesome-forests
+
 ---
 
 ## Executive Summary

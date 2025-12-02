@@ -43,3 +43,6 @@ bench_models.csv
 # Build artifacts
 *.egg-info/
 docs/articles/1-s2.0-S0924271620302938-main.pdf
+
+# Personal planning notes
+docs/text/personal_notes.md

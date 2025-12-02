@@ -17,6 +17,122 @@ class DatasetSample:
     image_id: str
 
 
+class FortressDataset:
+    """
+    FORTRESS (Forest Tree Species Segmentation) dataset loader.
+    
+    Source: Schiefer et al. 2020 (KIT)
+    Contains tree species annotations as rasterized semantic masks.
+    
+    The dataset has been preprocessed using scripts/preprocess_fortress.py
+    to convert vector polygons into pixel-level semantic masks.
+    """
+    
+    # Class mapping based on species_mapping.txt from preprocessing
+    # Note: species_ID values are not contiguous (gaps in numbering)
+    CLASS_NAMES = {
+        0: "Picea abies (Spruce)",
+        2: "Acer pseudoplatanus (Maple)",
+        4: "Fagus sylvatica (Beech)",
+        5: "Fraxinus excelsior (Ash)",
+        6: "Quercus spec. (Oak)",
+        8: "Deadwood",
+        9: "Forest floor",
+        10: "Abies alba (Fir)",
+        11: "Larix decidua (Larch)",
+        12: "Picea abies (duplicate - verify)",  # Appears twice in mapping
+        13: "Pinus sylvestris (Pine)",
+        14: "Pseudotsuga menziesii (Douglas Fir)",
+        15: "Betula pendula (Birch)",
+    }
+    
+    NUM_CLASSES = 13  # Unique classes (excluding duplicate ID 12)
+    IGNORE_INDEX = 255
+
+    def __init__(self, dataset_path: Path, split: Optional[str] = None):
+        """
+        Initialize FORTRESS dataset.
+        
+        Args:
+            dataset_path: Path to preprocessed FORTRESS dataset 
+                         (e.g., data/fortress_processed/)
+            split: Optional split name (not used, kept for API consistency)
+        """
+        self.dataset_path = Path(dataset_path)
+        self.images_path = self.dataset_path / "images"
+        self.labels_path = self.dataset_path / "labels"
+        
+        if not self.images_path.exists():
+            raise ValueError(f"Images directory not found: {self.images_path}")
+        if not self.labels_path.exists():
+            raise ValueError(f"Labels directory not found: {self.labels_path}")
+
+        self.samples = self._find_samples()
+        
+        if len(self.samples) == 0:
+            raise ValueError(f"No samples found in {self.dataset_path}")
+
+    def _find_samples(self) -> List[DatasetSample]:
+        """Find all image-label pairs in the preprocessed dataset."""
+        samples = []
+        
+        # Find all images (symbolic links to orthomosaics)
+        image_files = sorted(self.images_path.glob("*.tif")) + sorted(
+            self.images_path.glob("*.tiff")
+        )
+        
+        for image_path in image_files:
+            # Corresponding label has _label suffix
+            stem = image_path.stem
+            label_path = self.labels_path / f"{stem}_label.tif"
+            
+            if not label_path.exists():
+                print(f"Warning: No label found for {image_path.name}")
+                continue
+            
+            samples.append(DatasetSample(
+                image_path=image_path,
+                label_path=label_path,
+                image_id=stem
+            ))
+        
+        return samples
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray, str]:
+        """
+        Get a sample from the dataset.
+        
+        Args:
+            idx: Sample index
+        
+        Returns:
+            Tuple of (image, label, image_id)
+            - image: RGB image array (H, W, 3) in range [0, 255]
+            - label: Class index array (H, W) with species_ID values
+            - image_id: Unique identifier for the image
+        """
+        sample = self.samples[idx]
+        
+        # Load image (RGB orthomosaic)
+        image = np.array(Image.open(sample.image_path).convert("RGB"))
+        
+        # Load label (already rasterized as uint8 with species_ID values)
+        label = np.array(Image.open(sample.label_path))
+        
+        # Ensure single channel
+        if len(label.shape) > 2:
+            label = label[:, :, 0]
+        
+        return image, label.astype(np.int64), sample.image_id
+
+    def get_sample_paths(self, idx: int) -> DatasetSample:
+        """Get file paths for a sample."""
+        return self.samples[idx]
+
+
 class ISPRSPotsdamDataset:
     """
     ISPRS Potsdam dataset loader.

@@ -150,3 +150,4 @@ DINOv3 Feature Extraction (captures texture, color, pattern)
 - **Scope:** Test clustering algorithm variants: (1) Spherical k-means (cosine metric for normalized DINOv3 tokens), (2) Soft k-means (as clustering algorithm, not refinement), (3) DP-means (automatic K selection).
 - **Clarification:** Soft k-means in V6 is a clustering algorithm choice. This is distinct from V2's soft/EM refinement which operates on K-means output. V6 outputs can feed into V2 refinement.
 - **Gate:** Adopt only if both mIoU and edge-F exceed V2 at similar runtime/VRAM; otherwise archive findings.
+
