@@ -77,11 +77,17 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
     
     # V3-specific arguments
     parser.add_argument(
+        "--apply-vegetation-filter",
+        action="store_true",
+        help="Apply ExG-based vegetation filtering (works with any method)",
+    )
+    
+    parser.add_argument(
         "--exg-threshold",
         type=float,
         default=0.10,
-        help="ExG threshold for V3 vegetation filtering (default: 0.10)",
-    )
+        help="ExG threshold for vegetation filtering (default: 0.10)",
+   )
 
     # Evaluation options
     parser.add_argument(

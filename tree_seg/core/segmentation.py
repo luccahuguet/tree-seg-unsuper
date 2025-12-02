@@ -26,7 +26,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
                  collect_metrics: bool = False, model_name=None, output_dir="data/output",
                  verbose: bool = True, pipeline: str = "v1_5",
-                 v3_exg_threshold: float = 0.10):
+                 apply_vegetation_filter: bool = False, exg_threshold: float = 0.10):
     """
     Process a single image for tree segmentation.
     
@@ -41,6 +41,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         auto_k: Whether to use automatic K selection
         k_range: Range for K selection (min_k, max_k)
         elbow_threshold: Threshold for elbow method (as decimal, e.g., 0.035)
+        apply_vegetation_filter: Whether to apply ExG-based vegetation filtering
+        exg_threshold: ExG threshold for vegetation filtering (default: 0.10)
         verbose: Whether to print detailed processing information
         
     Returns:
@@ -243,14 +245,17 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 )
                 t_refine_end = time.perf_counter()
 
-        # V3 species-level semantic clustering (if enabled)
-        if pipeline == "v3":
+        # Vegetation filtering (if enabled - works with any pipeline)
+        # Automatically enabled for V3 pipeline for backward compatibility
+        should_apply_filter = apply_vegetation_filter or (pipeline == "v3")
+        
+        if should_apply_filter:
             if verbose:
-                print("🌳 Applying V3 vegetation filtering (species clustering)...")
-            labels_resized = _apply_v3_vegetation_filter(
+                print("🌳 Applying vegetation filtering (ExG-based cluster selection)...")
+            labels_resized = _apply_vegetation_filter(
                 image_np,
                 labels_resized,
-                exg_threshold=v3_exg_threshold,
+                exg_threshold=exg_threshold,
                 verbose=verbose
             )
 
@@ -290,18 +295,18 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         return None, None
 
 
-def _apply_v3_vegetation_filter(
+def _apply_vegetation_filter(
     image_np: np.ndarray,
     cluster_labels: np.ndarray,
     exg_threshold: float = 0.10,
     verbose: bool = True
 ) -> np.ndarray:
     """
-    Apply V3 vegetation filtering (species-level semantic clustering).
+    Apply vegetation filtering to cluster labels.
 
     Args:
         image_np: RGB image (H, W, 3)
-        cluster_labels: V1.5 cluster labels (H, W)
+        cluster_labels: Cluster labels (H, W)
         exg_threshold: ExG threshold for vegetation classification
         verbose: Print progress
 
@@ -327,7 +332,7 @@ def _apply_v3_vegetation_filter(
 
     except Exception as e:
         if verbose:
-            print(f"  ⚠️  V3 filtering failed: {e}, returning original clusters")
+            print(f"  ⚠️  Vegetation filtering failed: {e}, returning original clusters")
         return cluster_labels
 
 

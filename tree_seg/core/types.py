@@ -41,8 +41,15 @@ class Config:
     refine_slic_compactness: float = 10.0
     refine_slic_sigma: float = 1.0
 
-    # V3-specific settings (species-level semantic clustering via vegetation filtering)
-    v3_exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
+    # Vegetation filtering (works with any method: V1.5, V2, V3)
+    apply_vegetation_filter: bool = False  # Enable ExG-based vegetation filtering
+    exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
+    
+    # V3-specific: backward compatibility alias
+    @property
+    def v3_exg_threshold(self) -> float:
+        """Backward compatibility: v3_exg_threshold maps to exg_threshold."""
+        return self.exg_threshold
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results

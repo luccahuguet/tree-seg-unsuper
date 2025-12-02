@@ -72,7 +72,8 @@ def create_config(args) -> Config:
         n_clusters=args.fixed_k if args.fixed_k else 6,
         auto_k=(args.fixed_k is None),
         image_size=args.image_size,
-        v3_exg_threshold=args.exg_threshold if version == "v3" else 0.10,
+        apply_vegetation_filter=args.apply_vegetation_filter or (version == "v3"),
+        exg_threshold=args.exg_threshold,
     )
 
     return config
