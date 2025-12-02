@@ -3,7 +3,22 @@
 Evaluate Species Clustering on OAM-TCD Dataset
 
 Dataset-specific wrapper for evaluating V3 species clustering on OAM-TCD.
-Thin wrapper over generic species clustering evaluation logic.
+
+NOTE: This script does NOT use the generic BenchmarkRunner because OAM-TCD
+evaluation is fundamentally different:
+
+**Why OAM-TCD is separate:**
+1. **Different task**: Instance detection (individual trees) vs semantic 
+   segmentation (pixel-level classes)
+2. **Different metrics**: Precision/Recall/F1 on tree instances vs mIoU on pixels
+3. **Different format**: HuggingFace datasets format vs standard image/label pairs
+4. **Custom evaluation**: IoU-based tree matching vs Hungarian pixel matching
+
+For semantic segmentation datasets (ISPRS, FORTRESS), use:
+- scripts/evaluate_fortress.py
+- scripts/evaluate_semantic_segmentation.py
+
+These use the generic BenchmarkRunner with SegmentationDataset protocol.
 """
 
 import json
