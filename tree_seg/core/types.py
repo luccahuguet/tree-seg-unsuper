@@ -98,8 +98,8 @@ class Config:
             raise ValueError("feature_upsample_factor must be between 1 and 8")
         if self.pca_dim is not None and (self.pca_dim <= 0 or self.pca_dim > 1024):
             raise ValueError("pca_dim must be between 1 and 1024 when set")
-        if self.refine not in (None, "slic"):
-            raise ValueError("refine must be None or 'slic'")
+        if self.refine not in [None, "slic", "bilateral"]:
+            raise ValueError("refine must be None, 'slic', or 'bilateral'")
         if self.pipeline not in ("v1_5", "v3"):
             raise ValueError("pipeline must be 'v1_5' or 'v3'")
 

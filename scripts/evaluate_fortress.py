@@ -60,7 +60,10 @@ def create_config(args) -> Config:
         )
 
     # Map clustering to refine parameter
-    refine = "slic" if args.clustering == "slic" else None
+    if args.clustering in ["slic", "bilateral"]:
+        refine = args.clustering
+    else:
+        refine = None
 
     # Create config
     config = Config(

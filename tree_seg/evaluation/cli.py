@@ -35,7 +35,7 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         "--clustering",
         type=str,
         default="kmeans",
-        choices=["kmeans", "slic"],
+        choices=["kmeans", "slic", "bilateral"],
         help="Clustering method (default: kmeans)",
     )
 

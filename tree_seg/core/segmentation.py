@@ -229,13 +229,24 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             print(f"labels_resized shape: {labels_resized.shape}")
 
         # Optional edge-aware refinement
+        # Optional edge-aware refinement
         if refine == "slic":
-            if slic is None:
+            # Try OpenCV SLIC first (much faster)
+            if hasattr(cv2, 'ximgproc'):
                 if verbose:
-                    print("⚠️  skimage not available; skipping SLIC refinement.")
-            else:
+                    print("🔧 Refining with fast OpenCV SLIC...")
+                t_refine_start = time.perf_counter()
+                labels_resized = _refine_with_opencv_slic(
+                    image_np,
+                    labels_resized,
+                    compactness=refine_slic_compactness,
+                    region_size=48  # Approx matching 48x48 target area
+                )
+                t_refine_end = time.perf_counter()
+            # Fallback to skimage SLIC
+            elif slic is not None:
                 if verbose:
-                    print("🔧 Refining segmentation with SLIC superpixels...")
+                    print("🔧 Refining with skimage SLIC (slow)...")
                 t_refine_start = time.perf_counter()
                 labels_resized = _refine_with_slic(
                     image_np,
@@ -244,6 +255,18 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                     sigma=refine_slic_sigma,
                 )
                 t_refine_end = time.perf_counter()
+            else:
+                if verbose:
+                    print("⚠️  No SLIC implementation available (install opencv-contrib-python or scikit-image)")
+        elif refine == "bilateral":
+            if verbose:
+                print("🔧 Refining segmentation with bilateral filter...")
+            t_refine_start = time.perf_counter()
+            labels_resized = _refine_with_bilateral(
+                image_np,
+                labels_resized,
+            )
+            t_refine_end = time.perf_counter()
 
         # Vegetation filtering (if enabled - works with any pipeline)
         # Automatically enabled for V3 pipeline for backward compatibility
@@ -353,6 +376,11 @@ def _refine_with_slic(image_np: np.ndarray, labels_resized: np.ndarray,
     # Target ~ one superpixel per ~48x48 area (tunable)
     target_area = 48 * 48
     n_segments = max(100, int((h * w) / target_area))
+    
+    # Cap at reasonable maximum to prevent hanging on huge images
+    # (e.g., 9000x9000 FORTRESS orthomosaics)
+    MAX_SEGMENTS = 2000
+    n_segments = min(n_segments, MAX_SEGMENTS)
 
     # Ensure float image in [0,1]
     img_float = image_np.astype(np.float32)
@@ -386,6 +414,127 @@ def _refine_with_slic(image_np: np.ndarray, labels_resized: np.ndarray,
         refined.reshape(-1)[mask] = max_label
 
     return refined.astype(np.uint8)
+
+
+def _refine_with_opencv_slic(image_np: np.ndarray, labels_resized: np.ndarray,
+                            compactness: float = 10.0, region_size: int = 48) -> np.ndarray:
+    """Refine cluster labels using OpenCV's fast SLIC implementation.
+    
+    Much faster than skimage.segmentation.slic.
+    
+    Args:
+        image_np: Original RGB image (H, W, 3)
+        labels_resized: Initial labels (H, W)
+        compactness: SLIC compactness (smoothness)
+        region_size: Average superpixel size
+        
+    Returns:
+        Refined labels (H, W)
+    """
+    # Target number of segments to keep runtime reasonable
+    # Same logic as skimage implementation
+    MAX_SEGMENTS = 2000
+    
+    h, w = image_np.shape[:2]
+    
+    # If region_size is default (48), override it based on MAX_SEGMENTS
+    # otherwise respect the provided region_size if it results in fewer segments
+    if region_size == 48:
+        calculated_region_size = int(np.sqrt((h * w) / MAX_SEGMENTS))
+        region_size = max(region_size, calculated_region_size)
+    
+    # Initialize SLIC
+    # algorithm: 100 = SLICO (optimization), 101 = SLIC, 102 = MSLIC
+    slic = cv2.ximgproc.createSuperpixelSLIC(
+        image_np, 
+        algorithm=cv2.ximgproc.SLIC,
+        region_size=region_size,
+        ruler=float(compactness)
+    )
+    
+    # Run SLIC
+    slic.iterate(10)  # 10 iterations is standard
+    
+    # Get labels
+    segments = slic.getLabels()
+    
+    # Fast vectorized majority voting
+    # Compute 2D histogram of (segment_id, label)
+    # Rows = segments, Cols = labels
+    seg_flat = segments.reshape(-1)
+    lab_flat = labels_resized.reshape(-1)
+    
+    n_segments_actual = segments.max() + 1
+    n_labels = labels_resized.max() + 1
+    
+    # histogram2d is fast and avoids the loop
+    hist, _, _ = np.histogram2d(
+        seg_flat, 
+        lab_flat, 
+        bins=[n_segments_actual, n_labels],
+        range=[[0, n_segments_actual], [0, n_labels]]
+    )
+    
+    # Find mode label for each segment (argmax along label axis)
+    segment_modes = np.argmax(hist, axis=1).astype(np.uint8)
+    
+    # Map back to image
+    refined = segment_modes[segments]
+        
+    return refined.astype(np.uint8)
+
+
+def _refine_with_bilateral(image_np: np.ndarray, labels_resized: np.ndarray) -> np.ndarray:
+    """Refine cluster labels using bilateral filtering.
+    
+    Fast edge-aware refinement alternative to SLIC. Smooths labels while preserving
+    edges using spatial and intensity-based filtering.
+    
+    Args:
+        image_np: Original RGB image as numpy array (H, W, 3)
+        labels_resized: Initial labels (H, W)
+        
+    Returns:
+        Refined labels (H, W)
+    """
+    # Apply bilateral filter to smooth image while preserving edges
+    # Parameters tuned for aerial imagery edge preservation
+    d = 9  # Neighborhood diameter  
+    sigmaColor = 75  # Filter sigma in color space
+    sigmaSpace = 75  # Filter sigma in coordinate space
+    
+    # Filter the original image to get edge map
+    # filtered = cv2.bilateralFilter(image_np, d, sigmaColor, sigmaSpace)
+    
+    # Compute edge strength between filtered and original
+    # Strong edges in the filtered image indicate object boundaries
+    # edge_strength = np.abs(filtered.astype(np.float32) - image_np.astype(np.float32)).mean(axis=2)
+    
+    # Create label probability map by filtering the labels
+    # Convert labels to float for filtering
+    h, w = labels_resized.shape
+    n_labels = int(labels_resized.max()) + 1
+    
+    # Create one-hot encoded label maps
+    label_smoothed = np.zeros((h, w), dtype=np.uint8)
+    
+    for label_id in range(n_labels):
+        # Create binary mask for this label
+        mask = (labels_resized == label_id).astype(np.float32)
+        
+        # Apply bilateral filter to the mask
+        # This smooths within regions but preserves edges
+        smoothed_mask = cv2.bilateralFilter(
+            (mask * 255).astype(np.uint8), 
+            d, 
+            sigmaColor, 
+            sigmaSpace
+        ).astype(np.float32) / 255.0
+        
+        # Update labels where this label has highest confidence
+        label_smoothed[smoothed_mask > 0.5] = label_id
+    
+    return label_smoothed
 
 
 def run_processing(
