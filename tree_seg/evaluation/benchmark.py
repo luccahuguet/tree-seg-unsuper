@@ -3,14 +3,14 @@
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 from PIL import Image
 
 from tree_seg.api import TreeSegmentation
 from tree_seg.core.types import Config
-from tree_seg.evaluation.datasets import ISPRSPotsdamDataset
+from tree_seg.evaluation.datasets import ISPRSPotsdamDataset, SegmentationDataset
 from tree_seg.evaluation.metrics import EvaluationResults, evaluate_segmentation
 
 
@@ -55,7 +55,7 @@ class BenchmarkRunner:
     def __init__(
         self,
         config: Config,
-        dataset: ISPRSPotsdamDataset,
+        dataset: SegmentationDataset,
         output_dir: Optional[Path] = None,
         save_visualizations: bool = False,
     ):
@@ -64,7 +64,7 @@ class BenchmarkRunner:
 
         Args:
             config: Configuration for segmentation method
-            dataset: Dataset to evaluate on
+            dataset: Dataset to evaluate on (any dataset implementing SegmentationDataset protocol)
             output_dir: Optional directory to save results and visualizations
             save_visualizations: Whether to save visualization images
         """
@@ -265,7 +265,9 @@ class BenchmarkRunner:
 
 def run_benchmark(
     config: Config,
-    dataset_path: Path,
+    dataset: Union[SegmentationDataset, Path] = None,
+    dataset_path: Optional[Path] = None,
+    dataset_class: Optional[type] = None,
     output_dir: Optional[Path] = None,
     num_samples: Optional[int] = None,
     save_visualizations: bool = False,
@@ -276,7 +278,9 @@ def run_benchmark(
 
     Args:
         config: Segmentation configuration
-        dataset_path: Path to dataset (e.g., data/isprs_potsdam)
+        dataset: Dataset instance OR path to dataset
+        dataset_path: (Deprecated) Path to dataset - use dataset parameter instead
+        dataset_class: Dataset class to instantiate (default: ISPRSPotsdamDataset)
         output_dir: Optional output directory for results
         num_samples: Number of samples to evaluate (None = all)
         save_visualizations: Whether to save visualization images
@@ -285,8 +289,15 @@ def run_benchmark(
     Returns:
         BenchmarkResults
     """
-    # Load dataset
-    dataset = ISPRSPotsdamDataset(dataset_path)
+    # Handle backward compatibility
+    if dataset_path is not None:
+        dataset = dataset_path
+    
+    # Load dataset if path provided
+    if isinstance(dataset, Path):
+        if dataset_class is None:
+            dataset_class = ISPRSPotsdamDataset
+        dataset = dataset_class(dataset)
 
     # Create and run benchmark
     runner = BenchmarkRunner(

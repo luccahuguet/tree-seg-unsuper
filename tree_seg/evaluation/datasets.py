@@ -2,10 +2,42 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Protocol, Tuple
 
 import numpy as np
 from PIL import Image
+
+
+class SegmentationDataset(Protocol):
+    """
+    Protocol defining the interface for segmentation datasets.
+    
+    All dataset classes should implement this interface to work with
+    the generic BenchmarkRunner.
+    """
+    
+    NUM_CLASSES: int
+    IGNORE_INDEX: int
+    dataset_path: Path
+    
+    def __len__(self) -> int:
+        """Return the number of samples in the dataset."""
+        ...
+    
+    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray, str]:
+        """
+        Get a sample from the dataset.
+        
+        Args:
+            idx: Sample index
+            
+        Returns:
+            Tuple of (image, label, image_id)
+            - image: RGB image array (H, W, 3) in range [0, 255]
+            - label: Class index array (H, W) with class indices
+            - image_id: Unique identifier for the image
+        """
+        ...
 
 
 @dataclass
