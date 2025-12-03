@@ -8,10 +8,13 @@ from typing import List, Optional, Union
 import numpy as np
 from PIL import Image
 
+from contextlib import contextmanager
+
 from tree_seg.api import TreeSegmentation
 from tree_seg.core.types import Config
 from tree_seg.evaluation.datasets import ISPRSPotsdamDataset, SegmentationDataset
 from tree_seg.evaluation.metrics import EvaluationResults, evaluate_segmentation
+from tree_seg.utils.runtime_cache import RuntimeCache
 
 
 @dataclass
@@ -78,6 +81,7 @@ class BenchmarkRunner:
         self.save_visualizations = save_visualizations
         self.use_smart_k = use_smart_k
         self.model_cache = model_cache if model_cache is not None else {}
+        self.runtime_cache = RuntimeCache()
 
         # Create segmentation instance (will be recreated per-image if using smart K)
         self.segmenter = None if use_smart_k else TreeSegmentation(config)
@@ -256,16 +260,55 @@ class BenchmarkRunner:
             print(f"Model: {self.config.model_display_name}")
             print(f"Config: stride={self.config.stride}, " f"elbow_threshold={self.config.elbow_threshold}\n")
 
-        # Run on all samples
+        # Load runtime estimate from cache
+        est_key = self.runtime_cache.make_key(self.config)
+        cached_mean = self.runtime_cache.get_mean_runtime(est_key)
+
+        # Progress bar setup
+        total_samples = end_idx - start_idx
         sample_results = []
-        for idx in range(start_idx, end_idx):
-            sample_result, _ = self.run_single_sample(idx, verbose=verbose)
-            sample_results.append(sample_result)
+        est_total = cached_mean * total_samples if cached_mean else None
+        est_remaining = est_total
+
+        @contextmanager
+        def maybe_progress(total):
+            try:
+                from tqdm import tqdm
+            except ImportError:
+                yield None
+                return
+            bar = tqdm(total=total, desc="Benchmark", unit="img")
+            try:
+                if est_total:
+                    bar.set_postfix(eta=f"{int(est_total)}s")
+                yield bar
+            finally:
+                bar.close()
+
+        with maybe_progress(total_samples) as bar:
+            for idx in range(start_idx, end_idx):
+                t0 = time.time()
+                sample_result, _ = self.run_single_sample(idx, verbose=verbose)
+                dt = time.time() - t0
+                sample_results.append(sample_result)
+
+                # Update ETA
+                if bar is not None:
+                    bar.update(1)
+                    if est_remaining is not None:
+                        est_remaining = max(est_remaining - dt, 0)
+                    else:
+                        est_remaining = dt * (total_samples - len(sample_results))
+                    bar.set_postfix(eta=f"{int(est_remaining)}s")
 
         # Compute aggregated metrics
         mean_miou = np.mean([s.miou for s in sample_results])
         mean_pixel_acc = np.mean([s.pixel_accuracy for s in sample_results])
         mean_runtime = np.mean([s.runtime_seconds for s in sample_results])
+
+        # Persist runtime mean for future ETA
+        if len(sample_results) > 0:
+            self.runtime_cache.update(est_key, mean_runtime)
 
         # Create benchmark results
         refine_str = "mask2former" if self.config.version == "v4" else (self.config.refine if self.config.refine else "kmeans")
