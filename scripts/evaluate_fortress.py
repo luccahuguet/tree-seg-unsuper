@@ -61,9 +61,10 @@ def create_config(args) -> Config:
             verbose=not args.quiet,
         )
 
-    # Map clustering to refine parameter
-    if args.clustering in ["slic", "bilateral"]:
-        refine = args.clustering
+    # Map clustering to refine parameter (default to slic for v1.x baselines)
+    clustering = args.clustering or "slic"
+    if clustering in ["slic", "bilateral"]:
+        refine = clustering
     else:
         refine = None
 
@@ -79,6 +80,8 @@ def create_config(args) -> Config:
         image_size=args.image_size,
         apply_vegetation_filter=args.apply_vegetation_filter or (version == "v3"),
         exg_threshold=args.exg_threshold,
+        use_tiling=not args.no_tiling,
+        viz_two_panel=args.viz_two_panel,
     )
 
     return config
@@ -180,6 +183,8 @@ def run_comparison_benchmark(args):
         "n_clusters": args.fixed_k if args.fixed_k else 6,
         "apply_vegetation_filter": args.apply_vegetation_filter or (args.method == "v3"),
         "exg_threshold": args.exg_threshold,
+        "use_tiling": not args.no_tiling,
+        "viz_two_panel": args.viz_two_panel,
     }
 
     all_results = []

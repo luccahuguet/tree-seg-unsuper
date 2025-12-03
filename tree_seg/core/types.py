@@ -68,6 +68,7 @@ class Config:
     overlay_ratio: int = 4  # 1=opaque, 10=transparent
     edge_width: int = 2
     use_hatching: bool = True
+    viz_two_panel: bool = False  # If True, use compact 2-panel GT+overlay viz
     
     # Web optimization settings
     web_optimize: bool = True  # Auto-optimize images for GitHub Pages (default enabled)

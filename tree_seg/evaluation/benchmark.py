@@ -317,6 +317,10 @@ class BenchmarkRunner:
             image_id=image_id,
             config=self.config
         )
+        try:
+            print(f"  📁 Saved visualization: {output_path}")
+        except Exception:
+            pass
 
 
 def run_benchmark(

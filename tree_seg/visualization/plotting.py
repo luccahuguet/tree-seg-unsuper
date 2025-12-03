@@ -247,10 +247,19 @@ def plot_evaluation_comparison(
     output_path: str = None,
     image_id: str = "",
     config: Config = None,
+    two_panel: bool = False,
 ) -> None:
     """
-    Generate side-by-side comparison of prediction vs ground truth with metrics.
-    
+    Generate 2×2 comparison grid with overlay for laptop screen optimization.
+
+    Layout:
+    ┌──────────────┬──────────────┐
+    │   Original   │ Ground Truth │
+    ├──────────────┼──────────────┤
+    │  Prediction  │ Edge Overlay │
+    └──────────────┴──────────────┘
+    + Config card and class legend below
+
     Args:
         image: Original RGB image
         pred_labels: Predicted segmentation mask
@@ -261,17 +270,65 @@ def plot_evaluation_comparison(
         output_path: Path to save the figure
         image_id: Identifier for the image
         config: Configuration object for metadata legend
+        two_panel: If True, show only GT and overlay to maximize image size
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
     import numpy as np
+    from skimage import segmentation
+    from PIL import Image
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    two_panel = two_panel or (config is not None and getattr(config, "viz_two_panel", False))
+
+    if two_panel:
+        # Compact layout: left column for text/legend, right column for GT + overlay
+        fig = plt.figure(figsize=(17, 10), constrained_layout=True)
+        gs = fig.add_gridspec(2, 2, width_ratios=[0.35, 1.2], height_ratios=[1, 1], wspace=0.04, hspace=0.06)
+        ax_left = fig.add_subplot(gs[:, 0])
+        ax_gt = fig.add_subplot(gs[0, 1])
+        ax_overlay = fig.add_subplot(gs[1, 1])
+        ax_original = None
+        ax_pred = None
+    else:
+        # Default layout: left column for text/legend, right two columns for 2×2 images
+        fig = plt.figure(figsize=(17, 10), constrained_layout=True)
+        gs = fig.add_gridspec(2, 3, width_ratios=[0.45, 1.1, 1.1], height_ratios=[1, 1], wspace=0.06, hspace=0.1)
+        ax_left = fig.add_subplot(gs[:, 0])
+        ax_original = fig.add_subplot(gs[0, 1])
+        ax_gt = fig.add_subplot(gs[0, 2])
+        ax_pred = fig.add_subplot(gs[1, 1])
+        ax_overlay = fig.add_subplot(gs[1, 2])
+
+    # To keep memory manageable on large images, downscale visuals for plotting
+    max_vis_dim = 2600
+
+    # Map predictions to GT classes (Hungarian) before resizing
+    mapped_pred = pred_labels.copy()
+    if eval_results.cluster_to_class_mapping:
+        mapped_pred = np.zeros_like(pred_labels)
+        for cluster_id, class_id in eval_results.cluster_to_class_mapping.items():
+            mapped_pred[pred_labels == cluster_id] = class_id
+
+    # Downscale for visualization if needed (bilinear for image, nearest for labels)
+    max_side = max(image.shape[:2])
+    if max_side > max_vis_dim:
+        scale = max_vis_dim / max_side
+        new_size = (int(image.shape[1] * scale), int(image.shape[0] * scale))
+        image_vis = np.array(Image.fromarray(image).resize(new_size, Image.BILINEAR))
+        mapped_pred_vis = np.array(
+            Image.fromarray(mapped_pred.astype(np.uint8)).resize(new_size, Image.NEAREST)
+        )
+        gt_labels_vis = np.array(
+            Image.fromarray(gt_labels.astype(np.uint8)).resize(new_size, Image.NEAREST)
+        )
+    else:
+        image_vis = image
+        mapped_pred_vis = mapped_pred
+        gt_labels_vis = gt_labels
 
     # Prepare ground truth first to get color range
-    # Mask out ignored pixels
-    gt_vis = gt_labels.copy().astype(float)
-    gt_vis[gt_labels == ignore_index] = np.nan
+    gt_vis = gt_labels_vis.astype(float)
+    gt_vis[gt_labels_vis == ignore_index] = np.nan
     
     # Create colormap with black background for NaNs
     cmap = plt.get_cmap("tab20").copy()
@@ -281,10 +338,16 @@ def plot_evaluation_comparison(
     vmin = np.nanmin(gt_vis) if np.any(~np.isnan(gt_vis)) else 0
     vmax = np.nanmax(gt_vis) if np.any(~np.isnan(gt_vis)) else 20
 
+    # Helper for consistent colors
+    def class_color(class_id: int):
+        norm_val = (class_id - vmin) / (vmax - vmin) if vmax > vmin else 0
+        return cmap(norm_val)
+
     # Original Image with Metadata
-    axes[0].imshow(image)
-    axes[0].set_title("Original Image")
-    axes[0].axis("off")
+    if ax_original is not None:
+        ax_original.imshow(image_vis)
+        ax_original.set_title("Original Image", fontsize=12, fontweight="bold")
+        ax_original.axis("off")
     
     # Add metadata legend if config is provided
     if config:
@@ -316,66 +379,128 @@ def plot_evaluation_comparison(
         meta_text = "\n".join(meta_lines)
 
         # Position metadata in column with GT legend
-        axes[0].text(
-            1.02, 0.98, meta_text,
-            transform=axes[0].transAxes, fontsize=9,
-            verticalalignment='top', horizontalalignment='left',
-            bbox=dict(facecolor='wheat', alpha=0.8, edgecolor='black', boxstyle='round,pad=0.5')
-        )
+        pass  # Metadata card is rendered in bottom row; skip overlay next to original
 
     # Predicted segmentation
-    # Recolor predictions to match ground truth classes using Hungarian matching
-    if eval_results.cluster_to_class_mapping:
-        # Create a mapped prediction array
-        mapped_pred = np.zeros_like(pred_labels)
-        for cluster_id, class_id in eval_results.cluster_to_class_mapping.items():
-            mapped_pred[pred_labels == cluster_id] = class_id
-        
-        axes[1].imshow(mapped_pred, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
-        axes[1].set_title(f"Prediction (Matched to GT, K={eval_results.num_predicted_clusters})")
-    else:
-        # Fallback if no mapping available
-        axes[1].imshow(pred_labels, cmap="tab20")
-        axes[1].set_title(f"Prediction (K={eval_results.num_predicted_clusters})")
-    axes[1].axis("off")
+    if ax_pred is not None:
+        ax_pred.imshow(mapped_pred_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
+        ax_pred.set_title(f"Prediction (K={eval_results.num_predicted_clusters})", fontsize=12, fontweight="bold")
+        ax_pred.axis("off")
 
     # Ground truth
-    axes[2].imshow(gt_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
-    axes[2].set_title("Ground Truth")
-    axes[2].axis("off")
+    ax_gt.imshow(gt_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
+    ax_gt.set_title("Ground Truth", fontsize=12, fontweight="bold")
+    ax_gt.axis("off")
+
+    # Edge overlay
+    ax_overlay.imshow(image_vis)
+
+    unique_pred_classes = np.unique(mapped_pred_vis)
+    unique_pred_classes = unique_pred_classes[unique_pred_classes != ignore_index]
+
+    edge_width = getattr(config, "edge_width", 1.5)
+
+    if not getattr(config, "use_hatching", False):
+        overlay_rgba = np.zeros((*mapped_pred_vis.shape, 4), dtype=np.float32)
+        for class_id in unique_pred_classes:
+            mask = mapped_pred_vis == class_id
+            if not mask.any():
+                continue
+            color = class_color(class_id)
+            overlay_rgba[mask] = (*color[:3], 0.32)
+        ax_overlay.imshow(overlay_rgba)
+
+    for class_id in unique_pred_classes:
+        mask = mapped_pred_vis == class_id
+        if not mask.any():
+            continue
+        color = class_color(class_id)[:3]
+        ax_overlay.contour(
+            mask.astype(int),
+            levels=[0.5],
+            colors=[color],
+            linewidths=edge_width * 0.5,
+            alpha=0.9,
+        )
+        if getattr(config, "use_hatching", False):
+            hatch_pattern = HATCH_PATTERNS[class_id % len(HATCH_PATTERNS)]
+            cs = ax_overlay.contourf(
+                mask.astype(int),
+                levels=[0.5, 1.5],
+                colors="none",
+                hatches=[hatch_pattern],
+            )
+            for collection in getattr(cs, "collections", []):
+                collection.set_facecolor("none")
+                collection.set_edgecolor(color)
+                collection.set_alpha(0.7)
+                collection.set_linewidth(0.0)
+
+    boundary_mask = segmentation.find_boundaries(mapped_pred_vis, mode="thick")
+    boundary_img = np.zeros((*boundary_mask.shape, 4), dtype=np.float32)
+    boundary_img[boundary_mask] = (1.0, 1.0, 1.0, 0.8)
+    ax_overlay.imshow(boundary_img)
+
+    ax_overlay.set_title("Prediction Overlay", fontsize=12, fontweight="bold")
+    ax_overlay.axis("off")
     
     # Add legend for Ground Truth classes
+    # Left column content: title, metrics, config, and class legend
+    ax_left.axis("off")
+    cursor_y = 1.0
+    title_text = f"{image_id}\nmIoU: {eval_results.miou:.3f}\nPixel Acc: {eval_results.pixel_accuracy:.3f}"
+    ax_left.text(
+        0.0, cursor_y, title_text,
+        ha="left", va="top", fontsize=14, fontweight="bold", transform=ax_left.transAxes,
+    )
+    cursor_y -= 0.2
+    if config:
+        ax_left.text(
+            0.0,
+            cursor_y,
+            meta_text,
+            ha="left",
+            va="top",
+            fontsize=10,
+            bbox=dict(
+                facecolor="wheat",
+                alpha=0.9,
+                edgecolor="black",
+                boxstyle="round,pad=1",
+                linewidth=2,
+            ),
+            transform=ax_left.transAxes,
+        )
+        cursor_y -= 0.4
+
     if dataset_class_names:
-        # Get unique classes present in the GT (excluding ignore)
-        unique_classes = np.unique(gt_labels)
+        unique_classes = np.unique(gt_labels_vis)
         unique_classes = unique_classes[unique_classes != ignore_index]
         
         legend_patches = []
         for class_id in unique_classes:
             class_name = dataset_class_names.get(class_id, f"Class {class_id}")
-            
-            # Get color from colormap
-            # Normalize class_id to [0, 1] for cmap
-            norm_val = (class_id - vmin) / (vmax - vmin) if vmax > vmin else 0
-            color = cmap(norm_val)
-            
+            color = class_color(class_id)
             patch = mpatches.Patch(color=color, label=f"{class_id}: {class_name}")
             legend_patches.append(patch)
-        
-        # Add legend to the right of the plot
-        axes[2].legend(handles=legend_patches, loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
 
-    # Add metrics as title
-    fig.suptitle(
-        f"{image_id} | mIoU: {eval_results.miou:.3f} | Pixel Acc: {eval_results.pixel_accuracy:.3f}",
-        fontsize=14,
-        y=0.95,
-    )
+        legend = ax_left.legend(
+            handles=legend_patches,
+            loc="lower left",
+            bbox_to_anchor=(0.0, 0.0),
+            ncol=1 if len(legend_patches) <= 6 else 2,
+            fontsize=9,
+            frameon=True,
+            fancybox=True,
+            shadow=True,
+            title="Ground Truth Classes",
+            title_fontsize=10,
+        )
+        legend.get_frame().set_facecolor("white")
+        legend.get_frame().set_alpha(0.9)
 
-    plt.tight_layout()
-    
     if output_path:
-        plt.savefig(output_path, bbox_inches="tight", pad_inches=0.1)
+        plt.savefig(output_path, bbox_inches="tight", pad_inches=0.05, dpi=150, facecolor="white")
         plt.close()
     else:
         plt.show()

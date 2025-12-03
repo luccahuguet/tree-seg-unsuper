@@ -34,9 +34,9 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
     parser.add_argument(
         "--clustering",
         type=str,
-        default="kmeans",
+        default="slic",
         choices=["kmeans", "slic", "bilateral"],
-        help="Clustering method (default: kmeans)",
+        help="Clustering/refinement method (default: slic)",
     )
 
     parser.add_argument(
@@ -108,6 +108,17 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         "--save-viz",
         action="store_true",
         help="Save visualization images",
+    )
+    parser.add_argument(
+        "--viz-two-panel",
+        action="store_true",
+        help="Use compact 2-panel visualization (GT + overlay only)",
+    )
+
+    parser.add_argument(
+        "--no-tiling",
+        action="store_true",
+        help="Disable tiling even for large images (forces single-shot processing)",
     )
 
     parser.add_argument(
