@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 from PIL import Image
+import threading
 
 from contextlib import contextmanager
 
@@ -267,15 +268,30 @@ class BenchmarkRunner:
             print(f"Model: {self.config.model_display_name}")
             print(f"Config: stride={self.config.stride}, " f"elbow_threshold={self.config.elbow_threshold}\n")
 
+        dataset_name = getattr(self.dataset, "dataset_path", None)
+        dataset_name = dataset_name.name if dataset_name else "unknown_dataset"
+
         # Load runtime estimate from cache
         est_key = self.runtime_cache.make_key(self.config)
         cached_mean = self.runtime_cache.get_mean_runtime(est_key)
+        run_key = self.runtime_cache.make_run_key(dataset_name, self.config, end_idx - start_idx)
+        cached_total = self.runtime_cache.get_total_runtime(run_key)
 
         # Progress bar setup
         total_samples = end_idx - start_idx
         sample_results = []
-        est_total = cached_mean * total_samples if cached_mean else None
+        est_total = cached_total if cached_total else (cached_mean * total_samples if cached_mean else None)
         est_remaining = est_total
+
+        def _format_eta(seconds: float) -> str:
+            if seconds is None:
+                return "?"
+            seconds = max(seconds, 0)
+            minutes = int(seconds // 60)
+            sec = seconds % 60
+            if minutes == 0:
+                return f"{sec:04.1f}s"
+            return f"{minutes}m {sec:04.1f}s"
 
         @contextmanager
         def maybe_progress(total):
@@ -287,12 +303,27 @@ class BenchmarkRunner:
             bar = tqdm(total=total, desc="Benchmark", unit="img")
             try:
                 if est_total:
-                    bar.set_postfix(eta=f"{int(est_total)}s")
+                    bar.set_postfix(eta=_format_eta(est_total))
                 yield bar
             finally:
                 bar.close()
 
+        stop_heartbeat = threading.Event()
+
+        def heartbeat(bar, start_time, est_total_val):
+            if bar is None or est_total_val is None:
+                return
+            while not stop_heartbeat.is_set():
+                elapsed = time.time() - start_time
+                remaining = est_total_val - elapsed
+                bar.set_postfix(eta=_format_eta(remaining))
+                stop_heartbeat.wait(1.0)
+
+        total_start = time.time()
+
         with maybe_progress(total_samples) as bar:
+            if bar is not None and est_total is not None:
+                threading.Thread(target=heartbeat, args=(bar, total_start, est_total), daemon=True).start()
             for idx in range(start_idx, end_idx):
                 t0 = time.time()
                 sample_result, _ = self.run_single_sample(idx, verbose=verbose)
@@ -306,16 +337,19 @@ class BenchmarkRunner:
                         est_remaining = max(est_remaining - dt, 0)
                     else:
                         est_remaining = dt * (total_samples - len(sample_results))
-                    bar.set_postfix(eta=f"{int(est_remaining)}s")
+                    bar.set_postfix(eta=_format_eta(est_remaining))
+        stop_heartbeat.set()
 
         # Compute aggregated metrics
         mean_miou = np.mean([s.miou for s in sample_results])
         mean_pixel_acc = np.mean([s.pixel_accuracy for s in sample_results])
         mean_runtime = np.mean([s.runtime_seconds for s in sample_results])
+        total_runtime = sum([s.runtime_seconds for s in sample_results])
 
         # Persist runtime mean for future ETA
         if len(sample_results) > 0:
             self.runtime_cache.update(est_key, mean_runtime)
+            self.runtime_cache.update_total(run_key, total_runtime)
 
         # Create benchmark results
         refine_str = "mask2former" if self.config.version == "v4" else (self.config.refine if self.config.refine else "kmeans")
