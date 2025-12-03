@@ -417,8 +417,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 'n_vectors': int(features_flat.shape[0]),
                 'n_clusters': int(n_clusters),
                 'device_requested': str(device),
-                'device_actual': str(getattr(patch_features, 'device', device)),
+                'device_actual': str(device) if needs_tiling else str(getattr(patch_features, 'device', device)),
                 'peak_vram_mb': round(peak_vram_mb, 1) if peak_vram_mb is not None else None,
+                'used_tiling': needs_tiling,
             })
 
         return (image_np, labels_resized, metrics) if collect_metrics else (image_np, labels_resized)
