@@ -65,6 +65,7 @@ class BenchmarkRunner:
         save_visualizations: bool = False,
         use_smart_k: bool = False,
         model_cache: Optional[dict] = None,
+        suppress_logs: bool = False,
     ):
         """
         Initialize benchmark runner.
@@ -84,13 +85,9 @@ class BenchmarkRunner:
         self.use_smart_k = use_smart_k
         self.model_cache = model_cache if model_cache is not None else {}
         self.runtime_cache = RuntimeCache()
-
-        # Create segmentation instance (will be recreated per-image if using smart K)
-        self.segmenter = None if use_smart_k else TreeSegmentation(config)
-
-        # Initialize and cache model if not using smart K
-        if not use_smart_k and self.segmenter is not None:
-            self._maybe_load_cached_model()
+        self.suppress_logs = suppress_logs
+        # Lazy segmenter creation
+        self.segmenter = None
 
         # Create output directories if needed
         if self.output_dir:
@@ -118,6 +115,12 @@ class BenchmarkRunner:
                 self.segmenter.model,
                 self.segmenter.preprocess,
             )
+
+    def _create_segmenter(self, config: Config) -> TreeSegmentation:
+        if self.suppress_logs:
+            with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
+                return TreeSegmentation(config)
+        return TreeSegmentation(config)
 
     def run_single_sample(
         self, idx: int, verbose: bool = True, suppress_output: bool = False
@@ -158,7 +161,7 @@ class BenchmarkRunner:
                 print(f"  Smart K mode: Using K={num_gt_classes} (matched to ground truth)")
 
             # Create temporary segmenter with smart config
-            segmenter = TreeSegmentation(smart_config)
+            segmenter = self._create_segmenter(smart_config)
 
             # Try to reuse cached model
             model_key = (
@@ -177,6 +180,9 @@ class BenchmarkRunner:
                 segmenter.initialize_model()
                 self.model_cache[model_key] = (segmenter.model, segmenter.preprocess)
         else:
+            if self.segmenter is None:
+                self.segmenter = self._create_segmenter(self.config)
+                self._maybe_load_cached_model()
             segmenter = self.segmenter
 
         # Run segmentation with timing
