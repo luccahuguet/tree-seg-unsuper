@@ -188,6 +188,12 @@ def run_comparison_benchmark(args):
     print("RUNNING COMPARISON BENCHMARK")
     print("=" * 60 + "\n")
 
+    # Load FORTRESS dataset once
+    dataset = FortressDataset(args.dataset)
+
+    # Model cache: key = (model_name, stride, image_size), value = (model, preprocess)
+    model_cache = {}
+
     for i, config_override in enumerate(configs_to_test):
         config_dict = base_config_dict.copy()
         config_dict.update({k: v for k, v in config_override.items() if k != "label"})
@@ -198,12 +204,29 @@ def run_comparison_benchmark(args):
         print(f"\n[{i + 1}/{len(configs_to_test)}] Testing: {label}")
         print("-" * 40)
 
+        # Check model cache
+        model_key = (config.model_display_name, config.stride, config.image_size)
+
+        if model_key in model_cache:
+            print(f"♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})")
+
         # Update args for this run
         args_copy = argparse.Namespace(**vars(args))
         smartk_suffix = "_smartk" if args.smart_k else ""
         args_copy.output_dir = Path("data/output/results") / f"fortress_{label}{smartk_suffix}"
 
-        results = run_single_benchmark(args_copy, config)
+        # Run benchmark with model cache
+        results = run_benchmark(
+            config=config,
+            dataset=dataset,
+            output_dir=args_copy.output_dir,
+            num_samples=args.num_samples,
+            save_visualizations=args.save_viz,
+            verbose=not args.quiet,
+            use_smart_k=args.smart_k,
+            model_cache=model_cache,
+        )
+
         all_results.append({"label": label, "config": config_dict, "results": results})
 
     # Print comparison table

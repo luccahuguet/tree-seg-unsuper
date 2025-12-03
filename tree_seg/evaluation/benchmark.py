@@ -59,6 +59,7 @@ class BenchmarkRunner:
         output_dir: Optional[Path] = None,
         save_visualizations: bool = False,
         use_smart_k: bool = False,
+        model_cache: Optional[dict] = None,
     ):
         """
         Initialize benchmark runner.
@@ -69,21 +70,48 @@ class BenchmarkRunner:
             output_dir: Optional directory to save results and visualizations
             save_visualizations: Whether to save visualization images
             use_smart_k: If True, set K to match the number of classes in each image's ground truth
+            model_cache: Optional dict to cache models across runs (key: (model_name, stride, image_size))
         """
         self.config = config
         self.dataset = dataset
         self.output_dir = Path(output_dir) if output_dir else None
         self.save_visualizations = save_visualizations
         self.use_smart_k = use_smart_k
+        self.model_cache = model_cache if model_cache is not None else {}
 
         # Create segmentation instance (will be recreated per-image if using smart K)
         self.segmenter = None if use_smart_k else TreeSegmentation(config)
+
+        # Initialize and cache model if not using smart K
+        if not use_smart_k and self.segmenter is not None:
+            self._maybe_load_cached_model()
 
         # Create output directories if needed
         if self.output_dir:
             self.output_dir.mkdir(parents=True, exist_ok=True)
             if save_visualizations:
                 (self.output_dir / "visualizations").mkdir(exist_ok=True)
+
+    def _maybe_load_cached_model(self):
+        """Load model from cache if available, otherwise initialize and cache it."""
+        model_key = (
+            self.config.model_display_name,
+            self.config.stride,
+            self.config.image_size,
+        )
+
+        if model_key in self.model_cache:
+            # Reuse cached model
+            cached_model, cached_preprocess = self.model_cache[model_key]
+            self.segmenter.model = cached_model
+            self.segmenter.preprocess = cached_preprocess
+        else:
+            # Initialize model and add to cache
+            self.segmenter.initialize_model()
+            self.model_cache[model_key] = (
+                self.segmenter.model,
+                self.segmenter.preprocess,
+            )
 
     def run_single_sample(
         self, idx: int, verbose: bool = True
@@ -125,6 +153,23 @@ class BenchmarkRunner:
 
             # Create temporary segmenter with smart config
             segmenter = TreeSegmentation(smart_config)
+
+            # Try to reuse cached model
+            model_key = (
+                smart_config.model_display_name,
+                smart_config.stride,
+                smart_config.image_size,
+            )
+            if model_key in self.model_cache:
+                cached_model, cached_preprocess = self.model_cache[model_key]
+                segmenter.model = cached_model
+                segmenter.preprocess = cached_preprocess
+                if verbose:
+                    print(f"  ♻️  Reusing cached model: {smart_config.model_display_name}")
+            else:
+                # Initialize and cache
+                segmenter.initialize_model()
+                self.model_cache[model_key] = (segmenter.model, segmenter.preprocess)
         else:
             segmenter = self.segmenter
 
@@ -284,6 +329,7 @@ def run_benchmark(
     save_visualizations: bool = False,
     verbose: bool = True,
     use_smart_k: bool = False,
+    model_cache: Optional[dict] = None,
 ) -> BenchmarkResults:
     """
     Convenience function to run benchmark.
@@ -298,6 +344,7 @@ def run_benchmark(
         save_visualizations: Whether to save visualization images
         verbose: Whether to print progress
         use_smart_k: If True, set K to match the number of classes in each image's ground truth
+        model_cache: Optional dict to cache models across runs
 
     Returns:
         BenchmarkResults
@@ -319,6 +366,7 @@ def run_benchmark(
         output_dir=output_dir,
         save_visualizations=save_visualizations,
         use_smart_k=use_smart_k,
+        model_cache=model_cache,
     )
 
     results = runner.run(num_samples=num_samples, verbose=verbose)
