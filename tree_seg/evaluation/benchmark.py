@@ -326,7 +326,8 @@ class BenchmarkRunner:
                 threading.Thread(target=heartbeat, args=(bar, total_start, est_total), daemon=True).start()
             for idx in range(start_idx, end_idx):
                 t0 = time.time()
-                sample_result, _ = self.run_single_sample(idx, verbose=verbose)
+                sample_verbose = verbose and bar is None
+                sample_result, eval_results = self.run_single_sample(idx, verbose=sample_verbose)
                 dt = time.time() - t0
                 sample_results.append(sample_result)
 
@@ -338,6 +339,13 @@ class BenchmarkRunner:
                     else:
                         est_remaining = dt * (total_samples - len(sample_results))
                     bar.set_postfix(eta=_format_eta(est_remaining))
+                    # Light per-sample line without breaking the bar
+                    bar.write(
+                        f"{sample_result.image_id}: mIoU={sample_result.miou:.3f}, "
+                        f"PA={sample_result.pixel_accuracy:.3f}, "
+                        f"K={sample_result.num_clusters}, "
+                        f"Time={sample_result.runtime_seconds:.1f}s"
+                    )
         stop_heartbeat.set()
 
         # Compute aggregated metrics
