@@ -286,6 +286,7 @@ class BenchmarkRunner:
 
         # Progress bar setup
         total_samples = end_idx - start_idx
+        bar_total = total_samples if total_samples > 1 else 100
         sample_results = []
         est_total = cached_total if cached_total else (cached_mean * total_samples if cached_mean else None)
         est_remaining = est_total
@@ -333,7 +334,7 @@ class BenchmarkRunner:
 
         total_start = time.time()
 
-        with maybe_progress(total_samples) as bar:
+        with maybe_progress(bar_total) as bar:
             self.suppress_logs = bar is not None
             if bar is not None and est_total is not None:
                 threading.Thread(target=heartbeat, args=(bar, total_start, est_total), daemon=True).start()
@@ -350,12 +351,16 @@ class BenchmarkRunner:
 
                 # Update ETA
                 if bar is not None:
-                    bar.update(1)
                     if est_remaining is not None:
                         est_remaining = max(est_remaining - dt, 0)
                     else:
                         est_remaining = dt * (total_samples - len(sample_results))
-                    bar.set_postfix(eta=_format_eta(est_remaining))
+                    if bar.total == total_samples:
+                        bar.update(1)
+                        pct = f"{min(100, max(0, int((len(sample_results) / total_samples) * 100)))}%"
+                        bar.set_postfix(eta=_format_eta(est_remaining), pct=pct)
+                    else:
+                        bar.set_postfix(eta=_format_eta(est_remaining))
                     # Light per-sample line without breaking the bar
                     bar.write(
                         f"{sample_result.image_id}: mIoU={sample_result.miou:.3f}, "
@@ -364,6 +369,10 @@ class BenchmarkRunner:
                         f"Time={sample_result.runtime_seconds:.1f}s"
                     )
         stop_heartbeat.set()
+        if bar is not None:
+            bar.n = bar.total
+            bar.set_postfix(eta="0s", pct="100%")
+            bar.refresh()
 
         # Compute aggregated metrics
         mean_miou = np.mean([s.miou for s in sample_results])
