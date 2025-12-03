@@ -249,6 +249,7 @@ def plot_evaluation_comparison(
     config: Config = None,
     two_panel: bool = False,
     two_panel_opaque: bool = False,
+    runtime_seconds: float | None = None,
 ) -> None:
     """
     Generate 2×2 comparison grid with overlay for laptop screen optimization.
@@ -377,6 +378,9 @@ def plot_evaluation_comparison(
             meta_lines.append(f"K: {k_used} (Auto) | GT: {num_gt_classes} classes")
         else:
             meta_lines.append(f"K: {k_used} | GT: {num_gt_classes} classes")
+
+        if runtime_seconds is not None:
+            meta_lines.append(f"Runtime: {runtime_seconds:.2f}s")
 
         meta_text = "\n".join(meta_lines)
 

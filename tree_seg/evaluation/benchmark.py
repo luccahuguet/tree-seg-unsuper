@@ -225,7 +225,14 @@ class BenchmarkRunner:
 
         # Save visualization if requested
         if self.save_visualizations and self.output_dir:
-            self._save_visualization(image_id, image, pred_labels_resized, gt_labels, eval_results)
+            self._save_visualization(
+                image_id,
+                image,
+                pred_labels_resized,
+                gt_labels,
+                eval_results,
+                runtime_seconds=runtime,
+            )
 
         return sample_result, eval_results
 
@@ -342,6 +349,7 @@ class BenchmarkRunner:
         pred_labels: np.ndarray,
         gt_labels: np.ndarray,
         eval_results: EvaluationResults,
+        runtime_seconds: float | None = None,
     ):
         """Save visualization comparing prediction and ground truth."""
         from ..visualization.plotting import plot_evaluation_comparison
@@ -358,7 +366,8 @@ class BenchmarkRunner:
             ignore_index=self.dataset.IGNORE_INDEX,
             output_path=str(output_path),
             image_id=image_id,
-            config=self.config
+            config=self.config,
+            runtime_seconds=runtime_seconds,
         )
         try:
             print(f"  📁 Saved visualization: {output_path}")
