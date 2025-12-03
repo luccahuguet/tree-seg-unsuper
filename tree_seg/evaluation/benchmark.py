@@ -103,24 +103,27 @@ class BenchmarkRunner:
             self.config.image_size,
         )
 
-        if model_key in self.model_cache:
-            # Reuse cached model
-            cached_model, cached_preprocess = self.model_cache[model_key]
-            self.segmenter.model = cached_model
-            self.segmenter.preprocess = cached_preprocess
-        else:
-            # Initialize model and add to cache
-            self.segmenter.initialize_model()
-            self.model_cache[model_key] = (
-                self.segmenter.model,
-                self.segmenter.preprocess,
-            )
+        self._load_or_init_segmenter(self.segmenter, model_key)
 
     def _create_segmenter(self, config: Config) -> TreeSegmentation:
         if self.suppress_logs:
             with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
                 return TreeSegmentation(config)
         return TreeSegmentation(config)
+
+    def _load_or_init_segmenter(self, segmenter: TreeSegmentation, model_key: tuple) -> None:
+        if model_key in self.model_cache:
+            cached_model, cached_preprocess = self.model_cache[model_key]
+            segmenter.model = cached_model
+            segmenter.preprocess = cached_preprocess
+            return
+
+        if self.suppress_logs:
+            with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
+                segmenter.initialize_model()
+        else:
+            segmenter.initialize_model()
+        self.model_cache[model_key] = (segmenter.model, segmenter.preprocess)
 
     def run_single_sample(
         self, idx: int, verbose: bool = True, suppress_output: bool = False
@@ -163,22 +166,15 @@ class BenchmarkRunner:
             # Create temporary segmenter with smart config
             segmenter = self._create_segmenter(smart_config)
 
-            # Try to reuse cached model
+            # Try to reuse cached model or init quietly if needed
             model_key = (
                 smart_config.model_display_name,
                 smart_config.stride,
                 smart_config.image_size,
             )
-            if model_key in self.model_cache:
-                cached_model, cached_preprocess = self.model_cache[model_key]
-                segmenter.model = cached_model
-                segmenter.preprocess = cached_preprocess
-                if verbose:
-                    print(f"  ♻️  Reusing cached model: {smart_config.model_display_name}")
-            else:
-                # Initialize and cache
-                segmenter.initialize_model()
-                self.model_cache[model_key] = (segmenter.model, segmenter.preprocess)
+            self._load_or_init_segmenter(segmenter, model_key)
+            if verbose and model_key in self.model_cache:
+                print(f"  ♻️  Reusing cached model: {smart_config.model_display_name}")
         else:
             if self.segmenter is None:
                 self.segmenter = self._create_segmenter(self.config)
