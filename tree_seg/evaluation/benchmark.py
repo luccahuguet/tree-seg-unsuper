@@ -325,7 +325,7 @@ class BenchmarkRunner:
                 remaining = est_total_val - elapsed
                 # Smooth in-sample progress by fraction of estimated total
                 frac = min(max(elapsed / est_total_val, 0.0), 1.0)
-                bar.n = frac * bar.total
+                bar.n = int(frac * bar.total)
                 pct = f"{min(100, max(0, int(frac * 100)))}%"
                 bar.set_postfix(eta=_format_eta(remaining), pct=pct)
                 bar.refresh()

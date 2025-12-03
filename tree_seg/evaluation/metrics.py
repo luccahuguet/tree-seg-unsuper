@@ -14,6 +14,7 @@ class EvaluationResults:
     miou: float
     pixel_accuracy: float
     per_class_iou: Dict[int, float]
+    per_class_pixel_accuracy: Dict[int, float]
     confusion_matrix: np.ndarray
     cluster_to_class_mapping: Optional[Dict[int, int]] = None
     num_predicted_clusters: Optional[int] = None
@@ -204,6 +205,53 @@ def compute_pixel_accuracy(
     return correct / total
 
 
+def compute_pixel_accuracy_per_class(
+    pred_labels: np.ndarray, gt_labels: np.ndarray, num_classes: int, ignore_index: int = -1
+) -> Dict[int, float]:
+    """
+    Compute pixel accuracy for each class individually.
+
+    Args:
+        pred_labels: Predicted label array (H, W)
+        gt_labels: Ground truth label array (H, W)
+        num_classes: Number of classes
+        ignore_index: Label value to ignore (e.g., unlabeled pixels)
+
+    Returns:
+        Dictionary mapping class index to pixel accuracy for that class
+    """
+    accuracy_per_class = {}
+
+    # Flatten arrays
+    pred_flat = pred_labels.flatten()
+    gt_flat = gt_labels.flatten()
+
+    # Create mask for valid pixels
+    if ignore_index is not None:
+        valid_mask = gt_flat != ignore_index
+        pred_flat = pred_flat[valid_mask]
+        gt_flat = gt_flat[valid_mask]
+
+    for class_idx in range(num_classes):
+        # Get mask for current class in ground truth
+        gt_mask = gt_flat == class_idx
+
+        # Count pixels belonging to this class
+        total_class_pixels = np.sum(gt_mask)
+
+        if total_class_pixels == 0:
+            accuracy_per_class[class_idx] = 0.0
+            continue
+
+        # Count correctly predicted pixels for this class
+        correct_class_pixels = np.sum((pred_flat == class_idx) & gt_mask)
+
+        # Compute accuracy for this class
+        accuracy_per_class[class_idx] = correct_class_pixels / total_class_pixels
+
+    return accuracy_per_class
+
+
 def evaluate_segmentation(
     pred_labels: np.ndarray,
     gt_labels: np.ndarray,
@@ -241,11 +289,15 @@ def evaluate_segmentation(
     per_class_iou = compute_iou_per_class(
         matched_pred_labels, gt_labels, num_classes, ignore_index
     )
+    per_class_pixel_acc = compute_pixel_accuracy_per_class(
+        matched_pred_labels, gt_labels, num_classes, ignore_index
+    )
 
     return EvaluationResults(
         miou=miou,
         pixel_accuracy=pixel_acc,
         per_class_iou=per_class_iou,
+        per_class_pixel_accuracy=per_class_pixel_acc,
         confusion_matrix=confusion,
         cluster_to_class_mapping=mapping,
         num_predicted_clusters=num_pred_clusters,

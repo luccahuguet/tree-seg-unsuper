@@ -1,0 +1,8 @@
+{
+  "mean_per_sample": {
+    "v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refineslic_skimage": 206.4708571434021
+  },
+  "run_totals": {
+    "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refineslic_skimage/samples1": 206.4708571434021
+  }
+}

@@ -489,12 +489,20 @@ def plot_evaluation_comparison(
     if dataset_class_names:
         unique_classes = np.unique(gt_labels_vis)
         unique_classes = unique_classes[unique_classes != ignore_index]
-        
+
         legend_patches = []
         for class_id in unique_classes:
             class_name = dataset_class_names.get(class_id, f"Class {class_id}")
             color = class_color(class_id)
-            patch = mpatches.Patch(color=color, label=f"{class_id}: {class_name}")
+
+            # Add per-class pixel accuracy if available
+            if hasattr(eval_results, 'per_class_pixel_accuracy') and class_id in eval_results.per_class_pixel_accuracy:
+                accuracy = eval_results.per_class_pixel_accuracy[class_id]
+                label = f"{class_id}: {class_name} ({accuracy:.1%})"
+            else:
+                label = f"{class_id}: {class_name}"
+
+            patch = mpatches.Patch(color=color, label=label)
             legend_patches.append(patch)
 
         legend = ax_left.legend(
@@ -506,7 +514,7 @@ def plot_evaluation_comparison(
             frameon=True,
             fancybox=True,
             shadow=True,
-            title="Ground Truth Classes",
+            title="Ground Truth Classes (Pixel Acc)",
             title_fontsize=10,
         )
         legend.get_frame().set_facecolor("white")
