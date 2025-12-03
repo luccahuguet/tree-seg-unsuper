@@ -323,7 +323,11 @@ class BenchmarkRunner:
             while not stop_heartbeat.is_set():
                 elapsed = time.time() - start_time
                 remaining = est_total_val - elapsed
+                # Smooth in-sample progress by fraction of estimated total
+                frac = min(max(elapsed / est_total_val, 0.0), 1.0)
+                bar.n = frac * bar.total
                 bar.set_postfix(eta=_format_eta(remaining))
+                bar.refresh()
                 stop_heartbeat.wait(1.0)
 
         total_start = time.time()
