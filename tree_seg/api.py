@@ -115,7 +115,9 @@ class TreeSegmentation:
 
         self.initialize_model()
         
-        print(f"🖼️ Processing: {os.path.basename(image_path)}")
+        # Defer verbose printing when tqdm progress is used
+        if self.config.verbose:
+            print(f"🖼️ Processing: {os.path.basename(image_path)}")
         
         # Process with the updated signature
         result = process_image(
