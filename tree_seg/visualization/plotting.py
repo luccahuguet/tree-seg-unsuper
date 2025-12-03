@@ -246,6 +246,7 @@ def plot_evaluation_comparison(
     ignore_index: int = 255,
     output_path: str = None,
     image_id: str = "",
+    config: Config = None,
 ) -> None:
     """
     Generate side-by-side comparison of prediction vs ground truth with metrics.
@@ -259,6 +260,7 @@ def plot_evaluation_comparison(
         ignore_index: Value to ignore in ground truth
         output_path: Path to save the figure
         image_id: Identifier for the image
+        config: Configuration object for metadata legend
     """
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
@@ -279,10 +281,40 @@ def plot_evaluation_comparison(
     vmin = np.nanmin(gt_vis) if np.any(~np.isnan(gt_vis)) else 0
     vmax = np.nanmax(gt_vis) if np.any(~np.isnan(gt_vis)) else 20
 
-    # Original image
+    # Original Image with Metadata
     axes[0].imshow(image)
     axes[0].set_title("Original Image")
     axes[0].axis("off")
+    
+    # Add metadata legend if config is provided
+    if config:
+        # Construct metadata text
+        meta_lines = [
+            f"Model: {config.model_display_name}",
+            f"Method: {config.version}",
+            f"Stride: {config.stride}",
+        ]
+        
+        if config.refine:
+            meta_lines.append(f"Refine: {config.refine}")
+            
+        # Add K info
+        k_used = eval_results.num_predicted_clusters
+        if not config.auto_k:
+            meta_lines.append(f"K: {k_used} (Fixed)")
+        elif config.auto_k:
+            meta_lines.append(f"K: {k_used} (Auto, Elbow={config.elbow_threshold})")
+        else:
+            meta_lines.append(f"K: {k_used}")
+            
+        meta_text = "\n".join(meta_lines)
+        
+        axes[0].text(
+            0.02, 0.98, meta_text,
+            transform=axes[0].transAxes, fontsize=8,
+            verticalalignment='top', horizontalalignment='left',
+            bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
+        )
 
     # Predicted segmentation
     # Recolor predictions to match ground truth classes using Hungarian matching

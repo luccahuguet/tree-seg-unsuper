@@ -242,7 +242,8 @@ class BenchmarkRunner:
             dataset_class_names=getattr(self.dataset, "CLASS_NAMES", None),
             ignore_index=self.dataset.IGNORE_INDEX,
             output_path=str(output_path),
-            image_id=image_id
+            image_id=image_id,
+            config=self.config
         )
 
 
