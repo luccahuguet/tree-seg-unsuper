@@ -65,6 +65,8 @@ def create_config(args) -> Config:
     clustering = args.clustering or "slic"
     if clustering in ["slic", "bilateral"]:
         refine = clustering
+    elif clustering == "slic-skimage":
+        refine = "slic_skimage"
     else:
         refine = None
 

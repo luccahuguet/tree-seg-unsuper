@@ -35,8 +35,8 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         "--clustering",
         type=str,
         default="slic",
-        choices=["kmeans", "slic", "bilateral"],
-        help="Clustering/refinement method (default: slic)",
+        choices=["kmeans", "slic", "slic-skimage", "bilateral"],
+        help="Clustering/refinement method (default: slic; use slic-skimage to force skimage SLIC)",
     )
 
     parser.add_argument(

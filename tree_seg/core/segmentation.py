@@ -370,6 +370,20 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             else:
                 if verbose:
                     print("⚠️  No SLIC implementation available (install opencv-contrib-python or scikit-image)")
+        elif refine in ("slic_skimage", "slic-skimage"):
+            if slic is not None:
+                if verbose:
+                    print("🔧 Refining with skimage SLIC (forced)...")
+                t_refine_start = time.perf_counter()
+                labels_resized = _refine_with_slic(
+                    image_np,
+                    labels_resized,
+                    compactness=refine_slic_compactness,
+                    sigma=refine_slic_sigma,
+                )
+                t_refine_end = time.perf_counter()
+            elif verbose:
+                print("⚠️  scikit-image SLIC unavailable; skipping refinement (install scikit-image)")
         elif refine == "bilateral":
             if verbose:
                 print("🔧 Refining segmentation with bilateral filter...")
