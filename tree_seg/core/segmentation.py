@@ -26,7 +26,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
                  collect_metrics: bool = False, model_name=None, output_dir="data/output",
                  verbose: bool = True, pipeline: str = "v1_5",
-                 apply_vegetation_filter: bool = False, exg_threshold: float = 0.10):
+                 apply_vegetation_filter: bool = False, exg_threshold: float = 0.10,
+                 use_tiling: bool = True, tile_size: int = 2048, tile_overlap: int = 256,
+                 tile_threshold: int = 2048, downsample_before_tiling: bool = False):
     """
     Process a single image for tree segmentation.
     
@@ -63,92 +65,202 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         if verbose:
             print(f"Original image size: {w}x{h}")
 
+        # Optional downsampling before tiling
+        if downsample_before_tiling and (h > tile_threshold or w > tile_threshold):
+            image_np = cv2.resize(image_np, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
+            h, w = image_np.shape[:2]
+            if verbose:
+                print(f"Downsampled to: {w}x{h}")
+
+        # Decide if tiling is needed
+        from ..models.tiling import TileManager, TileConfig
+
+        tile_config = TileConfig(
+            tile_size=tile_size,
+            overlap=tile_overlap,
+            auto_tile_threshold=tile_threshold,
+            blend_mode="linear"
+        )
+        tile_manager = TileManager(tile_config)
+        needs_tiling = use_tiling and tile_manager.should_tile(h, w)
+
         t_pre_start = time.perf_counter()
-        image_tensor = preprocess(image).to(device)
+
+        if needs_tiling:
+            if verbose:
+                grid_info = tile_manager.get_grid_info(h, w)
+                print("🔲 Using tile-based processing:")
+                print(f"   Tile size: {tile_size}×{tile_size}, Overlap: {tile_overlap}px")
+                print(f"   Grid: {grid_info['n_tiles_y']}×{grid_info['n_tiles_x']} = {grid_info['n_tiles']} tiles")
+
+            # Extract tiles
+            tiles = tile_manager.extract_tiles(image_np)
+
+            # Process each tile
+            tile_features_list = []
+            tile_coords_list = []
+
+            for i, tile_info in enumerate(tiles):
+                if verbose and (i % 10 == 0 or i == len(tiles) - 1):
+                    print(f"   Processing tile {i+1}/{len(tiles)}...")
+
+                # Convert tile to PIL Image for preprocessing
+                tile_pil = Image.fromarray(tile_info.tile_array)
+
+                # Preprocess and extract features
+                tile_tensor = preprocess(tile_pil).to(device)
+
+                with torch.no_grad():
+                    attn_choice = "none" if version == "v1" else "o"
+                    features_out = model.forward_sequential(tile_tensor, attn_choice=attn_choice)
+                    tile_patch_features = features_out["x_norm_patchtokens"]
+                    tile_attn_features = features_out.get("x_patchattn", None)
+
+                # Reshape if needed
+                if tile_patch_features.dim() == 2:
+                    n_patches = tile_patch_features.shape[0]
+                    tile_H = tile_W = int(np.sqrt(n_patches))
+                    tile_patch_features = tile_patch_features.view(tile_H, tile_W, -1)
+                    if tile_attn_features is not None:
+                        tile_attn_features = tile_attn_features.view(tile_H, tile_W, -1)
+
+                # Combine patch + attention features if needed
+                if tile_attn_features is not None and version in ["v1.5", "v3"]:
+                    tile_features_combined = np.concatenate(
+                        [tile_patch_features.cpu().numpy(),
+                         tile_attn_features.cpu().numpy()],
+                        axis=-1
+                    )
+                else:
+                    tile_features_combined = tile_patch_features.cpu().numpy()
+
+                tile_features_list.append(tile_features_combined)
+                tile_coords_list.append((tile_info.x_start, tile_info.y_start,
+                                        tile_info.x_end, tile_info.y_end))
+
+            # Stitch features with weighted blending
+            if verbose:
+                print("   Stitching tile features...")
+
+            # Calculate output feature grid size
+            # DINOv3 uses patch size 14 with 518px default input
+            # For 2048px tile -> ~146 patches per side
+            if len(tile_features_list) > 0:
+                first_tile_feat_h, first_tile_feat_w = tile_features_list[0].shape[:2]
+                feat_scale = tile_size / first_tile_feat_h
+            else:
+                feat_scale = 14.0  # Default DINOv3 patch size
+
+            output_h = int(h / feat_scale)
+            output_w = int(w / feat_scale)
+
+            features_np = tile_manager.stitch_features(
+                tile_features_list,
+                tile_coords_list,
+                output_shape=(output_h, output_w)
+            )
+
+            H, W = features_np.shape[:2]
+
+            if verbose:
+                print(f"   Stitched feature map: {H}×{W}×{features_np.shape[-1]}")
+
+        else:
+            # Use existing single-image processing
+            if verbose:
+                print("Using full-image processing (no tiling)")
+
+            image_tensor = preprocess(image).to(device)
+
         t_pre_end = time.perf_counter()
-        if verbose:
+        if not needs_tiling and verbose:
             print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
-        with torch.no_grad():
-            # DINOv3 always uses attention features for v3 (equivalent to v1.5)
-            attn_choice = "none" if version == "v1" else "o"
-            features_out = model.forward_sequential(image_tensor, attn_choice=attn_choice)
-            if verbose:
-                print(f"features_out type: {type(features_out)}")
-            
-            # DINOv3 adapter returns a dictionary with patch features
-            if isinstance(features_out, dict):
-                patch_features = features_out["x_norm_patchtokens"]
-                attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
+        # Feature extraction (skip if already done via tiling)
+        if not needs_tiling:
+            with torch.no_grad():
+                # DINOv3 always uses attention features for v3 (equivalent to v1.5)
+                attn_choice = "none" if version == "v1" else "o"
+                features_out = model.forward_sequential(image_tensor, attn_choice=attn_choice)
                 if verbose:
-                    print(f"patch_features shape: {patch_features.shape}")
-                    if attn_features is not None:
-                        print(f"attn_features shape: {attn_features.shape}")
-                # DINOv3 features are already in spatial format (H, W, D)
-                # No need to take mean across batch dimension
-            else:
-                # Fallback for legacy tensor format
-                if verbose:
-                    print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
-                if hasattr(features_out, "dim") and features_out.dim() == 4:
-                    features = features_out.mean(dim=0)
+                    print(f"features_out type: {type(features_out)}")
+
+                # DINOv3 adapter returns a dictionary with patch features
+                if isinstance(features_out, dict):
+                    patch_features = features_out["x_norm_patchtokens"]
+                    attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
+                    if verbose:
+                        print(f"patch_features shape: {patch_features.shape}")
+                        if attn_features is not None:
+                            print(f"attn_features shape: {attn_features.shape}")
+                    # DINOv3 features are already in spatial format (H, W, D)
+                    # No need to take mean across batch dimension
                 else:
-                    features = features_out
-                H = W = 518 // stride
-                features = features.unsqueeze(0)
-                features = torch.nn.functional.interpolate(
-                    features, size=(H, W), mode="bilinear", align_corners=False
-                ).squeeze(0)
-                features = features.permute(1, 2, 0)
-                patch_features = features
-                attn_features = None
+                    # Fallback for legacy tensor format
+                    if verbose:
+                        print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
+                    if hasattr(features_out, "dim") and features_out.dim() == 4:
+                        features = features_out.mean(dim=0)
+                    else:
+                        features = features_out
+                    H = W = 518 // stride
+                    features = features.unsqueeze(0)
+                    features = torch.nn.functional.interpolate(
+                        features, size=(H, W), mode="bilinear", align_corners=False
+                    ).squeeze(0)
+                    features = features.permute(1, 2, 0)
+                    patch_features = features
+                    attn_features = None
 
-        time.perf_counter()
-        if patch_features.dim() == 2:
-            n_patches = patch_features.shape[0]
-            H = W = int(np.sqrt(n_patches))
-            if H * W != n_patches:
-                raise ValueError(f"Cannot infer H, W from n_patches={n_patches}")
-            patch_features = patch_features.view(H, W, -1)
-            if attn_features is not None:
-                attn_features = attn_features.view(H, W, -1)
-        else:
-            H, W = patch_features.shape[:2]
-        if verbose:
-            print(f"patch_features reshaped: {patch_features.shape}")
-            if attn_features is not None:
-                print(f"attn_features reshaped: {attn_features.shape}")
-            # Report actual compute device used by features
-            try:
-                print(f"🖥️ Compute device: {patch_features.device}")
-            except Exception:
-                pass
+            time.perf_counter()
+            if patch_features.dim() == 2:
+                n_patches = patch_features.shape[0]
+                H = W = int(np.sqrt(n_patches))
+                if H * W != n_patches:
+                    raise ValueError(f"Cannot infer H, W from n_patches={n_patches}")
+                patch_features = patch_features.view(H, W, -1)
+                if attn_features is not None:
+                    attn_features = attn_features.view(H, W, -1)
+            else:
+                H, W = patch_features.shape[:2]
+            if verbose:
+                print(f"patch_features reshaped: {patch_features.shape}")
+                if attn_features is not None:
+                    print(f"attn_features reshaped: {attn_features.shape}")
+                # Report actual compute device used by features
+                try:
+                    print(f"🖥️ Compute device: {patch_features.device}")
+                except Exception:
+                    pass
 
-        # Optional upsampling of the feature grid for smoother segmentation
-        if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
-            up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
-            # Upsample patch features (H, W, D) -> (up_h, up_w, D)
-            pf = patch_features.permute(2, 0, 1).unsqueeze(0)  # 1, D, H, W
-            pf_up = F.interpolate(pf, size=(up_h, up_w), mode="bilinear", align_corners=False)
-            patch_features = pf_up.squeeze(0).permute(1, 2, 0)
-            if attn_features is not None:
-                af = attn_features.permute(2, 0, 1).unsqueeze(0)
-                af_up = F.interpolate(af, size=(up_h, up_w), mode="bilinear", align_corners=False)
-                attn_features = af_up.squeeze(0).permute(1, 2, 0)
-            H, W = up_h, up_w
-            if verbose:
-                print(f"Upsampled features to: {H}x{W}")
+            # Optional upsampling of the feature grid for smoother segmentation
+            if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
+                up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
+                # Upsample patch features (H, W, D) -> (up_h, up_w, D)
+                pf = patch_features.permute(2, 0, 1).unsqueeze(0)  # 1, D, H, W
+                pf_up = F.interpolate(pf, size=(up_h, up_w), mode="bilinear", align_corners=False)
+                patch_features = pf_up.squeeze(0).permute(1, 2, 0)
+                if attn_features is not None:
+                    af = attn_features.permute(2, 0, 1).unsqueeze(0)
+                    af_up = F.interpolate(af, size=(up_h, up_w), mode="bilinear", align_corners=False)
+                    attn_features = af_up.squeeze(0).permute(1, 2, 0)
+                H, W = up_h, up_w
+                if verbose:
+                    print(f"Upsampled features to: {H}x{W}")
 
-        if attn_features is not None and version in ["v1.5", "v3"]:
-            features_np = np.concatenate(
-                [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
-            )
-            if verbose:
-                print(f"Combined features shape: {features_np.shape}")
-        else:
-            features_np = patch_features.cpu().numpy()
-            if verbose:
-                print(f"Patch-only features shape: {features_np.shape}")
+            if attn_features is not None and version in ["v1.5", "v3"]:
+                features_np = np.concatenate(
+                    [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
+                )
+                if verbose:
+                    print(f"Combined features shape: {features_np.shape}")
+            else:
+                features_np = patch_features.cpu().numpy()
+                if verbose:
+                    print(f"Patch-only features shape: {features_np.shape}")
+
+            H, W = features_np.shape[:2]
+        # If tiling was used, features_np, H, W are already set from stitching
 
         features_flat = features_np.reshape(-1, features_np.shape[-1])
         if verbose:

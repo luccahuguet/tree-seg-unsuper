@@ -22,6 +22,12 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "refine": "slic",
         "refine_slic_compactness": 12.0,
         "refine_slic_sigma": 1.5,
+        # Tiling for large images
+        "use_tiling": True,
+        "tile_size": 2048,
+        "tile_overlap": 256,
+        "tile_threshold": 2048,
+        "downsample_before_tiling": False,
     },
     "balanced": {
         "image_size": 1024,
@@ -30,6 +36,12 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "refine": "slic",
         "refine_slic_compactness": 10.0,
         "refine_slic_sigma": 1.0,
+        # Tiling for large images
+        "use_tiling": True,
+        "tile_size": 2048,
+        "tile_overlap": 256,
+        "tile_threshold": 2048,
+        "downsample_before_tiling": False,
     },
     "speed": {
         "image_size": 896,
@@ -38,6 +50,12 @@ PRESETS: Dict[str, Dict[str, Any]] = {
         "refine": "slic",
         "refine_slic_compactness": 20.0,
         "refine_slic_sigma": 1.0,
+        # Tiling for large images (smaller tiles + downsample for speed)
+        "use_tiling": True,
+        "tile_size": 1024,
+        "tile_overlap": 128,
+        "tile_threshold": 2048,
+        "downsample_before_tiling": True,  # 2× downsample for faster processing
     },
 }
 

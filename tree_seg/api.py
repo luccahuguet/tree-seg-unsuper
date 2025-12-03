@@ -142,6 +142,11 @@ class TreeSegmentation:
             pipeline=self.config.pipeline,
             apply_vegetation_filter=self.config.apply_vegetation_filter,
             exg_threshold=self.config.exg_threshold,
+            use_tiling=self.config.use_tiling,
+            tile_size=self.config.tile_size,
+            tile_overlap=self.config.tile_overlap,
+            tile_threshold=self.config.tile_threshold,
+            downsample_before_tiling=self.config.downsample_before_tiling,
         )
         
         # Support info tuple

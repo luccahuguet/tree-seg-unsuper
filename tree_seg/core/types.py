@@ -44,12 +44,21 @@ class Config:
     # Vegetation filtering (works with any method: V1.5, V2, V3)
     apply_vegetation_filter: bool = False  # Enable ExG-based vegetation filtering
     exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
-    
+
     # V3-specific: backward compatibility alias
     @property
     def v3_exg_threshold(self) -> float:
         """Backward compatibility: v3_exg_threshold maps to exg_threshold."""
         return self.exg_threshold
+
+    # Tiling configuration (for large images)
+    use_tiling: bool = True  # Auto-enable for large images (automatic above tile_threshold)
+    tile_size: int = 2048    # Tile dimension in pixels (square tiles)
+    tile_overlap: int = 256  # Overlap between adjacent tiles in pixels
+    tile_threshold: int = 2048  # Auto-tile if image dimension exceeds this (px)
+
+    # Downsampling (opt-in for speed)
+    downsample_before_tiling: bool = False  # 2× downsample before tiling for faster processing
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results
@@ -102,6 +111,14 @@ class Config:
             raise ValueError("refine must be None, 'slic', or 'bilateral'")
         if self.pipeline not in ("v1_5", "v3"):
             raise ValueError("pipeline must be 'v1_5' or 'v3'")
+
+        # Tiling validation
+        if self.tile_size < 512 or self.tile_size > 4096:
+            raise ValueError("tile_size must be between 512 and 4096")
+        if self.tile_overlap < 0 or self.tile_overlap >= self.tile_size // 2:
+            raise ValueError("tile_overlap must be between 0 and tile_size/2")
+        if self.tile_threshold < self.tile_size:
+            raise ValueError("tile_threshold must be >= tile_size")
 
 
 @dataclass
