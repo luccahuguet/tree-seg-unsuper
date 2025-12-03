@@ -380,7 +380,9 @@ def plot_evaluation_comparison(
             meta_lines.append(f"K: {k_used} | GT: {num_gt_classes} classes")
 
         if runtime_seconds is not None:
-            meta_lines.append(f"Runtime: {runtime_seconds:.2f}s")
+            minutes = int(runtime_seconds // 60)
+            seconds_rem = runtime_seconds % 60
+            meta_lines.append(f"Runtime: {minutes:d}m {seconds_rem:04.1f}s")
 
         meta_text = "\n".join(meta_lines)
 
