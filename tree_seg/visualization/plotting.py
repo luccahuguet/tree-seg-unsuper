@@ -248,6 +248,7 @@ def plot_evaluation_comparison(
     image_id: str = "",
     config: Config = None,
     two_panel: bool = False,
+    two_panel_opaque: bool = False,
 ) -> None:
     """
     Generate 2×2 comparison grid with overlay for laptop screen optimization.
@@ -279,14 +280,15 @@ def plot_evaluation_comparison(
     from PIL import Image
 
     two_panel = two_panel or (config is not None and getattr(config, "viz_two_panel", False))
+    two_panel_opaque = two_panel_opaque or (config is not None and getattr(config, "viz_two_panel_opaque", False))
 
-    if two_panel:
-        # Compact layout: left column for text/legend, right column for GT + overlay
-        fig = plt.figure(figsize=(17, 10), constrained_layout=True)
-        gs = fig.add_gridspec(2, 2, width_ratios=[0.35, 1.2], height_ratios=[1, 1], wspace=0.04, hspace=0.06)
-        ax_left = fig.add_subplot(gs[:, 0])
+    if two_panel or two_panel_opaque:
+        # Compact layout: left column for text/legend, GT and overlay side-by-side
+        fig = plt.figure(figsize=(18, 9), constrained_layout=True)
+        gs = fig.add_gridspec(1, 3, width_ratios=[0.32, 1.0, 1.0], wspace=0.05)
+        ax_left = fig.add_subplot(gs[0, 0])
         ax_gt = fig.add_subplot(gs[0, 1])
-        ax_overlay = fig.add_subplot(gs[1, 1])
+        ax_overlay = fig.add_subplot(gs[0, 2])
         ax_original = None
         ax_pred = None
     else:
@@ -392,15 +394,18 @@ def plot_evaluation_comparison(
     ax_gt.set_title("Ground Truth", fontsize=12, fontweight="bold")
     ax_gt.axis("off")
 
-    # Edge overlay
-    ax_overlay.imshow(image_vis)
+    # Edge overlay or opaque prediction view
+    if two_panel_opaque:
+        ax_overlay.imshow(mapped_pred_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
+    else:
+        ax_overlay.imshow(image_vis)
 
     unique_pred_classes = np.unique(mapped_pred_vis)
     unique_pred_classes = unique_pred_classes[unique_pred_classes != ignore_index]
 
     edge_width = getattr(config, "edge_width", 1.5)
 
-    if not getattr(config, "use_hatching", False):
+    if not getattr(config, "use_hatching", False) and not two_panel_opaque:
         overlay_rgba = np.zeros((*mapped_pred_vis.shape, 4), dtype=np.float32)
         for class_id in unique_pred_classes:
             mask = mapped_pred_vis == class_id
@@ -414,34 +419,36 @@ def plot_evaluation_comparison(
         mask = mapped_pred_vis == class_id
         if not mask.any():
             continue
-        color = class_color(class_id)[:3]
-        ax_overlay.contour(
-            mask.astype(int),
-            levels=[0.5],
-            colors=[color],
-            linewidths=edge_width * 0.5,
-            alpha=0.9,
-        )
-        if getattr(config, "use_hatching", False):
-            hatch_pattern = HATCH_PATTERNS[class_id % len(HATCH_PATTERNS)]
-            cs = ax_overlay.contourf(
+        if not two_panel_opaque:
+            color = class_color(class_id)[:3]
+            ax_overlay.contour(
                 mask.astype(int),
-                levels=[0.5, 1.5],
-                colors="none",
-                hatches=[hatch_pattern],
+                levels=[0.5],
+                colors=[color],
+                linewidths=edge_width * 0.5,
+                alpha=0.9,
             )
-            for collection in getattr(cs, "collections", []):
-                collection.set_facecolor("none")
-                collection.set_edgecolor(color)
-                collection.set_alpha(0.7)
-                collection.set_linewidth(0.0)
+            if getattr(config, "use_hatching", False):
+                hatch_pattern = HATCH_PATTERNS[class_id % len(HATCH_PATTERNS)]
+                cs = ax_overlay.contourf(
+                    mask.astype(int),
+                    levels=[0.5, 1.5],
+                    colors="none",
+                    hatches=[hatch_pattern],
+                )
+                for collection in getattr(cs, "collections", []):
+                    collection.set_facecolor("none")
+                    collection.set_edgecolor(color)
+                    collection.set_alpha(0.7)
+                    collection.set_linewidth(0.0)
 
-    boundary_mask = segmentation.find_boundaries(mapped_pred_vis, mode="thick")
-    boundary_img = np.zeros((*boundary_mask.shape, 4), dtype=np.float32)
-    boundary_img[boundary_mask] = (1.0, 1.0, 1.0, 0.8)
-    ax_overlay.imshow(boundary_img)
+    if not two_panel_opaque:
+        boundary_mask = segmentation.find_boundaries(mapped_pred_vis, mode="thick")
+        boundary_img = np.zeros((*boundary_mask.shape, 4), dtype=np.float32)
+        boundary_img[boundary_mask] = (1.0, 1.0, 1.0, 0.8)
+        ax_overlay.imshow(boundary_img)
 
-    ax_overlay.set_title("Prediction Overlay", fontsize=12, fontweight="bold")
+    ax_overlay.set_title("Prediction Overlay" if not two_panel_opaque else "Prediction", fontsize=12, fontweight="bold")
     ax_overlay.axis("off")
     
     # Add legend for Ground Truth classes

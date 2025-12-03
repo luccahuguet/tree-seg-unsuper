@@ -82,6 +82,7 @@ def create_config(args) -> Config:
         exg_threshold=args.exg_threshold,
         use_tiling=not args.no_tiling,
         viz_two_panel=args.viz_two_panel,
+        viz_two_panel_opaque=args.viz_two_panel_opaque,
     )
 
     return config
@@ -185,6 +186,7 @@ def run_comparison_benchmark(args):
         "exg_threshold": args.exg_threshold,
         "use_tiling": not args.no_tiling,
         "viz_two_panel": args.viz_two_panel,
+        "viz_two_panel_opaque": args.viz_two_panel_opaque,
     }
 
     all_results = []

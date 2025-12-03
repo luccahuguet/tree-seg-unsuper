@@ -69,6 +69,7 @@ class Config:
     edge_width: int = 2
     use_hatching: bool = True
     viz_two_panel: bool = False  # If True, use compact 2-panel GT+overlay viz
+    viz_two_panel_opaque: bool = False  # If True, two-panel GT + prediction (opaque)
     
     # Web optimization settings
     web_optimize: bool = True  # Auto-optimize images for GitHub Pages (default enabled)

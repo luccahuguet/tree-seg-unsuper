@@ -114,6 +114,11 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         action="store_true",
         help="Use compact 2-panel visualization (GT + overlay only)",
     )
+    parser.add_argument(
+        "--viz-two-panel-opaque",
+        action="store_true",
+        help="Use compact 2-panel visualization (GT + opaque prediction)",
+    )
 
     parser.add_argument(
         "--no-tiling",
