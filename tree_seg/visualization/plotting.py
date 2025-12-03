@@ -4,6 +4,7 @@ Modern visualization module using the new architecture.
 
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ..core.types import Config, SegmentationResults, OutputPaths
 from ..utils.config import get_config_text
@@ -234,3 +235,108 @@ def _generate_side_by_side(results: SegmentationResults, config: Config,
             plt.close('all')
         except Exception:
             pass
+
+
+def plot_evaluation_comparison(
+    image: np.ndarray,
+    pred_labels: np.ndarray,
+    gt_labels: np.ndarray,
+    eval_results,  # EvaluationResults type
+    dataset_class_names: dict = None,
+    ignore_index: int = 255,
+    output_path: str = None,
+    image_id: str = "",
+) -> None:
+    """
+    Generate side-by-side comparison of prediction vs ground truth with metrics.
+    
+    Args:
+        image: Original RGB image
+        pred_labels: Predicted segmentation mask
+        gt_labels: Ground truth segmentation mask
+        eval_results: EvaluationResults object with metrics and mapping
+        dataset_class_names: Dictionary mapping class IDs to names
+        ignore_index: Value to ignore in ground truth
+        output_path: Path to save the figure
+        image_id: Identifier for the image
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    import numpy as np
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+    # Prepare ground truth first to get color range
+    # Mask out ignored pixels
+    gt_vis = gt_labels.copy().astype(float)
+    gt_vis[gt_labels == ignore_index] = np.nan
+    
+    # Create colormap with black background for NaNs
+    cmap = plt.get_cmap("tab20").copy()
+    cmap.set_bad(color="black")
+    
+    # Calculate vmin/vmax from ground truth for consistent coloring
+    vmin = np.nanmin(gt_vis) if np.any(~np.isnan(gt_vis)) else 0
+    vmax = np.nanmax(gt_vis) if np.any(~np.isnan(gt_vis)) else 20
+
+    # Original image
+    axes[0].imshow(image)
+    axes[0].set_title("Original Image")
+    axes[0].axis("off")
+
+    # Predicted segmentation
+    # Recolor predictions to match ground truth classes using Hungarian matching
+    if eval_results.cluster_to_class_mapping:
+        # Create a mapped prediction array
+        mapped_pred = np.zeros_like(pred_labels)
+        for cluster_id, class_id in eval_results.cluster_to_class_mapping.items():
+            mapped_pred[pred_labels == cluster_id] = class_id
+        
+        axes[1].imshow(mapped_pred, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
+        axes[1].set_title(f"Prediction (Matched to GT, K={eval_results.num_predicted_clusters})")
+    else:
+        # Fallback if no mapping available
+        axes[1].imshow(pred_labels, cmap="tab20")
+        axes[1].set_title(f"Prediction (K={eval_results.num_predicted_clusters})")
+    axes[1].axis("off")
+
+    # Ground truth
+    axes[2].imshow(gt_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
+    axes[2].set_title("Ground Truth")
+    axes[2].axis("off")
+    
+    # Add legend for Ground Truth classes
+    if dataset_class_names:
+        # Get unique classes present in the GT (excluding ignore)
+        unique_classes = np.unique(gt_labels)
+        unique_classes = unique_classes[unique_classes != ignore_index]
+        
+        legend_patches = []
+        for class_id in unique_classes:
+            class_name = dataset_class_names.get(class_id, f"Class {class_id}")
+            
+            # Get color from colormap
+            # Normalize class_id to [0, 1] for cmap
+            norm_val = (class_id - vmin) / (vmax - vmin) if vmax > vmin else 0
+            color = cmap(norm_val)
+            
+            patch = mpatches.Patch(color=color, label=f"{class_id}: {class_name}")
+            legend_patches.append(patch)
+        
+        # Add legend to the right of the plot
+        axes[2].legend(handles=legend_patches, loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
+
+    # Add metrics as title
+    fig.suptitle(
+        f"{image_id} | mIoU: {eval_results.miou:.3f} | Pixel Acc: {eval_results.pixel_accuracy:.3f}",
+        fontsize=14,
+        y=0.95,
+    )
+
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, bbox_inches="tight", pad_inches=0.1)
+        plt.close()
+    else:
+        plt.show()
