@@ -65,6 +65,22 @@ GRIDS = {
         "description": "Complete exploration of all parameter combinations",
         "configs": _generate_full_factorial(),
     },
+    "tiling": {
+        "name": "Tiling Evaluation",
+        "description": "Evaluate tiling performance: tiling on/off × base/large × stride 4/2",
+        "configs": [
+            # No tiling
+            {"model_name": "base", "stride": 4, "use_tiling": False, "refine": "slic", "label": "notile_base_s4"},
+            {"model_name": "base", "stride": 2, "use_tiling": False, "refine": "slic", "label": "notile_base_s2"},
+            {"model_name": "large", "stride": 4, "use_tiling": False, "refine": "slic", "label": "notile_large_s4"},
+            {"model_name": "large", "stride": 2, "use_tiling": False, "refine": "slic", "label": "notile_large_s2"},
+            # With tiling
+            {"model_name": "base", "stride": 4, "use_tiling": True, "refine": "slic", "label": "tile_base_s4"},
+            {"model_name": "base", "stride": 2, "use_tiling": True, "refine": "slic", "label": "tile_base_s2"},
+            {"model_name": "large", "stride": 4, "use_tiling": True, "refine": "slic", "label": "tile_large_s4"},
+            {"model_name": "large", "stride": 2, "use_tiling": True, "refine": "slic", "label": "tile_large_s2"},
+        ],
+    },
 }
 
 

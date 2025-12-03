@@ -21,6 +21,7 @@ Example usage:
         --elbow-threshold 10.0
 """
 
+import datetime
 import json
 from pathlib import Path
 
@@ -30,7 +31,8 @@ from tree_seg.core.types import Config
 from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.cli import add_common_eval_arguments, add_comparison_arguments
 from tree_seg.evaluation.datasets import FortressDataset
-from tree_seg.evaluation.formatters import config_to_dict
+from tree_seg.evaluation.formatters import config_to_dict, format_comparison_table, save_comparison_summary
+from tree_seg.evaluation.grids import get_grid
 
 # Load environment variables from .env file
 load_dotenv()
@@ -148,6 +150,72 @@ def run_single_benchmark(args, config: Config):
     return results
 
 
+def run_comparison_benchmark(args):
+    """Run comparison across multiple configurations."""
+    import argparse
+
+    # Select grid based on args
+    if hasattr(args, 'grid') and args.grid:
+        grid_name = args.grid
+    elif args.smart_grid:
+        grid_name = "smart"
+    else:
+        grid_name = "tiling"  # Default to tiling grid for FORTRESS
+
+    grid = get_grid(grid_name)
+    configs_to_test = grid["configs"]
+
+    print(f"\nUsing grid: {grid['name']}")
+    print(f"Description: {grid['description']}")
+    print(f"Configurations: {len(configs_to_test)}\n")
+
+    # Base config from args
+    base_config_dict = {
+        "version": {"v1": "v1", "v1.5": "v1.5", "v2": "v2", "v3": "v3", "v4": "v4"}.get(args.method, "v1.5"),
+        "refine": "slic" if args.clustering == "slic" else None,
+        "model_name": args.model,
+        "stride": args.stride,
+        "elbow_threshold": args.elbow_threshold,
+        "auto_k": (args.fixed_k is None),
+        "n_clusters": args.fixed_k if args.fixed_k else 6,
+        "apply_vegetation_filter": args.apply_vegetation_filter or (args.method == "v3"),
+        "exg_threshold": args.exg_threshold,
+    }
+
+    all_results = []
+
+    print("\n" + "=" * 60)
+    print("RUNNING COMPARISON BENCHMARK")
+    print("=" * 60 + "\n")
+
+    for i, config_override in enumerate(configs_to_test):
+        config_dict = base_config_dict.copy()
+        config_dict.update({k: v for k, v in config_override.items() if k != "label"})
+
+        config = Config(**config_dict)
+        label = config_override["label"]
+
+        print(f"\n[{i + 1}/{len(configs_to_test)}] Testing: {label}")
+        print("-" * 40)
+
+        # Update args for this run
+        args_copy = argparse.Namespace(**vars(args))
+        smartk_suffix = "_smartk" if args.smart_k else ""
+        args_copy.output_dir = Path("data/output/results") / f"fortress_{label}{smartk_suffix}"
+
+        results = run_single_benchmark(args_copy, config)
+        all_results.append({"label": label, "config": config_dict, "results": results})
+
+    # Print comparison table
+    print("\n" + format_comparison_table(all_results) + "\n")
+
+    # Save comparison summary
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    comparison_path = Path("data/output/results") / f"fortress_comparison_{grid_name}_{timestamp}.json"
+    save_comparison_summary(all_results, comparison_path)
+    print(f"Comparison summary saved to: {comparison_path}\n")
+
+
 def main():
     """Main entry point."""
     import argparse
@@ -168,6 +236,14 @@ def main():
         help="Use smart K mode: set K to match the number of classes in each image's ground truth (slight cheat for debugging)",
     )
 
+    parser.add_argument(
+        "--grid",
+        type=str,
+        default=None,
+        choices=["ofat", "smart", "full", "tiling"],
+        help="Grid to use for comparison mode (default: tiling for FORTRESS)",
+    )
+
     args = parser.parse_args()
 
     # Validate dataset path
@@ -182,9 +258,7 @@ def main():
 
     # Run comparison or single benchmark
     if args.compare_configs:
-        print("❌ Comparison mode not yet implemented for FORTRESS")
-        print("   Use the main evaluate_semantic_segmentation.py script for comparisons")
-        return 1
+        run_comparison_benchmark(args)
     else:
         config = create_config(args)
         run_single_benchmark(args, config)
