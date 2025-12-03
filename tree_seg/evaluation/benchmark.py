@@ -58,6 +58,7 @@ class BenchmarkRunner:
         dataset: SegmentationDataset,
         output_dir: Optional[Path] = None,
         save_visualizations: bool = False,
+        use_smart_k: bool = False,
     ):
         """
         Initialize benchmark runner.
@@ -67,14 +68,16 @@ class BenchmarkRunner:
             dataset: Dataset to evaluate on (any dataset implementing SegmentationDataset protocol)
             output_dir: Optional directory to save results and visualizations
             save_visualizations: Whether to save visualization images
+            use_smart_k: If True, set K to match the number of classes in each image's ground truth
         """
         self.config = config
         self.dataset = dataset
         self.output_dir = Path(output_dir) if output_dir else None
         self.save_visualizations = save_visualizations
+        self.use_smart_k = use_smart_k
 
-        # Create segmentation instance
-        self.segmenter = TreeSegmentation(config)
+        # Create segmentation instance (will be recreated per-image if using smart K)
+        self.segmenter = None if use_smart_k else TreeSegmentation(config)
 
         # Create output directories if needed
         if self.output_dir:
@@ -101,9 +104,33 @@ class BenchmarkRunner:
         if verbose:
             print(f"Processing {image_id} ({idx + 1}/{len(self.dataset)})...")
 
+        # Handle smart K mode
+        if self.use_smart_k:
+            # Count unique classes in ground truth (excluding ignore index)
+            unique_classes = np.unique(gt_labels)
+            if self.dataset.IGNORE_INDEX is not None:
+                unique_classes = unique_classes[unique_classes != self.dataset.IGNORE_INDEX]
+            num_gt_classes = len(unique_classes)
+
+            # Create modified config with smart K
+            from dataclasses import replace
+            smart_config = replace(
+                self.config,
+                n_clusters=num_gt_classes,
+                auto_k=False,
+            )
+
+            if verbose:
+                print(f"  Smart K mode: Using K={num_gt_classes} (matched to ground truth)")
+
+            # Create temporary segmenter with smart config
+            segmenter = TreeSegmentation(smart_config)
+        else:
+            segmenter = self.segmenter
+
         # Run segmentation with timing
         start_time = time.time()
-        results = self.segmenter.segment_image(image)
+        results = segmenter.segment_image(image)
         runtime = time.time() - start_time
 
         # Get segmentation labels
@@ -256,6 +283,7 @@ def run_benchmark(
     num_samples: Optional[int] = None,
     save_visualizations: bool = False,
     verbose: bool = True,
+    use_smart_k: bool = False,
 ) -> BenchmarkResults:
     """
     Convenience function to run benchmark.
@@ -269,6 +297,7 @@ def run_benchmark(
         num_samples: Number of samples to evaluate (None = all)
         save_visualizations: Whether to save visualization images
         verbose: Whether to print progress
+        use_smart_k: If True, set K to match the number of classes in each image's ground truth
 
     Returns:
         BenchmarkResults
@@ -276,7 +305,7 @@ def run_benchmark(
     # Handle backward compatibility
     if dataset_path is not None:
         dataset = dataset_path
-    
+
     # Load dataset if path provided
     if isinstance(dataset, Path):
         if dataset_class is None:
@@ -289,6 +318,7 @@ def run_benchmark(
         dataset=dataset,
         output_dir=output_dir,
         save_visualizations=save_visualizations,
+        use_smart_k=use_smart_k,
     )
 
     results = runner.run(num_samples=num_samples, verbose=verbose)

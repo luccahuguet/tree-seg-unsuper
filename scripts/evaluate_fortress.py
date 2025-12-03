@@ -93,6 +93,8 @@ def run_single_benchmark(args, config: Config):
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         refine_str = config.refine if config.refine else "kmeans"
         method_str = f"{config.version}_{refine_str}"
+        if args.smart_k:
+            method_str += "_smartk"
         model_str = config.model_display_name.lower().replace(" ", "_")
         output_dir = Path("data/output/results") / f"fortress_{method_str}_{model_str}_{timestamp}"
 
@@ -109,6 +111,7 @@ def run_single_benchmark(args, config: Config):
         num_samples=args.num_samples,
         save_visualizations=args.save_viz,
         verbose=not args.quiet,
+        use_smart_k=args.smart_k,
     )
 
     # Save results to JSON
@@ -157,6 +160,13 @@ def main():
     # Add common arguments
     add_common_eval_arguments(parser)
     add_comparison_arguments(parser)
+
+    # Add FORTRESS-specific arguments
+    parser.add_argument(
+        "--smart-k",
+        action="store_true",
+        help="Use smart K mode: set K to match the number of classes in each image's ground truth (slight cheat for debugging)",
+    )
 
     args = parser.parse_args()
 
