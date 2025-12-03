@@ -333,6 +333,7 @@ class BenchmarkRunner:
         total_start = time.time()
 
         with maybe_progress(total_samples) as bar:
+            self.suppress_logs = bar is not None
             if bar is not None and est_total is not None:
                 threading.Thread(target=heartbeat, args=(bar, total_start, est_total), daemon=True).start()
             for idx in range(start_idx, end_idx):
