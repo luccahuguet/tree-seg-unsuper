@@ -271,6 +271,29 @@ class BenchmarkRunner:
         axes[2].imshow(gt_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
         axes[2].set_title("Ground Truth")
         axes[2].axis("off")
+        
+        # Add legend for Ground Truth classes
+        if hasattr(self.dataset, "CLASS_NAMES"):
+            import matplotlib.patches as mpatches
+            
+            # Get unique classes present in the GT (excluding ignore)
+            unique_classes = np.unique(gt_labels)
+            unique_classes = unique_classes[unique_classes != self.dataset.IGNORE_INDEX]
+            
+            legend_patches = []
+            for class_id in unique_classes:
+                class_name = self.dataset.CLASS_NAMES.get(class_id, f"Class {class_id}")
+                
+                # Get color from colormap
+                # Normalize class_id to [0, 1] for cmap
+                norm_val = (class_id - vmin) / (vmax - vmin) if vmax > vmin else 0
+                color = cmap(norm_val)
+                
+                patch = mpatches.Patch(color=color, label=f"{class_id}: {class_name}")
+                legend_patches.append(patch)
+            
+            # Add legend to the right of the plot
+            axes[2].legend(handles=legend_patches, loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
 
         # Add metrics as title
         fig.suptitle(
