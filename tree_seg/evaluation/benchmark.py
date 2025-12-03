@@ -233,19 +233,7 @@ class BenchmarkRunner:
 
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
-        # Original image
-        axes[0].imshow(image)
-        axes[0].set_title("Original Image")
-        axes[0].axis("off")
-
-        # Predicted segmentation
-        axes[1].imshow(pred_labels, cmap="tab20")
-        axes[1].set_title(f"Prediction (K={eval_results.num_predicted_clusters})")
-        axes[1].axis("off")
-
-        # Ground truth
-        # Mask out ignored pixels
-        # Ground truth
+        # Prepare ground truth first to get color range
         # Mask out ignored pixels
         gt_vis = gt_labels.copy().astype(float)
         gt_vis[gt_labels == self.dataset.IGNORE_INDEX] = np.nan
@@ -254,7 +242,33 @@ class BenchmarkRunner:
         cmap = plt.get_cmap("tab20").copy()
         cmap.set_bad(color="black")
         
-        axes[2].imshow(gt_vis, cmap=cmap, interpolation="nearest")
+        # Calculate vmin/vmax from ground truth for consistent coloring
+        vmin = np.nanmin(gt_vis) if np.any(~np.isnan(gt_vis)) else 0
+        vmax = np.nanmax(gt_vis) if np.any(~np.isnan(gt_vis)) else 20
+
+        # Original image
+        axes[0].imshow(image)
+        axes[0].set_title("Original Image")
+        axes[0].axis("off")
+
+        # Predicted segmentation
+        # Recolor predictions to match ground truth classes using Hungarian matching
+        if eval_results.cluster_to_class_mapping:
+            # Create a mapped prediction array
+            mapped_pred = np.zeros_like(pred_labels)
+            for cluster_id, class_id in eval_results.cluster_to_class_mapping.items():
+                mapped_pred[pred_labels == cluster_id] = class_id
+            
+            axes[1].imshow(mapped_pred, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
+            axes[1].set_title(f"Prediction (Matched to GT, K={eval_results.num_predicted_clusters})")
+        else:
+            # Fallback if no mapping available
+            axes[1].imshow(pred_labels, cmap="tab20")
+            axes[1].set_title(f"Prediction (K={eval_results.num_predicted_clusters})")
+        axes[1].axis("off")
+
+        # Ground truth
+        axes[2].imshow(gt_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
         axes[2].set_title("Ground Truth")
         axes[2].axis("off")
 
