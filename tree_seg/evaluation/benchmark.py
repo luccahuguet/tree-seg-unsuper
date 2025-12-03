@@ -245,9 +245,16 @@ class BenchmarkRunner:
 
         # Ground truth
         # Mask out ignored pixels
-        gt_vis = gt_labels.copy()
-        gt_vis[gt_labels == self.dataset.IGNORE_INDEX] = self.dataset.NUM_CLASSES
-        axes[2].imshow(gt_vis, cmap="tab20")
+        # Ground truth
+        # Mask out ignored pixels
+        gt_vis = gt_labels.copy().astype(float)
+        gt_vis[gt_labels == self.dataset.IGNORE_INDEX] = np.nan
+        
+        # Create colormap with black background for NaNs
+        cmap = plt.get_cmap("tab20").copy()
+        cmap.set_bad(color="black")
+        
+        axes[2].imshow(gt_vis, cmap=cmap, interpolation="nearest")
         axes[2].set_title("Ground Truth")
         axes[2].axis("off")
 

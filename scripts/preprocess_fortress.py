@@ -60,7 +60,7 @@ def rasterize_shapefile_to_mask(ortho_path, shapefile_path, output_path):
         shapes=shapes,
         out_shape=out_shape,
         transform=transform,
-        fill=0,  # Background value
+        fill=255,  # Background value (IGNORE_INDEX)
         dtype=np.uint8
     )
     

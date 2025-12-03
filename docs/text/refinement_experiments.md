@@ -21,10 +21,11 @@
 ### 4. Optimized OpenCV SLIC 🚀 (Winner!)
 - **Optimization 1:** Dynamic `region_size` to cap segments at 2000.
 - **Optimization 2:** Vectorized majority voting using `np.histogram2d` (eliminated O(K*N) loop).
-- **Runtime:** **47.7s** (vs 196s Skimage, 149s Unoptimized OpenCV).
-- **Metrics:** **9.4% mIoU** (Best result!), 29.4% Acc.
-- **Overhead:** Only **+14s** vs baseline.
-- **Speedup:** **4.1× faster** than Skimage SLIC.
+- **Dataset Fix:** Corrected `IGNORE_INDEX` handling in preprocessing (removed false Class 0 background).
+- **Runtime:** **46.7s** (vs 196s Skimage).
+- **Metrics:** **10.0% mIoU** (Best result!), 34.6% Acc.
+- **Overhead:** Only +13s vs baseline.
+- **Speedup:** **4.2× faster** than Skimage SLIC.
 
 ---
 
@@ -34,6 +35,6 @@
 - **Method:** `v1.5` + `refine="slic"`
 - **Implementation:** `cv2.ximgproc.createSuperpixelSLIC`
 - **Settings:** `compactness=10`, `MAX_SEGMENTS=2000`
-- **Performance:** 9.4% mIoU @ ~48s/image
+- **Performance:** 10.0% mIoU @ ~47s/image
 
-This provides the best trade-off between accuracy (+22% relative improvement over baseline) and speed (acceptable overhead).
+This provides the best trade-off between accuracy (+30% relative improvement over baseline) and speed.
