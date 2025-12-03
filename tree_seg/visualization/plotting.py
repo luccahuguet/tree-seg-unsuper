@@ -293,27 +293,34 @@ def plot_evaluation_comparison(
             f"Model: {config.model_display_name}",
             f"Method: {config.version}",
             f"Stride: {config.stride}",
+            f"Tiling: {'Yes' if config.use_tiling else 'No'}",
         ]
-        
+
         if config.refine:
             meta_lines.append(f"Refine: {config.refine}")
-            
-        # Add K info
+
+        # Add K info with GT comparison
         k_used = eval_results.num_predicted_clusters
+        # Count GT classes (excluding ignore index)
+        unique_gt = np.unique(gt_labels)
+        unique_gt = unique_gt[unique_gt != ignore_index]
+        num_gt_classes = len(unique_gt)
+
         if not config.auto_k:
-            meta_lines.append(f"K: {k_used} (Fixed)")
+            meta_lines.append(f"K: {k_used} (Fixed) | GT: {num_gt_classes} classes")
         elif config.auto_k:
-            meta_lines.append(f"K: {k_used} (Auto, Elbow={config.elbow_threshold})")
+            meta_lines.append(f"K: {k_used} (Auto) | GT: {num_gt_classes} classes")
         else:
-            meta_lines.append(f"K: {k_used}")
-            
+            meta_lines.append(f"K: {k_used} | GT: {num_gt_classes} classes")
+
         meta_text = "\n".join(meta_lines)
-        
+
+        # Position metadata in column with GT legend
         axes[0].text(
-            0.02, 0.98, meta_text,
-            transform=axes[0].transAxes, fontsize=8,
+            1.02, 0.98, meta_text,
+            transform=axes[0].transAxes, fontsize=9,
             verticalalignment='top', horizontalalignment='left',
-            bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
+            bbox=dict(facecolor='wheat', alpha=0.8, edgecolor='black', boxstyle='round,pad=0.5')
         )
 
     # Predicted segmentation
