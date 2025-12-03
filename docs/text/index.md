@@ -40,6 +40,13 @@ Complete V3 documentation: background, implementation, usage.
 - Vegetation filtering approach
 - Validation results
 
+### [Tiling Implementation](tiling_implementation.md) ✨ NEW
+Tile-based processing for ultra-high-resolution imagery.
+- Problem: Spatial detail loss from downsampling
+- Solution: Overlapping tiles with weighted feature stitching
+- Performance: 41.5% pixel accuracy on FORTRESS (vs 38.9% without tiling)
+- Usage: Automatic for images >2048px
+
 ### [Paper Timeline](paper_timeline.md)
 Project timeline and version descriptions for paper.
 - Weekly schedule
@@ -97,9 +104,11 @@ Planning document for V2 implementation.
 
 **User guides:** `cli_usage.md`, `benchmarking.md`
 
-**Technical docs:** `architecture.md`, `version_roadmap.md`
+**Technical docs:** `architecture.md`, `version_roadmap.md`, `tiling_implementation.md`
 
 **V3 docs:** `v3_species_clustering.md`, `dinov3_vegetation_analysis.md`
+
+**Implementation:** `tiling_implementation.md` (high-res imagery processing)
 
 **Research:** `dinov3_vegetation_analysis.md`, `kmeans_successors.md`, `week1_results.md`
 
