@@ -1,6 +1,7 @@
 """Benchmark runner for evaluating segmentation methods."""
 
 import time
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Union
@@ -9,7 +10,7 @@ import numpy as np
 from PIL import Image
 import threading
 
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout, redirect_stderr
 
 from tree_seg.api import TreeSegmentation
 from tree_seg.core.types import Config
@@ -119,7 +120,7 @@ class BenchmarkRunner:
             )
 
     def run_single_sample(
-        self, idx: int, verbose: bool = True
+        self, idx: int, verbose: bool = True, suppress_output: bool = False
     ) -> tuple[BenchmarkSample, EvaluationResults]:
         """
         Run benchmark on a single dataset sample.
@@ -180,7 +181,11 @@ class BenchmarkRunner:
 
         # Run segmentation with timing
         start_time = time.time()
-        results = segmenter.segment_image(image)
+        if suppress_output:
+            with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
+                results = segmenter.segment_image(image)
+        else:
+            results = segmenter.segment_image(image)
         runtime = time.time() - start_time
 
         # Get segmentation labels
@@ -327,7 +332,11 @@ class BenchmarkRunner:
             for idx in range(start_idx, end_idx):
                 t0 = time.time()
                 sample_verbose = verbose and bar is None
-                sample_result, eval_results = self.run_single_sample(idx, verbose=sample_verbose)
+                sample_result, eval_results = self.run_single_sample(
+                    idx, 
+                    verbose=sample_verbose, 
+                    suppress_output=bar is not None
+                )
                 dt = time.time() - t0
                 sample_results.append(sample_result)
 
