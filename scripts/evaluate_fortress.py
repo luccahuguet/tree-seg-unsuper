@@ -294,7 +294,7 @@ def main():
         "--grid",
         type=str,
         default=None,
-        choices=["ofat", "smart", "full", "tiling", "tiling_refine", "clustering"],
+        choices=["ofat", "smart", "full", "tiling", "tiling_refine", "clustering", "slic_params"],
         help="Grid to use for comparison mode (default: tiling for FORTRESS)",
     )
 

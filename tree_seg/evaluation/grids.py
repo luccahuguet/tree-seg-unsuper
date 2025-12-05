@@ -112,6 +112,20 @@ GRIDS = {
             {"clustering_method": "spectral", "refine": "slic", "label": "spectral_slic"},
         ],
     },
+    "slic_params": {
+        "name": "SLIC Parameter Tuning",
+        "description": "Optimize SLIC compactness and sigma parameters",
+        "configs": [
+            # Baseline
+            {"refine": "slic", "refine_slic_compactness": 10.0, "refine_slic_sigma": 1.0, "label": "slic_c10_s1.0"},
+            # Vary compactness (sigma=1.0)
+            {"refine": "slic", "refine_slic_compactness": 5.0, "refine_slic_sigma": 1.0, "label": "slic_c5_s1.0"},
+            {"refine": "slic", "refine_slic_compactness": 20.0, "refine_slic_sigma": 1.0, "label": "slic_c20_s1.0"},
+            # Vary sigma (compactness=10.0)
+            {"refine": "slic", "refine_slic_compactness": 10.0, "refine_slic_sigma": 0.5, "label": "slic_c10_s0.5"},
+            {"refine": "slic", "refine_slic_compactness": 10.0, "refine_slic_sigma": 2.0, "label": "slic_c10_s2.0"},
+        ],
+    },
 }
 
 
