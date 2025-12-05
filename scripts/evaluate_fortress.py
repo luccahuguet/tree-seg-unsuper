@@ -192,6 +192,7 @@ def run_comparison_benchmark(args):
     base_config_dict = {
         "version": {"v1": "v1", "v1.5": "v1.5", "v2": "v2", "v3": "v3", "v4": "v4"}.get(args.method, "v1.5"),
         "refine": "slic" if args.clustering == "slic" else None,
+        "clustering_method": "kmeans",  # Default, can be overridden by grid configs
         "model_name": args.model,
         "stride": args.stride,
         "elbow_threshold": args.elbow_threshold,

@@ -33,9 +33,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  clustering_method: str = "kmeans"):
     """
     Process a single image for tree segmentation.
-    
+
     Args:
-        image_path: Path to the input image
+        image_path: Path to the input image OR numpy array (H, W, 3)
         model: Initialized model
         preprocess: Preprocessing pipeline
         n_clusters: Number of clusters (if auto_k=False)
@@ -48,21 +48,30 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         apply_vegetation_filter: Whether to apply ExG-based vegetation filtering
         exg_threshold: ExG threshold for vegetation filtering (default: 0.10)
         verbose: Whether to print detailed processing information
-        
+
     Returns:
         Tuple of (image_np, labels_resized) or (None, None) on error
     """
     try:
-        if verbose:
-            print(f"\n--- Processing {image_path} ---")
+        # Handle both file paths and numpy arrays
+        if isinstance(image_path, np.ndarray):
+            # Direct numpy array input (for benchmarking)
+            image_np = image_path
+            image_path_str = "<numpy_array>"
+        else:
+            # File path input
+            image_path_str = str(image_path)
+            if verbose:
+                print(f"\n--- Processing {image_path_str} ---")
+            image = Image.open(image_path).convert("RGB")
+            image_np = np.array(image)
+
         t0 = time.perf_counter()
         if torch.cuda.is_available():
             try:
                 torch.cuda.reset_peak_memory_stats(device)
             except Exception:
                 pass
-        image = Image.open(image_path).convert("RGB")
-        image_np = np.array(image)
         h, w = image_np.shape[:2]
         if verbose:
             print(f"Original image size: {w}x{h}")
@@ -301,12 +310,12 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 print(f"Selected optimal K = {optimal_k}")
 
             # Save K selection analysis plot
-            output_prefix = os.path.splitext(os.path.basename(image_path))[0]
+            output_prefix = os.path.splitext(os.path.basename(image_path_str))[0]
             # Use png subdirectory to match OutputManager expectations
             png_output_dir = os.path.join(output_dir, "png")
             os.makedirs(png_output_dir, exist_ok=True)
             plot_elbow_analysis(k_scores, png_output_dir, output_prefix, elbow_threshold * 100,
-                               model_name, version, stride, optimal_k, auto_k, image_path)
+                               model_name, version, stride, optimal_k, auto_k, image_path_str)
 
             n_clusters = optimal_k
             k_requested = int(optimal_k)
@@ -333,7 +342,14 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         if clustering_method == "gmm":
             if verbose:
                 print(f"🎯 Clustering with GMM (n_components={n_clusters})...")
-            gmm = GaussianMixture(n_components=n_clusters, random_state=42, covariance_type='full')
+            # Use diagonal covariance for stability with high-dimensional features
+            # Full covariance can fail with 1536-D DINOv3 features
+            gmm = GaussianMixture(
+                n_components=n_clusters,
+                random_state=42,
+                covariance_type='diag',  # More stable than 'full' for high-D
+                reg_covar=1e-6  # Add regularization
+            )
             labels = gmm.fit_predict(features_flat)
         else:  # default to kmeans
             if verbose:
@@ -452,8 +468,10 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         return (image_np, labels_resized, metrics) if collect_metrics else (image_np, labels_resized)
 
     except Exception as e:
+        # Use image_path_str if available, otherwise fallback to image_path
+        path_for_error = image_path_str if 'image_path_str' in locals() else str(image_path)
         if verbose:
-            print(f"Error processing {image_path}: {e}")
+            print(f"Error processing {path_for_error}: {e}")
             traceback.print_exc()
         return None, None
 
