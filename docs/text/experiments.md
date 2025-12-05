@@ -269,11 +269,35 @@ uv run python scripts/evaluate_fortress.py \
   - Test: stride=2 (2× denser features, slower)
   - Expected: +2-4% mIoU from finer spatial resolution
 
-**Blocked by Hardware:**
-- [ ] **DINOv3 native segmentation head**
-  - Official DINOv3 linear segmentation head
-  - Requires >32GB RAM (blocked on 32GB system)
-  - Expected: Potentially +10-20% mIoU (supervised baseline)
-  - Note: Would provide upper bound for DINOv3 features
+**DINOv3 Linear Segmentation Head (Supervised/Transfer Learning):**
 
-**All clustering experiments completed. K-means + SLIC remains the best approach.**
+Official DINOv3 repository includes linear segmentation head. Multiple approaches possible:
+
+- [ ] **Option 1: Supervised training from scratch**
+  - Train linear head (Conv2d 1×1) on FORTRESS labels
+  - Architecture: ~115K params (13 classes × 768D features)
+  - Fits in 32GB RAM (lightweight, only trains head)
+  - Expected: +30-50% mIoU (supervised upper bound)
+  - **Pros:** Shows DINOv3 feature quality ceiling
+  - **Cons:** Changes problem from unsupervised to supervised
+
+- [ ] **Option 2: Pre-trained vegetation filtering**
+  - Use ADE20K pre-trained head (150 classes including "tree")
+  - Extract "tree" class predictions as vegetation mask
+  - Apply K-means only on tree pixels
+  - Expected: +2-5% mIoU by reducing background noise
+  - **Pros:** Stays unsupervised, uses existing checkpoint
+  - **Cons:** Requires downloading/loading ADE20K checkpoint
+
+- [ ] **Option 3: Transfer learning (fine-tune)**
+  - Load ADE20K pre-trained head
+  - Replace final layer (150 → 13 classes)
+  - Fine-tune only last layer on FORTRESS
+  - Expected: +20-40% mIoU (faster than training from scratch)
+  - **Pros:** Leverages pre-training, less data needed
+  - **Cons:** Still requires supervised training
+
+**Note:** Options 1 & 3 are supervised methods. Option 2 could improve unsupervised baseline.
+
+**All unsupervised clustering experiments completed. K-means + SLIC remains the best unsupervised approach.**
+
