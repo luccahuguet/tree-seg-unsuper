@@ -158,8 +158,6 @@ def run_single_benchmark(args, config: Config):
 
 def run_comparison_benchmark(args):
     """Run comparison across multiple configurations."""
-    import argparse
-
     # Select grid based on args
     if hasattr(args, 'grid') and args.grid:
         grid_name = args.grid
@@ -174,6 +172,14 @@ def run_comparison_benchmark(args):
     print(f"\nUsing grid: {grid['name']}")
     print(f"Description: {grid['description']}")
     print(f"Configurations: {len(configs_to_test)}\n")
+
+    # Create shared sweep directory with timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    smartk_suffix = "_smartk" if args.smart_k else ""
+    sweep_dir = Path("data/output/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
+    sweep_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"📁 Sweep directory: {sweep_dir}\n")
 
     # Base config from args
     base_config_dict = {
@@ -219,16 +225,11 @@ def run_comparison_benchmark(args):
         if model_key in model_cache:
             print(f"♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})")
 
-        # Update args for this run
-        args_copy = argparse.Namespace(**vars(args))
-        smartk_suffix = "_smartk" if args.smart_k else ""
-        args_copy.output_dir = Path("data/output/results") / f"fortress_{label}{smartk_suffix}"
-
-        # Run benchmark with model cache
+        # All configs save to the same sweep directory
         results = run_benchmark(
             config=config,
             dataset=dataset,
-            output_dir=args_copy.output_dir,
+            output_dir=sweep_dir,
             num_samples=args.num_samples,
             save_visualizations=args.save_viz,
             verbose=not args.quiet,
@@ -241,11 +242,11 @@ def run_comparison_benchmark(args):
     # Print comparison table
     print("\n" + format_comparison_table(all_results) + "\n")
 
-    # Save comparison summary
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    comparison_path = Path("data/output/results") / f"fortress_comparison_{grid_name}_{timestamp}.json"
+    # Save comparison summary in the same sweep directory
+    comparison_path = sweep_dir / f"sweep_summary_{grid_name}.json"
     save_comparison_summary(all_results, comparison_path)
-    print(f"Comparison summary saved to: {comparison_path}\n")
+    print(f"📊 Sweep summary saved to: {comparison_path}")
+    print(f"📁 All results in: {sweep_dir}\n")
 
 
 def main():
