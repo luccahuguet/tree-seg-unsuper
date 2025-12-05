@@ -147,6 +147,9 @@ class TreeSegmentation:
             tile_threshold=self.config.tile_threshold,
             downsample_before_tiling=self.config.downsample_before_tiling,
             clustering_method=self.config.clustering_method,
+            use_multi_layer=self.config.use_multi_layer,
+            layer_indices=self.config.layer_indices,
+            feature_aggregation=self.config.feature_aggregation,
         )
 
         # Support info tuple
@@ -236,6 +239,9 @@ class TreeSegmentation:
             tile_threshold=self.config.tile_threshold,
             downsample_before_tiling=self.config.downsample_before_tiling,
             clustering_method=self.config.clustering_method,
+            use_multi_layer=self.config.use_multi_layer,
+            layer_indices=self.config.layer_indices,
+            feature_aggregation=self.config.feature_aggregation,
         )
         
         # Support info tuple

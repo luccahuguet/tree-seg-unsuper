@@ -36,6 +36,11 @@ class Config:
     use_pca: bool = False
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
     feature_upsample_factor: int = 2  # Upsample HxW feature grid before clustering
+    
+    # Multi-layer feature extraction
+    use_multi_layer: bool = False  # Extract features from multiple layers
+    layer_indices: Tuple[int, ...] = (3, 6, 9, 12)  # Layers to extract (base model has 12 layers)
+    feature_aggregation: str = "concat"  # "concat", "average", or "weighted"
 
     # Refinement settings
     refine: Optional[str] = "slic"  # Default to SLIC refinement
@@ -122,6 +127,15 @@ class Config:
             raise ValueError("tile_overlap must be between 0 and tile_size/2")
         if self.tile_threshold < self.tile_size:
             raise ValueError("tile_threshold must be >= tile_size")
+        
+        # Multi-layer validation
+        if self.use_multi_layer:
+            if not self.layer_indices or len(self.layer_indices) == 0:
+                raise ValueError("layer_indices cannot be empty when use_multi_layer is True")
+            if any(idx < 1 or idx > 40 for idx in self.layer_indices):
+                raise ValueError("layer_indices must be between 1 and 40")
+            if self.feature_aggregation not in ("concat", "average", "weighted"):
+                raise ValueError("feature_aggregation must be 'concat', 'average', or 'weighted'")
 
 
 @dataclass

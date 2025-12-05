@@ -502,13 +502,23 @@ class DINOv3Adapter(nn.Module):
     def forward_sequential(
         self, 
         x: torch.Tensor, 
-        attn_choice: AttentionOptions = "none"
+        attn_choice: AttentionOptions = "none",
+        use_multi_layer: bool = False,
+        layer_indices: tuple = (3, 6, 9, 12),
+        feature_aggregation: str = "concat"
     ) -> Dict[str, torch.Tensor]:
         """
         Extract features using DINOv3 backbone.
         
         Based on official adapter but simplified for tree segmentation.
         Uses the same interface as the original HighResDV2 adapter.
+        
+        Args:
+            x: Input tensor
+            attn_choice: Attention choice
+            use_multi_layer: Extract features from multiple layers
+            layer_indices: Which layers to extract from (1-indexed)
+            feature_aggregation: How to combine features ("concat", "average", "weighted")
         """
         x.requires_grad = self.track_grad
         
@@ -523,11 +533,58 @@ class DINOv3Adapter(nn.Module):
         
         # Extract features using DINOv3
         with torch.no_grad():
-            # Get features from backbone
-            features = self.backbone.forward_features(x)
-            
-            # Handle different output formats (from official adapter insights)
-            patch_features = self._extract_patch_features(features)
+            if use_multi_layer and hasattr(self.backbone, 'get_intermediate_layers'):
+                # Multi-layer extraction
+                layers_to_extract = [idx - 1 for idx in layer_indices]
+                
+                # Get intermediate outputs WITH class token so we can handle it consistently
+                intermediate_outputs = self.backbone.get_intermediate_layers(
+                    x,
+                    n=layers_to_extract,
+                    reshape=False,
+                    return_class_token=False,  # We'll handle tokens ourselves
+                    norm=True
+                )
+                
+                # Process each layer's features
+                layer_features_list = []
+                for layer_output in intermediate_outputs:
+                    # layer_output shape: (B, N_tokens, D) where N_tokens includes special tokens
+                    # DINOv3 typically has: 1 CLS token + some register tokens + patch tokens
+                    # When return_class_token=False, we get only patch tokens (no CLS, no registers)
+                    # So this should already be just patch tokens
+                    patch_features = layer_output  # Already patch-only with return_class_token=False
+                    layer_features_list.append(patch_features)
+                
+                # Verify all layers have the same number of patches
+                patch_counts = [f.shape[1] for f in layer_features_list]
+                if len(set(patch_counts)) > 1:
+                    raise ValueError(
+                        f"Inconsistent patch counts across layers: {patch_counts}. "
+                        f"Expected all layers to have the same number of patch tokens."
+                    )
+                
+                # Combine features based on aggregation strategy
+                if feature_aggregation == "concat":
+                    combined_features = torch.cat(layer_features_list, dim=-1)
+                elif feature_aggregation == "average":
+                    stacked = torch.stack(layer_features_list, dim=0)
+                    combined_features = stacked.mean(dim=0)
+                elif feature_aggregation == "weighted":
+                    weights = torch.linspace(0.5, 1.0, len(layer_features_list), device=x.device)
+                    weights = weights / weights.sum()
+                    weighted_features = []
+                    for i, layer_feat in enumerate(layer_features_list):
+                        weighted_features.append(layer_feat * weights[i])
+                    combined_features = torch.stack(weighted_features, dim=0).sum(dim=0)
+                else:
+                    raise ValueError(f"Unknown aggregation: {feature_aggregation}")
+                
+                patch_features = combined_features
+            else:
+                # Single-layer extraction (original behavior)
+                features = self.backbone.forward_features(x)
+                patch_features = self._extract_patch_features(features)
             
             # Reshape to spatial format
             patch_features = self._reshape_to_spatial(patch_features, original_shape)
@@ -564,7 +621,22 @@ class DINOv3Adapter(nn.Module):
         
         # Reshape from (B, N, D) to (H, W, D)
         batch_size = patch_features.shape[0]
+        num_patches = patch_features.shape[1]
         feat_dim = patch_features.shape[-1]
+        
+        # Verify patch count matches expected
+        expected_patches = h_patches * w_patches
+        if num_patches != expected_patches:
+            # Try to infer correct patch grid from actual number of patches
+            import math
+            side = int(math.sqrt(num_patches))
+            if side * side == num_patches:
+                h_patches = w_patches = side
+            else:
+                raise ValueError(
+                    f"Patch count mismatch: got {num_patches} patches, "
+                    f"expected {expected_patches} ({h_patches}x{w_patches})"
+                )
         
         spatial_features = patch_features.view(batch_size, h_patches, w_patches, feat_dim)
         return spatial_features.squeeze(0)  # Remove batch dimension

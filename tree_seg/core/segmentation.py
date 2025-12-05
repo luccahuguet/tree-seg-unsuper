@@ -30,7 +30,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  apply_vegetation_filter: bool = False, exg_threshold: float = 0.10,
                  use_tiling: bool = True, tile_size: int = 2048, tile_overlap: int = 256,
                  tile_threshold: int = 2048, downsample_before_tiling: bool = False,
-                 clustering_method: str = "kmeans"):
+                 clustering_method: str = "kmeans",
+                 use_multi_layer: bool = False, layer_indices: tuple = (3, 6, 9, 12),
+                 feature_aggregation: str = "concat"):
     """
     Process a single image for tree segmentation.
 
@@ -123,7 +125,13 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
 
                 with torch.no_grad():
                     attn_choice = "none" if version == "v1" else "o"
-                    features_out = model.forward_sequential(tile_tensor, attn_choice=attn_choice)
+                    features_out = model.forward_sequential(
+                        tile_tensor, 
+                        attn_choice=attn_choice,
+                        use_multi_layer=use_multi_layer,
+                        layer_indices=layer_indices,
+                        feature_aggregation=feature_aggregation
+                    )
                     tile_patch_features = features_out["x_norm_patchtokens"]
                     tile_attn_features = features_out.get("x_patchattn", None)
 
@@ -181,6 +189,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             if verbose:
                 print("Using full-image processing (no tiling)")
 
+            # Convert numpy array to PIL Image for preprocessing
+            image = Image.fromarray(image_np)
             image_tensor = preprocess(image).to(device)
 
         t_pre_end = time.perf_counter()
@@ -192,7 +202,13 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             with torch.no_grad():
                 # DINOv3 always uses attention features for v3 (equivalent to v1.5)
                 attn_choice = "none" if version == "v1" else "o"
-                features_out = model.forward_sequential(image_tensor, attn_choice=attn_choice)
+                features_out = model.forward_sequential(
+                    image_tensor,
+                    attn_choice=attn_choice,
+                    use_multi_layer=use_multi_layer,
+                    layer_indices=layer_indices,
+                    feature_aggregation=feature_aggregation
+                )
                 if verbose:
                     print(f"features_out type: {type(features_out)}")
 

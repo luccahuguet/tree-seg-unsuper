@@ -73,16 +73,38 @@ Tested bilateral filtering vs SLIC on FORTRESS CFB003:
 
 ### E) Multi-Scale Features
 
-- [ ] **Multi-layer DINOv3 features**
+- [x] **Multi-layer DINOv3 features** ⚠️ **MARGINAL**
   - Extract from layers [3, 6, 9, 12] instead of just last layer
-  - Combine with PCA or concatenation
-  - Captures both fine texture and semantic context
-  - Expected: +5-10% mIoU
+  - Tested concat (3072D → PCA 512D) and average aggregation
+  - **Result:** +0.01% mIoU, +0.1% pixel accuracy vs single-layer
+  - **Status:** Implemented but marginal improvement on CFB003
 
 - [ ] **Pyramid feature aggregation**
   - Process image at multiple scales (0.5×, 1×, 2×)
   - Aggregate features across scales
   - Expected: +5-8% mIoU
+
+### Multi-Layer Feature Extraction (Dec 5, 2024)
+
+Tested extracting features from multiple DINOv3 layers vs single final layer:
+
+| Method | Layers | Aggregation | mIoU | Pixel Acc | Runtime |
+|--------|--------|-------------|------|-----------|---------|
+| baseline | 12 only | N/A | 8.863% | 41.50% | 162s |
+| multi_concat | [3,6,9,12] | Concat+PCA→512 | **8.876%** | **41.60%** | 179s |
+| multi_average | [3,6,9,12] | Average | 8.863% | 41.50% | 161s |
+
+**Key Findings:**
+- ⚠️ Multi-layer features provide only **marginal improvement** (+0.01% mIoU)
+- Only 0.32% of pixels differ between single vs multi-layer
+- Concat+PCA slightly outperforms average aggregation
+- Runtime overhead is minimal (~10% for concat+PCA)
+
+**Why improvement is small:**
+- Both methods select same K=4 via elbow
+- Hungarian matching aligns clusters similarly
+- CFB003 may not benefit from multi-scale features
+- Need testing on more diverse images
 
 ---
 
@@ -152,6 +174,13 @@ uv run python scripts/evaluate_fortress.py \
 - **Time:** 137s
 - **Notes:** Underperforms SLIC by -1.05% mIoU and -11.93% pixel accuracy. Not recommended.
 
+### Multi-Layer Feature Extraction (Dec 5, 2024)
+- **Config:** V1.5 + base + Multi-layer [3,6,9,12] + Concat+PCA(512) + SLIC
+- **mIoU:** 8.876% (+0.01% vs baseline)
+- **Pixel Acc:** 41.60% (+0.10% vs baseline)
+- **Time:** 179s
+- **Notes:** Marginal improvement. Only 0.32% of pixels differ. Multi-layer implemented but not impactful on CFB003.
+
 ---
 
 ## 🎯 Success Criteria
@@ -175,8 +204,9 @@ uv run python scripts/evaluate_fortress.py \
 ## 🚀 Next Experiments to Try
 
 1. **Spectral Clustering** - May handle tree boundary shapes better
-2. **Multi-layer features** - Likely highest impact improvement
-3. **Bilateral filtering** - Low-hanging fruit, already implemented
+2. ~~Multi-layer features~~ ✅ Done - marginal improvement
+3. ~~Bilateral filtering~~ ❌ Done - underperforms SLIC
 4. **Dense CRF** - Standard post-processing technique
+5. **HDBSCAN** - Automatic K selection, density-based
 
-*Priority: Multi-layer features > Spectral clustering > CRF*
+*Priority: Spectral clustering > CRF > HDBSCAN*
