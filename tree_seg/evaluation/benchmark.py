@@ -66,6 +66,7 @@ class BenchmarkRunner:
         use_smart_k: bool = False,
         model_cache: Optional[dict] = None,
         suppress_logs: bool = False,
+        config_label: Optional[str] = None,
     ):
         """
         Initialize benchmark runner.
@@ -77,10 +78,12 @@ class BenchmarkRunner:
             save_visualizations: Whether to save visualization images
             use_smart_k: If True, set K to match the number of classes in each image's ground truth
             model_cache: Optional dict to cache models across runs (key: (model_name, stride, image_size))
+            config_label: Optional label for this config (used in sweep mode to avoid overwriting visualizations)
         """
         self.config = config
         self.dataset = dataset
         self.output_dir = Path(output_dir) if output_dir else None
+        self.config_label = config_label
         self.save_visualizations = save_visualizations
         self.use_smart_k = use_smart_k
         self.model_cache = model_cache if model_cache is not None else {}
@@ -428,7 +431,13 @@ class BenchmarkRunner:
         """Save visualization comparing prediction and ground truth."""
         from ..visualization.plotting import plot_evaluation_comparison
         
-        output_path = self.output_dir / "visualizations" / f"{image_id}_comparison.png"
+        # Include config label in filename if running in sweep mode
+        if self.config_label:
+            filename = f"{image_id}_{self.config_label}_comparison.png"
+        else:
+            filename = f"{image_id}_comparison.png"
+        
+        output_path = self.output_dir / "visualizations" / filename
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         plot_evaluation_comparison(
@@ -460,6 +469,7 @@ def run_benchmark(
     verbose: bool = True,
     use_smart_k: bool = False,
     model_cache: Optional[dict] = None,
+    config_label: Optional[str] = None,
 ) -> BenchmarkResults:
     """
     Convenience function to run benchmark.
@@ -475,6 +485,7 @@ def run_benchmark(
         verbose: Whether to print progress
         use_smart_k: If True, set K to match the number of classes in each image's ground truth
         model_cache: Optional dict to cache models across runs
+        config_label: Optional label for this config (used in sweep mode)
 
     Returns:
         BenchmarkResults
@@ -497,6 +508,7 @@ def run_benchmark(
         save_visualizations=save_visualizations,
         use_smart_k=use_smart_k,
         model_cache=model_cache,
+        config_label=config_label,
     )
 
     results = runner.run(num_samples=num_samples, verbose=verbose)

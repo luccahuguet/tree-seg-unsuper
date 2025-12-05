@@ -243,6 +243,7 @@ def run_comparison_benchmark(args):
             verbose=not args.quiet,
             use_smart_k=args.smart_k,
             model_cache=model_cache,
+            config_label=label,  # Include label to avoid overwriting visualizations
         )
 
         all_results.append({"label": label, "config": config_dict, "results": results})
