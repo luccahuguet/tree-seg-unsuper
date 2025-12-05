@@ -34,7 +34,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  tile_threshold: int = 2048, downsample_before_tiling: bool = False,
                  clustering_method: str = "kmeans",
                  use_multi_layer: bool = False, layer_indices: tuple = (3, 6, 9, 12),
-                 feature_aggregation: str = "concat"):
+                 feature_aggregation: str = "concat",
+                 use_pyramid: bool = False, pyramid_scales: tuple = (0.5, 1.0, 2.0),
+                 pyramid_aggregation: str = "concat"):
     """
     Process a single image for tree segmentation.
 
@@ -86,6 +88,12 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             h, w = image_np.shape[:2]
             if verbose:
                 print(f"Downsampled to: {w}x{h}")
+
+        # Pyramid features require tiling to be disabled
+        if use_pyramid:
+            if use_tiling and verbose:
+                print("⚠️  Pyramid mode: disabling tiling for multi-scale feature extraction")
+            use_tiling = False
 
         # Decide if tiling is needed
         from ..models.tiling import TileManager, TileConfig
@@ -189,106 +197,220 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         else:
             # Use existing single-image processing
             if verbose:
-                print("Using full-image processing (no tiling)")
-
-            # Convert numpy array to PIL Image for preprocessing
-            image = Image.fromarray(image_np)
-            image_tensor = preprocess(image).to(device)
+                if use_pyramid:
+                    print(f"🔺 Using pyramid processing at {len(pyramid_scales)} scales: {pyramid_scales}")
+                else:
+                    print("Using full-image processing (no tiling)")
 
         t_pre_end = time.perf_counter()
-        if not needs_tiling and verbose:
-            print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
         # Feature extraction (skip if already done via tiling)
         if not needs_tiling:
-            with torch.no_grad():
-                # DINOv3 always uses attention features for v3 (equivalent to v1.5)
-                attn_choice = "none" if version == "v1" else "o"
-                features_out = model.forward_sequential(
-                    image_tensor,
-                    attn_choice=attn_choice,
-                    use_multi_layer=use_multi_layer,
-                    layer_indices=layer_indices,
-                    feature_aggregation=feature_aggregation
-                )
-                if verbose:
-                    print(f"features_out type: {type(features_out)}")
+            if use_pyramid:
+                # Multi-scale pyramid feature extraction
+                pyramid_feature_maps = []
 
-                # DINOv3 adapter returns a dictionary with patch features
-                if isinstance(features_out, dict):
-                    patch_features = features_out["x_norm_patchtokens"]
-                    attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
+                for scale_idx, scale in enumerate(pyramid_scales):
                     if verbose:
-                        print(f"patch_features shape: {patch_features.shape}")
-                        if attn_features is not None:
-                            print(f"attn_features shape: {attn_features.shape}")
-                    # DINOv3 features are already in spatial format (H, W, D)
-                    # No need to take mean across batch dimension
-                else:
-                    # Fallback for legacy tensor format
-                    if verbose:
-                        print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
-                    if hasattr(features_out, "dim") and features_out.dim() == 4:
-                        features = features_out.mean(dim=0)
+                        print(f"   Processing scale {scale}× ({scale_idx+1}/{len(pyramid_scales)})...")
+
+                    # Resize image to this scale
+                    scaled_h = int(h * scale)
+                    scaled_w = int(w * scale)
+                    scaled_image_np = cv2.resize(image_np, (scaled_w, scaled_h), interpolation=cv2.INTER_LINEAR)
+
+                    # Convert to PIL and preprocess
+                    image = Image.fromarray(scaled_image_np)
+                    image_tensor = preprocess(image).to(device)
+
+                    if verbose and scale_idx == 0:
+                        print(f"   Preprocessed tensor shape: {image_tensor.shape}")
+
+                    # Extract features at this scale
+                    with torch.no_grad():
+                        attn_choice = "none" if version == "v1" else "o"
+                        features_out = model.forward_sequential(
+                            image_tensor,
+                            attn_choice=attn_choice,
+                            use_multi_layer=use_multi_layer,
+                            layer_indices=layer_indices,
+                            feature_aggregation=feature_aggregation
+                        )
+
+                        if isinstance(features_out, dict):
+                            patch_features = features_out["x_norm_patchtokens"]
+                            attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
+                        else:
+                            if hasattr(features_out, "dim") and features_out.dim() == 4:
+                                features = features_out.mean(dim=0)
+                            else:
+                                features = features_out
+                            H_scale = W_scale = 518 // stride
+                            features = features.unsqueeze(0)
+                            features = torch.nn.functional.interpolate(
+                                features, size=(H_scale, W_scale), mode="bilinear", align_corners=False
+                            ).squeeze(0)
+                            features = features.permute(1, 2, 0)
+                            patch_features = features
+                            attn_features = None
+
+                        # Reshape if needed
+                        if patch_features.dim() == 2:
+                            n_patches = patch_features.shape[0]
+                            H_scale = W_scale = int(np.sqrt(n_patches))
+                            patch_features = patch_features.view(H_scale, W_scale, -1)
+                            if attn_features is not None:
+                                attn_features = attn_features.view(H_scale, W_scale, -1)
+
+                        # Combine patch + attention features
+                        if attn_features is not None and version in ["v1.5", "v3"]:
+                            combined_features = torch.cat([patch_features, attn_features], dim=-1)
+                        else:
+                            combined_features = patch_features
+
+                        pyramid_feature_maps.append(combined_features.cpu().numpy())
+
+                        if verbose:
+                            print(f"   Scale {scale}× features: {combined_features.shape}")
+
+                # Resize all feature maps to the size of scale=1.0
+                reference_idx = pyramid_scales.index(1.0) if 1.0 in pyramid_scales else len(pyramid_scales) // 2
+                ref_shape = pyramid_feature_maps[reference_idx].shape[:2]
+
+                if verbose:
+                    print(f"   Resizing all feature maps to reference size: {ref_shape}")
+
+                resized_features = []
+                for scale_idx, feat_map in enumerate(pyramid_feature_maps):
+                    if feat_map.shape[:2] != ref_shape:
+                        # Resize each channel separately
+                        feat_resized = cv2.resize(feat_map, (ref_shape[1], ref_shape[0]), interpolation=cv2.INTER_LINEAR)
+                        resized_features.append(feat_resized)
                     else:
-                        features = features_out
-                    H = W = 518 // stride
-                    features = features.unsqueeze(0)
-                    features = torch.nn.functional.interpolate(
-                        features, size=(H, W), mode="bilinear", align_corners=False
-                    ).squeeze(0)
-                    features = features.permute(1, 2, 0)
-                    patch_features = features
-                    attn_features = None
+                        resized_features.append(feat_map)
 
-            time.perf_counter()
-            if patch_features.dim() == 2:
-                n_patches = patch_features.shape[0]
-                H = W = int(np.sqrt(n_patches))
-                if H * W != n_patches:
-                    raise ValueError(f"Cannot infer H, W from n_patches={n_patches}")
-                patch_features = patch_features.view(H, W, -1)
-                if attn_features is not None:
-                    attn_features = attn_features.view(H, W, -1)
+                # Aggregate features across scales
+                if pyramid_aggregation == "concat":
+                    # Concatenate along feature dimension
+                    features_np = np.concatenate(resized_features, axis=-1)
+                    if verbose:
+                        print(f"   Concatenated pyramid features: {features_np.shape}")
+
+                    # Apply PCA to reduce dimensionality if needed
+                    if features_np.shape[-1] > 1536:  # Reduce if too large
+                        H_pyr, W_pyr, D_pyr = features_np.shape
+                        features_flat_pca = features_np.reshape(-1, D_pyr)
+                        from sklearn.decomposition import PCA
+                        pca = PCA(n_components=1536, random_state=42)
+                        features_reduced = pca.fit_transform(features_flat_pca)
+                        features_np = features_reduced.reshape(H_pyr, W_pyr, 1536)
+                        if verbose:
+                            explained_var = pca.explained_variance_ratio_.sum() * 100
+                            print(f"   PCA reduced {D_pyr}D → 1536D ({explained_var:.1f}% variance)")
+                else:  # average
+                    features_np = np.mean(resized_features, axis=0)
+                    if verbose:
+                        print(f"   Averaged pyramid features: {features_np.shape}")
+
+                H, W = features_np.shape[:2]
+
             else:
-                H, W = patch_features.shape[:2]
-            if verbose:
-                print(f"patch_features reshaped: {patch_features.shape}")
-                if attn_features is not None:
-                    print(f"attn_features reshaped: {attn_features.shape}")
-                # Report actual compute device used by features
-                try:
-                    print(f"🖥️ Compute device: {patch_features.device}")
-                except Exception:
-                    pass
+                # Single-scale processing (original code)
+                # Convert numpy array to PIL Image for preprocessing
+                image = Image.fromarray(image_np)
+                image_tensor = preprocess(image).to(device)
 
-            # Optional upsampling of the feature grid for smoother segmentation
-            if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
-                up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
-                # Upsample patch features (H, W, D) -> (up_h, up_w, D)
-                pf = patch_features.permute(2, 0, 1).unsqueeze(0)  # 1, D, H, W
-                pf_up = F.interpolate(pf, size=(up_h, up_w), mode="bilinear", align_corners=False)
-                patch_features = pf_up.squeeze(0).permute(1, 2, 0)
-                if attn_features is not None:
-                    af = attn_features.permute(2, 0, 1).unsqueeze(0)
-                    af_up = F.interpolate(af, size=(up_h, up_w), mode="bilinear", align_corners=False)
-                    attn_features = af_up.squeeze(0).permute(1, 2, 0)
-                H, W = up_h, up_w
                 if verbose:
-                    print(f"Upsampled features to: {H}x{W}")
+                    print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
-            if attn_features is not None and version in ["v1.5", "v3"]:
-                features_np = np.concatenate(
-                    [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
-                )
-                if verbose:
-                    print(f"Combined features shape: {features_np.shape}")
-            else:
-                features_np = patch_features.cpu().numpy()
-                if verbose:
-                    print(f"Patch-only features shape: {features_np.shape}")
+                with torch.no_grad():
+                    # DINOv3 always uses attention features for v3 (equivalent to v1.5)
+                    attn_choice = "none" if version == "v1" else "o"
+                    features_out = model.forward_sequential(
+                        image_tensor,
+                        attn_choice=attn_choice,
+                        use_multi_layer=use_multi_layer,
+                        layer_indices=layer_indices,
+                        feature_aggregation=feature_aggregation
+                    )
+                    if verbose:
+                        print(f"features_out type: {type(features_out)}")
 
-            H, W = features_np.shape[:2]
+                    # DINOv3 adapter returns a dictionary with patch features
+                    if isinstance(features_out, dict):
+                        patch_features = features_out["x_norm_patchtokens"]
+                        attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
+                        if verbose:
+                            print(f"patch_features shape: {patch_features.shape}")
+                            if attn_features is not None:
+                                print(f"attn_features shape: {attn_features.shape}")
+                        # DINOv3 features are already in spatial format (H, W, D)
+                        # No need to take mean across batch dimension
+                    else:
+                        # Fallback for legacy tensor format
+                        if verbose:
+                            print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
+                        if hasattr(features_out, "dim") and features_out.dim() == 4:
+                            features = features_out.mean(dim=0)
+                        else:
+                            features = features_out
+                        H = W = 518 // stride
+                        features = features.unsqueeze(0)
+                        features = torch.nn.functional.interpolate(
+                            features, size=(H, W), mode="bilinear", align_corners=False
+                        ).squeeze(0)
+                        features = features.permute(1, 2, 0)
+                        patch_features = features
+                        attn_features = None
+
+                time.perf_counter()
+                if patch_features.dim() == 2:
+                    n_patches = patch_features.shape[0]
+                    H = W = int(np.sqrt(n_patches))
+                    if H * W != n_patches:
+                        raise ValueError(f"Cannot infer H, W from n_patches={n_patches}")
+                    patch_features = patch_features.view(H, W, -1)
+                    if attn_features is not None:
+                        attn_features = attn_features.view(H, W, -1)
+                else:
+                    H, W = patch_features.shape[:2]
+                if verbose:
+                    print(f"patch_features reshaped: {patch_features.shape}")
+                    if attn_features is not None:
+                        print(f"attn_features reshaped: {attn_features.shape}")
+                    # Report actual compute device used by features
+                    try:
+                        print(f"🖥️ Compute device: {patch_features.device}")
+                    except Exception:
+                        pass
+
+                # Optional upsampling of the feature grid for smoother segmentation
+                if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
+                    up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
+                    # Upsample patch features (H, W, D) -> (up_h, up_w, D)
+                    pf = patch_features.permute(2, 0, 1).unsqueeze(0)  # 1, D, H, W
+                    pf_up = F.interpolate(pf, size=(up_h, up_w), mode="bilinear", align_corners=False)
+                    patch_features = pf_up.squeeze(0).permute(1, 2, 0)
+                    if attn_features is not None:
+                        af = attn_features.permute(2, 0, 1).unsqueeze(0)
+                        af_up = F.interpolate(af, size=(up_h, up_w), mode="bilinear", align_corners=False)
+                        attn_features = af_up.squeeze(0).permute(1, 2, 0)
+                    H, W = up_h, up_w
+                    if verbose:
+                        print(f"Upsampled features to: {H}x{W}")
+
+                if attn_features is not None and version in ["v1.5", "v3"]:
+                    features_np = np.concatenate(
+                        [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
+                    )
+                    if verbose:
+                        print(f"Combined features shape: {features_np.shape}")
+                else:
+                    features_np = patch_features.cpu().numpy()
+                    if verbose:
+                        print(f"Patch-only features shape: {features_np.shape}")
+
+                H, W = features_np.shape[:2]
         # If tiling was used, features_np, H, W are already set from stitching
 
         features_flat = features_np.reshape(-1, features_np.shape[-1])

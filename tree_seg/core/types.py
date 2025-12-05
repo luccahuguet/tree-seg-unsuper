@@ -42,6 +42,11 @@ class Config:
     layer_indices: Tuple[int, ...] = (3, 6, 9, 12)  # Layers to extract (base model has 12 layers)
     feature_aggregation: str = "concat"  # "concat", "average", or "weighted"
 
+    # Multi-scale pyramid feature extraction
+    use_pyramid: bool = False  # Extract features at multiple image scales
+    pyramid_scales: Tuple[float, ...] = (0.5, 1.0, 2.0)  # Scales to process (relative to image_size)
+    pyramid_aggregation: str = "concat"  # "concat" or "average"
+
     # Refinement settings
     refine: Optional[str] = "slic"  # Default to SLIC refinement
     refine_slic_compactness: float = 10.0

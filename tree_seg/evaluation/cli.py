@@ -81,13 +81,35 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         action="store_true",
         help="Apply ExG-based vegetation filtering (works with any method)",
     )
-    
+
     parser.add_argument(
         "--exg-threshold",
         type=float,
         default=0.10,
         help="ExG threshold for vegetation filtering (default: 0.10)",
    )
+
+    # Pyramid multi-scale feature extraction
+    parser.add_argument(
+        "--use-pyramid",
+        action="store_true",
+        help="Enable multi-scale pyramid feature extraction (disables tiling)",
+    )
+
+    parser.add_argument(
+        "--pyramid-scales",
+        type=str,
+        default="0.5,1.0,2.0",
+        help="Comma-separated pyramid scales (default: 0.5,1.0,2.0)",
+    )
+
+    parser.add_argument(
+        "--pyramid-aggregation",
+        type=str,
+        default="concat",
+        choices=["concat", "average"],
+        help="Pyramid feature aggregation method (default: concat)",
+    )
 
     # Evaluation options
     parser.add_argument(

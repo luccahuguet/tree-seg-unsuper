@@ -150,6 +150,9 @@ class TreeSegmentation:
             use_multi_layer=self.config.use_multi_layer,
             layer_indices=self.config.layer_indices,
             feature_aggregation=self.config.feature_aggregation,
+            use_pyramid=self.config.use_pyramid,
+            pyramid_scales=self.config.pyramid_scales,
+            pyramid_aggregation=self.config.pyramid_aggregation,
         )
 
         # Support info tuple
@@ -242,6 +245,9 @@ class TreeSegmentation:
             use_multi_layer=self.config.use_multi_layer,
             layer_indices=self.config.layer_indices,
             feature_aggregation=self.config.feature_aggregation,
+            use_pyramid=self.config.use_pyramid,
+            pyramid_scales=self.config.pyramid_scales,
+            pyramid_aggregation=self.config.pyramid_aggregation,
         )
         
         # Support info tuple

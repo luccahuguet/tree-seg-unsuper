@@ -82,6 +82,9 @@ def create_config(args) -> Config:
     else:
         refine = None
 
+    # Parse pyramid scales if provided
+    pyramid_scales = tuple(float(s.strip()) for s in args.pyramid_scales.split(',')) if hasattr(args, 'pyramid_scales') else (0.5, 1.0, 2.0)
+
     # Create config
     config = Config(
         version=version,
@@ -98,6 +101,9 @@ def create_config(args) -> Config:
         use_tiling=not args.no_tiling,
         viz_two_panel=args.viz_two_panel,
         viz_two_panel_opaque=args.viz_two_panel_opaque,
+        use_pyramid=args.use_pyramid if hasattr(args, 'use_pyramid') else False,
+        pyramid_scales=pyramid_scales,
+        pyramid_aggregation=args.pyramid_aggregation if hasattr(args, 'pyramid_aggregation') else "concat",
     )
 
     return config
