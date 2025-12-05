@@ -321,15 +321,21 @@ class BenchmarkRunner:
         def heartbeat(bar, start_time, est_total_val):
             if bar is None or est_total_val is None:
                 return
+            last_pct_printed = -1
             while not stop_heartbeat.is_set():
                 elapsed = time.time() - start_time
                 remaining = est_total_val - elapsed
                 # Smooth in-sample progress by fraction of estimated total
                 frac = min(max(elapsed / est_total_val, 0.0), 1.0)
                 bar.n = int(frac * bar.total)
-                pct = f"{min(100, max(0, int(frac * 100)))}%"
-                bar.set_postfix(eta=_format_eta(remaining), pct=pct)
-                bar.refresh()
+                pct_val = min(100, max(0, int(frac * 100)))
+                # Only update every 5% to reduce verbosity
+                pct_bucket = (pct_val // 5) * 5
+                if pct_bucket != last_pct_printed:
+                    last_pct_printed = pct_bucket
+                    pct = f"{pct_val}%"
+                    bar.set_postfix(eta=_format_eta(remaining), pct=pct)
+                    bar.refresh()
                 stop_heartbeat.wait(1.0)
 
         total_start = time.time()
