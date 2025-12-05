@@ -82,10 +82,13 @@ Tested bilateral filtering vs SLIC on FORTRESS CFB003:
   - **Result:** +0.01% mIoU, +0.1% pixel accuracy vs single-layer
   - **Status:** Implemented but marginal improvement on CFB003
 
-- [ ] **Pyramid feature aggregation**
-  - Process image at multiple scales (0.5×, 1×, 2×)
-  - Aggregate features across scales
-  - Expected: +5-8% mIoU
+- [x] **Pyramid feature aggregation** ❌ **FAILED**
+  - Process image at multiple scales (0.5×, 1.0×, 2.0×)
+  - Concatenate and PCA-reduce aggregated features
+  - Code: `--use-pyramid --pyramid-scales 0.5,1.0,2.0`
+  - **Result:** -0.06% mIoU, -4.7% pixel accuracy vs baseline
+  - **Status:** Not viable - requires disabling tiling (lower resolution)
+  - **Note:** Resolution loss outweighs multi-scale benefits
 
 ### Multi-Layer Feature Extraction (Dec 5, 2024)
 
@@ -198,6 +201,13 @@ uv run python scripts/evaluate_fortress.py \
 - **Config:** V1.5 + base + HDBSCAN (min_cluster_size=50) + Smart K
 - **Result:** Found 0 clusters on CFB003, fell back to K-means (k=4)
 - **Notes:** HDBSCAN marked all pixels as noise. Parameters (min_cluster_size=50, min_samples=10) too conservative for continuous DINOv3 feature space. Density-based clustering not suitable for this task. Not recommended.
+
+### Pyramid Multi-Scale Features (Dec 5, 2024)
+- **Config:** V1.5 + base + Pyramid [0.5×, 1.0×, 2.0×] + Concat+PCA(1536) + SLIC + Smart K
+- **mIoU:** 8.80% (-0.06% vs baseline)
+- **Pixel Acc:** 36.80% (-4.70% vs baseline)
+- **Time:** 51.6s (faster due to no tiling, but lower resolution)
+- **Notes:** Multi-scale features fail to compensate for resolution loss from disabling tiling (1024×1024 vs 9372×9372). Concatenated 4608D features reduced to 1536D via PCA. Not recommended unless tiling support added.
 
 ---
 
