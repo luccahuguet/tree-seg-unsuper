@@ -437,18 +437,25 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 )
                 subsample_labels = clusterer.fit_predict(features_subsample)
 
-                # HDBSCAN returns -1 for noise - assign noise to nearest cluster
+                # HDBSCAN returns -1 for noise - check if any clusters found
                 unique_labels = np.unique(subsample_labels[subsample_labels >= 0])
                 if verbose:
                     print(f"   HDBSCAN found {len(unique_labels)} clusters")
 
-                # Propagate labels to full dataset using nearest neighbor
-                if verbose:
-                    print(f"   Propagating labels to all {n_samples} pixels...")
-                nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
-                nn.fit(features_subsample[subsample_labels >= 0])  # Only use non-noise points
-                _, indices = nn.kneighbors(features_flat)
-                labels = subsample_labels[subsample_labels >= 0][indices.flatten()]
+                # Fallback to K-means if HDBSCAN found 0 clusters
+                if len(unique_labels) == 0:
+                    if verbose:
+                        print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
+                    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+                    labels = kmeans.fit_predict(features_flat)
+                else:
+                    # Propagate labels to full dataset using nearest neighbor
+                    if verbose:
+                        print(f"   Propagating labels to all {n_samples} pixels...")
+                    nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
+                    nn.fit(features_subsample[subsample_labels >= 0])  # Only use non-noise points
+                    _, indices = nn.kneighbors(features_flat)
+                    labels = subsample_labels[subsample_labels >= 0][indices.flatten()]
             else:
                 # Small enough to run directly
                 clusterer = hdbscan.HDBSCAN(
@@ -464,12 +471,19 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 if verbose:
                     print(f"   HDBSCAN found {len(unique_labels)} clusters")
 
-                # Assign noise (-1) to nearest non-noise cluster
-                if np.any(labels == -1):
-                    nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
-                    nn.fit(features_flat[labels >= 0])
-                    _, indices = nn.kneighbors(features_flat[labels == -1])
-                    labels[labels == -1] = labels[labels >= 0][indices.flatten()]
+                # Fallback to K-means if HDBSCAN found 0 clusters
+                if len(unique_labels) == 0:
+                    if verbose:
+                        print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
+                    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+                    labels = kmeans.fit_predict(features_flat)
+                else:
+                    # Assign noise (-1) to nearest non-noise cluster
+                    if np.any(labels == -1):
+                        nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
+                        nn.fit(features_flat[labels >= 0])
+                        _, indices = nn.kneighbors(features_flat[labels == -1])
+                        labels[labels == -1] = labels[labels >= 0][indices.flatten()]
         else:  # default to kmeans
             if verbose:
                 print(f"🎯 Clustering with K-means (k={n_clusters})...")

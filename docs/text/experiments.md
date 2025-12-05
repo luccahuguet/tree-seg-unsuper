@@ -64,12 +64,13 @@ Tested bilateral filtering vs SLIC on FORTRESS CFB003:
   - **Result:** -1.2% to -1.8% mIoU vs K-means (but +4-8% pixel accuracy)
   - **Status:** Not recommended - subsampling loses spatial structure
 
-- [ ] **HDBSCAN** 🔄 **IN PROGRESS**
+- [x] **HDBSCAN** ❌ **FAILED**
   - Density-based, automatic K selection
   - Robust to noise and outliers
   - Code: `--clustering hdbscan`
-  - **Status:** Implemented, ready to test
-  - Expected: +2-5% mIoU
+  - **Result:** Found 0 clusters on CFB003, falls back to K-means
+  - **Status:** Not viable - parameters (min_cluster_size=50) too conservative for tree features
+  - **Note:** HDBSCAN treats all pixels as noise, likely due to continuous DINOv3 feature space
 
 ---
 
@@ -193,6 +194,11 @@ uv run python scripts/evaluate_fortress.py \
 - **Time:** 214s (+11% vs K-means)
 - **Notes:** Spectral underperforms K-means on average mIoU but has higher pixel accuracy. Results are **inconsistent** across images (wins 1/3, big loss on CFB014). Subsampling (10k pixels) loses spatial structure. Not recommended.
 
+### HDBSCAN Clustering Test (Dec 5, 2024)
+- **Config:** V1.5 + base + HDBSCAN (min_cluster_size=50) + Smart K
+- **Result:** Found 0 clusters on CFB003, fell back to K-means (k=4)
+- **Notes:** HDBSCAN marked all pixels as noise. Parameters (min_cluster_size=50, min_samples=10) too conservative for continuous DINOv3 feature space. Density-based clustering not suitable for this task. Not recommended.
+
 ---
 
 ## 🎯 Success Criteria
@@ -219,6 +225,8 @@ uv run python scripts/evaluate_fortress.py \
 2. ~~Multi-layer features~~ ✅ Done - marginal improvement
 3. ~~Bilateral filtering~~ ❌ Done - underperforms SLIC
 4. ~~Dense CRF~~ ❌ Done - not viable (build failures)
-5. **HDBSCAN** 🔄 - Implemented, ready to test
+5. ~~HDBSCAN~~ ❌ Done - found 0 clusters, not viable
 
-*Current Priority: Test HDBSCAN*
+**All planned clustering experiments completed. K-means + SLIC remains the best approach.**
+
+*Current Priority: Explore other directions (multi-scale features, different backbones, etc.)*
