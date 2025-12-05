@@ -97,6 +97,18 @@ GRIDS = {
             {"use_tiling": True, "refine": "bilateral", "label": "tile_bilateral"},
         ],
     },
+    "clustering": {
+        "name": "Clustering Methods",
+        "description": "Compare K-means vs GMM with and without SLIC refinement",
+        "configs": [
+            # K-means
+            {"clustering_method": "kmeans", "refine": None, "label": "kmeans"},
+            {"clustering_method": "kmeans", "refine": "slic", "label": "kmeans_slic"},
+            # GMM
+            {"clustering_method": "gmm", "refine": None, "label": "gmm"},
+            {"clustering_method": "gmm", "refine": "slic", "label": "gmm_slic"},
+        ],
+    },
 }
 
 

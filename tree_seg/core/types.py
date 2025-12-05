@@ -28,13 +28,14 @@ class Config:
     pipeline: str = "v1_5"  # Pipeline version: "v1_5" (baseline) or "v3" (species clustering)
 
     # Clustering settings
+    clustering_method: str = "kmeans"  # "kmeans" or "gmm"
     auto_k: bool = True
     n_clusters: int = 6  # Used when auto_k=False
     k_range: Tuple[int, int] = DEFAULT_K_RANGE
     elbow_threshold: float = 5.0  # Percentage (will be converted to decimal)
     use_pca: bool = False
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
-    feature_upsample_factor: int = 2  # Upsample HxW feature grid before K-Means
+    feature_upsample_factor: int = 2  # Upsample HxW feature grid before clustering
 
     # Refinement settings
     refine: Optional[str] = "slic"  # Default to SLIC refinement

@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import cv2
 from PIL import Image
 from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
@@ -28,7 +29,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  verbose: bool = True, pipeline: str = "v1_5",
                  apply_vegetation_filter: bool = False, exg_threshold: float = 0.10,
                  use_tiling: bool = True, tile_size: int = 2048, tile_overlap: int = 256,
-                 tile_threshold: int = 2048, downsample_before_tiling: bool = False):
+                 tile_threshold: int = 2048, downsample_before_tiling: bool = False,
+                 clustering_method: str = "kmeans"):
     """
     Process a single image for tree segmentation.
     
@@ -326,10 +328,21 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 features_flat += np.random.normal(0, 0.001, features_flat.shape)
 
         t_kselect = time.perf_counter()
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-        labels = kmeans.fit_predict(features_flat)
+
+        # Clustering
+        if clustering_method == "gmm":
+            if verbose:
+                print(f"🎯 Clustering with GMM (n_components={n_clusters})...")
+            gmm = GaussianMixture(n_components=n_clusters, random_state=42, covariance_type='full')
+            labels = gmm.fit_predict(features_flat)
+        else:  # default to kmeans
+            if verbose:
+                print(f"🎯 Clustering with K-means (k={n_clusters})...")
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+            labels = kmeans.fit_predict(features_flat)
+
         if verbose:
-            print(f"labels shape after kmeans: {labels.shape}")
+            print(f"Labels shape after clustering: {labels.shape}")
         labels = labels.reshape(H, W)
         if verbose:
             print(f"Labels shape after reshape: {labels.shape}")

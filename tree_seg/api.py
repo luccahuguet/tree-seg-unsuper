@@ -149,6 +149,7 @@ class TreeSegmentation:
             tile_overlap=self.config.tile_overlap,
             tile_threshold=self.config.tile_threshold,
             downsample_before_tiling=self.config.downsample_before_tiling,
+            clustering_method=self.config.clustering_method,
         )
         
         # Support info tuple

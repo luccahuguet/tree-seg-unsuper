@@ -63,16 +63,23 @@ def create_config(args) -> Config:
 
     # Map clustering to refine parameter (default to slic for v1.x baselines)
     clustering = args.clustering or "slic"
+
+    # Separate clustering method from refinement method
+    clustering_method = "kmeans"  # Default
     if clustering in ["slic", "bilateral"]:
         refine = clustering
     elif clustering == "slic-skimage":
         refine = "slic_skimage"
+    elif clustering == "gmm":
+        clustering_method = "gmm"
+        refine = None
     else:
         refine = None
 
     # Create config
     config = Config(
         version=version,
+        clustering_method=clustering_method,
         refine=refine,
         model_name=args.model,
         stride=args.stride,
@@ -273,7 +280,7 @@ def main():
         "--grid",
         type=str,
         default=None,
-        choices=["ofat", "smart", "full", "tiling", "tiling_refine"],
+        choices=["ofat", "smart", "full", "tiling", "tiling_refine", "clustering"],
         help="Grid to use for comparison mode (default: tiling for FORTRESS)",
     )
 
