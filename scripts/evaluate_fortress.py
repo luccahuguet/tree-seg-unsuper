@@ -273,7 +273,7 @@ def main():
         "--grid",
         type=str,
         default=None,
-        choices=["ofat", "smart", "full", "tiling"],
+        choices=["ofat", "smart", "full", "tiling", "tiling_refine"],
         help="Grid to use for comparison mode (default: tiling for FORTRESS)",
     )
 

@@ -81,6 +81,22 @@ GRIDS = {
             {"model_name": "large", "stride": 2, "use_tiling": True, "refine": "slic", "label": "tile_large_s2"},
         ],
     },
+    "tiling_refine": {
+        "name": "Tiling × Refinement",
+        "description": "Tiling on/off × all refinement methods (base model, stride 4)",
+        "configs": [
+            # No tiling
+            {"use_tiling": False, "refine": None, "label": "notile_kmeans"},
+            {"use_tiling": False, "refine": "slic", "label": "notile_slic"},
+            {"use_tiling": False, "refine": "slic_skimage", "label": "notile_slicski"},
+            {"use_tiling": False, "refine": "bilateral", "label": "notile_bilateral"},
+            # With tiling
+            {"use_tiling": True, "refine": None, "label": "tile_kmeans"},
+            {"use_tiling": True, "refine": "slic", "label": "tile_slic"},
+            {"use_tiling": True, "refine": "slic_skimage", "label": "tile_slicski"},
+            {"use_tiling": True, "refine": "bilateral", "label": "tile_bilateral"},
+        ],
+    },
 }
 
 
