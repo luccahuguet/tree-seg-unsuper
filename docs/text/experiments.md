@@ -183,11 +183,12 @@ uv run python scripts/evaluate_fortress.py \
 - **Notes:** Marginal improvement. Only 0.32% of pixels differ. Multi-layer implemented but not impactful on CFB003.
 
 ### Spectral Clustering Test (Dec 5, 2024)
-- **Config:** V1.5 + base + Spectral (10k subsample) + SLIC + Smart K=6
-- **mIoU:** 8.08% (-1.20% vs baseline)
-- **Pixel Acc:** 45.15% (+3.97% vs baseline)
-- **Time:** ~180s
-- **Notes:** Spectral clustering underperforms K-means on mIoU but has higher pixel accuracy. Subsampling (10k of 85k pixels) loses spatial structure. Not recommended.
+- **Config:** V1.5 + base + Spectral (10k subsample) + SLIC + Smart K
+- **Single image (CFB003):** 8.08% mIoU (-1.20%), 45.15% PA (+3.97%)
+- **3-image average:** 6.69% mIoU (-0.82%), 44.02% PA (+8.58%)
+- **Per-image:** CFB003: -1.20%, CFB008: +1.18%, CFB014: -2.45%
+- **Time:** 214s (+11% vs K-means)
+- **Notes:** Spectral underperforms K-means on average mIoU but has higher pixel accuracy. Results are **inconsistent** across images (wins 1/3, big loss on CFB014). Subsampling (10k pixels) loses spatial structure. Not recommended.
 
 ---
 
