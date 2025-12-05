@@ -231,12 +231,40 @@ uv run python scripts/evaluate_fortress.py \
 
 ## 🚀 Next Experiments to Try
 
+**Completed:**
 1. ~~Spectral Clustering~~ ❌ Done - underperforms K-means
 2. ~~Multi-layer features~~ ✅ Done - marginal improvement
 3. ~~Bilateral filtering~~ ❌ Done - underperforms SLIC
 4. ~~Dense CRF~~ ❌ Done - not viable (build failures)
 5. ~~HDBSCAN~~ ❌ Done - found 0 clusters, not viable
+6. ~~Pyramid features~~ ❌ Done - resolution loss outweighs multi-scale benefits
 
-**All planned clustering experiments completed. K-means + SLIC remains the best approach.**
+**Parameter Tuning (Low-Effort):**
+- [ ] **SLIC parameter sweep**
+  - Test compactness: 5.0, 10.0 (current), 20.0
+  - Test sigma: 0.5, 1.0 (current), 2.0
+  - Expected: +0.5-2% mIoU from better superpixel boundaries
 
-*Current Priority: Explore other directions (multi-scale features, different backbones, etc.)*
+- [ ] **Tile overlap optimization**
+  - Current: 256px
+  - Test: 128px, 384px, 512px
+  - Expected: Reduce stitching artifacts, +0.5-1% mIoU
+
+- [ ] **Elbow threshold sweep**
+  - Current: 5.0
+  - Test: 0.1, 0.5, 1.0, 3.0, 10.0
+  - Expected: Better K selection, +1-3% mIoU
+
+- [ ] **Feature stride optimization**
+  - Current: stride=4
+  - Test: stride=2 (2× denser features, slower)
+  - Expected: +2-4% mIoU from finer spatial resolution
+
+**Blocked by Hardware:**
+- [ ] **DINOv3 native segmentation head**
+  - Official DINOv3 linear segmentation head
+  - Requires >32GB RAM (blocked on 32GB system)
+  - Expected: Potentially +10-20% mIoU (supervised baseline)
+  - Note: Would provide upper bound for DINOv3 features
+
+**All clustering experiments completed. K-means + SLIC remains the best approach.**
