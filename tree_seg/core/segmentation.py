@@ -13,6 +13,7 @@ from PIL import Image
 from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.mixture import GaussianMixture
 from sklearn.neighbors import NearestNeighbors
+import hdbscan
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
@@ -411,6 +412,64 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                     assign_labels='kmeans'
                 )
                 labels = spectral.fit_predict(features_flat)
+        elif clustering_method == "hdbscan":
+            if verbose:
+                print("🎯 Clustering with HDBSCAN (automatic K detection)...")
+
+            n_samples = features_flat.shape[0]
+            max_samples = 10000  # HDBSCAN is also expensive, subsample for large datasets
+
+            if n_samples > max_samples:
+                if verbose:
+                    print(f"   Subsampling {max_samples} of {n_samples} pixels...")
+
+                # Stratified subsampling
+                np.random.seed(42)
+                subsample_idx = np.random.choice(n_samples, max_samples, replace=False)
+                features_subsample = features_flat[subsample_idx]
+
+                # Fit HDBSCAN on subsample
+                clusterer = hdbscan.HDBSCAN(
+                    min_cluster_size=50,  # Minimum cluster size
+                    min_samples=10,  # How conservative
+                    cluster_selection_epsilon=0.0,
+                    metric='euclidean'
+                )
+                subsample_labels = clusterer.fit_predict(features_subsample)
+
+                # HDBSCAN returns -1 for noise - assign noise to nearest cluster
+                unique_labels = np.unique(subsample_labels[subsample_labels >= 0])
+                if verbose:
+                    print(f"   HDBSCAN found {len(unique_labels)} clusters")
+
+                # Propagate labels to full dataset using nearest neighbor
+                if verbose:
+                    print(f"   Propagating labels to all {n_samples} pixels...")
+                nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
+                nn.fit(features_subsample[subsample_labels >= 0])  # Only use non-noise points
+                _, indices = nn.kneighbors(features_flat)
+                labels = subsample_labels[subsample_labels >= 0][indices.flatten()]
+            else:
+                # Small enough to run directly
+                clusterer = hdbscan.HDBSCAN(
+                    min_cluster_size=50,
+                    min_samples=10,
+                    cluster_selection_epsilon=0.0,
+                    metric='euclidean'
+                )
+                labels = clusterer.fit_predict(features_flat)
+
+                # Handle noise points
+                unique_labels = np.unique(labels[labels >= 0])
+                if verbose:
+                    print(f"   HDBSCAN found {len(unique_labels)} clusters")
+
+                # Assign noise (-1) to nearest non-noise cluster
+                if np.any(labels == -1):
+                    nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
+                    nn.fit(features_flat[labels >= 0])
+                    _, indices = nn.kneighbors(features_flat[labels == -1])
+                    labels[labels == -1] = labels[labels >= 0][indices.flatten()]
         else:  # default to kmeans
             if verbose:
                 print(f"🎯 Clustering with K-means (k={n_clusters})...")

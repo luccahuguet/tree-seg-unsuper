@@ -64,10 +64,11 @@ Tested bilateral filtering vs SLIC on FORTRESS CFB003:
   - **Result:** -1.2% to -1.8% mIoU vs K-means (but +4-8% pixel accuracy)
   - **Status:** Not recommended - subsampling loses spatial structure
 
-- [ ] **HDBSCAN**
+- [ ] **HDBSCAN** 🔄 **IN PROGRESS**
   - Density-based, automatic K selection
   - Robust to noise and outliers
-  - Code: `import hdbscan`
+  - Code: `--clustering hdbscan`
+  - **Status:** Implemented, ready to test
   - Expected: +2-5% mIoU
 
 ---
@@ -111,11 +112,13 @@ Tested extracting features from multiple DINOv3 layers vs single final layer:
 
 ### F) Post-Processing with CRF
 
-- [ ] **Dense CRF refinement**
+- [x] **Dense CRF refinement** ❌ **NOT VIABLE**
   - Apply conditional random field to smooth boundaries
   - Use RGB + spatial features for pairwise potentials
-  - Code: `import pydensecrf.densecrf as dcrf`
-  - Expected: +3-5% mIoU
+  - Code: `pydensecrf` or `SimpleCRF`
+  - **Result:** Both libraries fail to compile on Python 3.12+
+  - **Status:** Not viable - unmaintained packages, C++ build failures
+  - **Note:** CRF has fallen out of favor in modern segmentation
 
 - [x] **Bilateral filtering** ❌ **FAILED**
   - Edge-preserving smoothing on cluster assignments
@@ -215,7 +218,7 @@ uv run python scripts/evaluate_fortress.py \
 1. ~~Spectral Clustering~~ ❌ Done - underperforms K-means
 2. ~~Multi-layer features~~ ✅ Done - marginal improvement
 3. ~~Bilateral filtering~~ ❌ Done - underperforms SLIC
-4. **Dense CRF** - Standard post-processing technique
-5. **HDBSCAN** - Automatic K selection, density-based
+4. ~~Dense CRF~~ ❌ Done - not viable (build failures)
+5. **HDBSCAN** 🔄 - Implemented, ready to test
 
-*Priority: CRF > HDBSCAN*
+*Current Priority: Test HDBSCAN*

@@ -73,6 +73,12 @@ def create_config(args) -> Config:
     elif clustering == "gmm":
         clustering_method = "gmm"
         refine = None
+    elif clustering == "spectral":
+        clustering_method = "spectral"
+        refine = None
+    elif clustering == "hdbscan":
+        clustering_method = "hdbscan"
+        refine = None
     else:
         refine = None
 

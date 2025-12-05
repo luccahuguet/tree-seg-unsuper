@@ -113,7 +113,7 @@ def test_multi_layer():
         improvement_pct = ((best["miou"] - baseline_miou) / baseline_miou * 100)
         print(f"\n🎯 Best config: {best['label']} (+{improvement_pct:.1f}% over baseline)")
     else:
-        print(f"\n⚠️  Baseline single-layer was best - multi-layer did not improve results")
+        print("\n⚠️  Baseline single-layer was best - multi-layer did not improve results")
 
 if __name__ == "__main__":
     test_multi_layer()
