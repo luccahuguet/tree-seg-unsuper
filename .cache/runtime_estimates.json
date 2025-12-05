@@ -4,8 +4,8 @@
     "v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refinenone": 39.86653542518616,
     "v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refineslic": 63.50934720039368,
     "v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refinebilateral": 39.63467264175415,
-    "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinenone": 182.91518664360046,
-    "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic": 161.28627133369446,
+    "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinenone": 248.3871796131134,
+    "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic": 185.9457392692566,
     "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic_skimage": 370.99083971977234,
     "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinebilateral": 137.1894326210022
   },
@@ -14,8 +14,8 @@
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refinenone/samples1": 39.86653542518616,
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refineslic/samples1": 63.50934720039368,
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refinebilateral/samples1": 39.63467264175415,
-    "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinenone/samples1": 182.91518664360046,
-    "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic/samples1": 161.28627133369446,
+    "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinenone/samples1": 248.3871796131134,
+    "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic/samples1": 185.9457392692566,
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic_skimage/samples1": 370.99083971977234,
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinebilateral/samples1": 137.1894326210022
   }

@@ -99,7 +99,7 @@ GRIDS = {
     },
     "clustering": {
         "name": "Clustering Methods",
-        "description": "Compare K-means vs GMM with and without SLIC refinement",
+        "description": "Compare K-means vs GMM vs Spectral with and without SLIC refinement",
         "configs": [
             # K-means
             {"clustering_method": "kmeans", "refine": None, "label": "kmeans"},
@@ -107,6 +107,9 @@ GRIDS = {
             # GMM
             {"clustering_method": "gmm", "refine": None, "label": "gmm"},
             {"clustering_method": "gmm", "refine": "slic", "label": "gmm_slic"},
+            # Spectral
+            {"clustering_method": "spectral", "refine": None, "label": "spectral"},
+            {"clustering_method": "spectral", "refine": "slic", "label": "spectral_slic"},
         ],
     },
 }

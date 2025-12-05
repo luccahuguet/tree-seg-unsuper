@@ -57,11 +57,12 @@ Tested bilateral filtering vs SLIC on FORTRESS CFB003:
   - **Result:** -3% to -6% mIoU vs K-means
   - **Status:** Not recommended
 
-- [ ] **Spectral Clustering**
+- [x] **Spectral Clustering** ❌ **UNDERPERFORMS**
   - Handle non-convex cluster shapes
-  - Better for spatial data with complex boundaries
+  - Implemented with 10k subsample + nearest-neighbor propagation
   - Code: `sklearn.cluster.SpectralClustering`
-  - Expected: +3-7% mIoU
+  - **Result:** -1.2% to -1.8% mIoU vs K-means (but +4-8% pixel accuracy)
+  - **Status:** Not recommended - subsampling loses spatial structure
 
 - [ ] **HDBSCAN**
   - Density-based, automatic K selection
@@ -181,6 +182,13 @@ uv run python scripts/evaluate_fortress.py \
 - **Time:** 179s
 - **Notes:** Marginal improvement. Only 0.32% of pixels differ. Multi-layer implemented but not impactful on CFB003.
 
+### Spectral Clustering Test (Dec 5, 2024)
+- **Config:** V1.5 + base + Spectral (10k subsample) + SLIC + Smart K=6
+- **mIoU:** 8.08% (-1.20% vs baseline)
+- **Pixel Acc:** 45.15% (+3.97% vs baseline)
+- **Time:** ~180s
+- **Notes:** Spectral clustering underperforms K-means on mIoU but has higher pixel accuracy. Subsampling (10k of 85k pixels) loses spatial structure. Not recommended.
+
 ---
 
 ## 🎯 Success Criteria
@@ -203,10 +211,10 @@ uv run python scripts/evaluate_fortress.py \
 
 ## 🚀 Next Experiments to Try
 
-1. **Spectral Clustering** - May handle tree boundary shapes better
+1. ~~Spectral Clustering~~ ❌ Done - underperforms K-means
 2. ~~Multi-layer features~~ ✅ Done - marginal improvement
 3. ~~Bilateral filtering~~ ❌ Done - underperforms SLIC
 4. **Dense CRF** - Standard post-processing technique
 5. **HDBSCAN** - Automatic K selection, density-based
 
-*Priority: Spectral clustering > CRF > HDBSCAN*
+*Priority: CRF > HDBSCAN*

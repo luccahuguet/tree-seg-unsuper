@@ -28,7 +28,7 @@ class Config:
     pipeline: str = "v1_5"  # Pipeline version: "v1_5" (baseline) or "v3" (species clustering)
 
     # Clustering settings
-    clustering_method: str = "kmeans"  # "kmeans" or "gmm"
+    clustering_method: str = "kmeans"  # "kmeans", "gmm", or "spectral"
     auto_k: bool = True
     n_clusters: int = 6  # Used when auto_k=False
     k_range: Tuple[int, int] = DEFAULT_K_RANGE

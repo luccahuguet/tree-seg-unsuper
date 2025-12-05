@@ -367,8 +367,8 @@ def plot_evaluation_comparison(
 
         # Add K info with GT comparison
         k_used = eval_results.num_predicted_clusters
-        # Count GT classes (excluding ignore index)
-        unique_gt = np.unique(gt_labels)
+        # Count GT classes (excluding ignore index) - use downscaled version for efficiency
+        unique_gt = np.unique(gt_labels_vis)
         unique_gt = unique_gt[unique_gt != ignore_index]
         num_gt_classes = len(unique_gt)
 

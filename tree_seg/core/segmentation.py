@@ -10,8 +10,9 @@ import torch
 import torch.nn.functional as F
 import cv2
 from PIL import Image
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering
 from sklearn.mixture import GaussianMixture
+from sklearn.neighbors import NearestNeighbors
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
@@ -367,6 +368,49 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 reg_covar=1e-6  # Add regularization
             )
             labels = gmm.fit_predict(features_flat)
+        elif clustering_method == "spectral":
+            if verbose:
+                print(f"🎯 Clustering with Spectral Clustering (n_clusters={n_clusters})...")
+            
+            n_samples = features_flat.shape[0]
+            max_samples = 10000  # Spectral is O(n^3), so subsample for efficiency
+            
+            if n_samples > max_samples:
+                if verbose:
+                    print(f"   Subsampling {max_samples} of {n_samples} pixels for affinity matrix...")
+                
+                # Stratified subsampling using spatial grid
+                np.random.seed(42)
+                subsample_idx = np.random.choice(n_samples, max_samples, replace=False)
+                features_subsample = features_flat[subsample_idx]
+                
+                # Fit spectral clustering on subsample
+                spectral = SpectralClustering(
+                    n_clusters=n_clusters,
+                    affinity='nearest_neighbors',
+                    n_neighbors=10,
+                    random_state=42,
+                    assign_labels='kmeans'
+                )
+                subsample_labels = spectral.fit_predict(features_subsample)
+                
+                # Propagate labels to full dataset using nearest neighbor
+                if verbose:
+                    print(f"   Propagating labels to all {n_samples} pixels...")
+                nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
+                nn.fit(features_subsample)
+                _, indices = nn.kneighbors(features_flat)
+                labels = subsample_labels[indices.flatten()]
+            else:
+                # Small enough to run directly
+                spectral = SpectralClustering(
+                    n_clusters=n_clusters,
+                    affinity='nearest_neighbors',
+                    n_neighbors=10,
+                    random_state=42,
+                    assign_labels='kmeans'
+                )
+                labels = spectral.fit_predict(features_flat)
         else:  # default to kmeans
             if verbose:
                 print(f"🎯 Clustering with K-means (k={n_clusters})...")
