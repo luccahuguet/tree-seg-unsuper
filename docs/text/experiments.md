@@ -209,6 +209,14 @@ uv run python scripts/evaluate_fortress.py \
 - **Time:** 51.6s (faster due to no tiling, but lower resolution)
 - **Notes:** Multi-scale features fail to compensate for resolution loss from disabling tiling (1024×1024 vs 9372×9372). Concatenated 4608D features reduced to 1536D via PCA. Not recommended unless tiling support added.
 
+### SLIC Parameter Sweep (Dec 5, 2024)
+- **Configs Tested:** compactness=[5, 10, 20], sigma=[0.5, 1.0, 2.0]
+- **Results (CFB003):**
+  - All configs: 9.2-9.3% mIoU, 37.1-37.3% PA
+  - Baseline (c=10, σ=1.0): 9.3% mIoU, 174s (fastest)
+  - Other configs: 191-198s (slower)
+- **Notes:** SLIC parameters have **negligible impact** on segmentation quality. Baseline settings are optimal for speed with no quality loss. Parameter tuning does not improve results.
+
 ---
 
 ## 🎯 Success Criteria
@@ -240,10 +248,11 @@ uv run python scripts/evaluate_fortress.py \
 6. ~~Pyramid features~~ ❌ Done - resolution loss outweighs multi-scale benefits
 
 **Parameter Tuning (Low-Effort):**
-- [ ] **SLIC parameter sweep**
-  - Test compactness: 5.0, 10.0 (current), 20.0
-  - Test sigma: 0.5, 1.0 (current), 2.0
-  - Expected: +0.5-2% mIoU from better superpixel boundaries
+- [x] **SLIC parameter sweep** ✅ **NO IMPROVEMENT**
+  - Tested compactness: 5.0, 10.0 (current), 20.0
+  - Tested sigma: 0.5, 1.0 (current), 2.0
+  - **Result:** All configs 9.2-9.3% mIoU (identical)
+  - **Status:** Default parameters (c=10, σ=1.0) are optimal
 
 - [ ] **Tile overlap optimization**
   - Current: 256px
