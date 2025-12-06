@@ -300,6 +300,13 @@ class BenchmarkRunner:
         cached_mean = self.runtime_cache.get_mean_runtime(est_key)
         run_key = self.runtime_cache.make_run_key(dataset_name, self.config, end_idx - start_idx)
         cached_total = self.runtime_cache.get_total_runtime(run_key)
+        # Rough hardware scaling: adjust mean if tier differs
+        hw_tier_cached = self.runtime_cache.hardware_tier_for(est_key)
+        if cached_mean is not None:
+            scaled_mean = self.runtime_cache.scale_mean(cached_mean, hw_tier_cached)
+        else:
+            scaled_mean = None
+        est_total = cached_total if cached_total else (scaled_mean * total_samples if scaled_mean else None)
 
         # Progress bar setup
         total_samples = end_idx - start_idx

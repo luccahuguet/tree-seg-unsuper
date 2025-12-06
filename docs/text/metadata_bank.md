@@ -344,6 +344,12 @@ tree-seg results --compact
 tree-seg results --prune --older-than 30d
 ```
 
+### Current Implementation Status (Dec 6, 2024)
+- ✅ Metadata storage: hash/index/meta.json, auto-tags, hardware info, artifacts (results/viz/labels paths)
+- ✅ Label dumping: `--save-labels/--no-save-labels` in `tree-seg eval`, saved under `<output>/labels/{image_id}.npz`
+- ✅ Results CLI: `tree-seg results` to list/filter by dataset/tags, sort, or show details for a hash (with config dump)
+- ⚠️ Not yet: visualization regeneration, feature caching, nearest-config ETA scaling in CLI, integration with `segment` command, compaction/prune commands (stubs in doc only)
+
 ## API Surface
 
 Module: `tree_seg/metadata/`

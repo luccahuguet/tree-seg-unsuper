@@ -5,6 +5,10 @@ from pathlib import Path
 from typing import Optional
 
 from tree_seg.core.types import Config
+from tree_seg.metadata.store import _detect_gpu_tier, _hardware_info
+
+# Rough scaling factors (relative to "high" tier)
+TIER_SCALE = {"extreme": 0.6, "high": 1.0, "mid": 1.5, "low": 3.0}
 
 
 class RuntimeCache:
@@ -15,6 +19,7 @@ class RuntimeCache:
         # Ensure new structure keys exist
         self._data.setdefault("mean_per_sample", {})
         self._data.setdefault("run_totals", {})
+        self._data.setdefault("hardware_tier", {})
 
     def _load(self) -> dict:
         if not self.cache_path.exists():
@@ -54,6 +59,10 @@ class RuntimeCache:
 
     def update(self, key: str, mean_runtime: float) -> None:
         self._data["mean_per_sample"][key] = float(mean_runtime)
+        # Cache the hardware tier for scaling on other machines
+        hw = _hardware_info()
+        tier = hw.get("gpu_tier") or _detect_gpu_tier(hw.get("gpu") or "CPU")
+        self._data["hardware_tier"][key] = tier
         self._save()
 
     def make_run_key(self, dataset_name: str, config: Config, num_samples: int) -> str:
@@ -72,3 +81,19 @@ class RuntimeCache:
     def update_total(self, key: str, total_runtime: float) -> None:
         self._data["run_totals"][key] = float(total_runtime)
         self._save()
+
+    def hardware_tier_for(self, key: str) -> Optional[str]:
+        return self._data.get("hardware_tier", {}).get(key)
+
+    def scale_mean(self, mean_runtime: float, cached_tier: Optional[str]) -> float:
+        """Scale a cached mean runtime to current hardware tier."""
+        if mean_runtime is None:
+            return mean_runtime
+        current_hw = _hardware_info()
+        current_tier = current_hw.get("gpu_tier") or _detect_gpu_tier(current_hw.get("gpu") or "CPU")
+        cached_tier = cached_tier or "high"
+        num = TIER_SCALE.get(current_tier, 1.0)
+        den = TIER_SCALE.get(cached_tier, 1.0)
+        if den == 0:
+            return mean_runtime
+        return mean_runtime * (num / den)
