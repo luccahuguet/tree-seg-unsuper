@@ -15,6 +15,7 @@ from .metrics import compile_metrics
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 from .features import extract_tiled_features, extract_features
+from .kselect import maybe_run_pca, clean_features
 
 
 def process_image(image_path, model, preprocess, n_clusters, stride, device,
@@ -181,26 +182,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         if verbose:
             print(f"Flattened features shape: {features_flat.shape}")
 
-        # Optional PCA with configurable dimension
-        effective_pca_dim = None
-        if pca_dim is not None and pca_dim > 0:
-            effective_pca_dim = min(pca_dim, features_flat.shape[-1])
-        elif use_pca and features_flat.shape[-1] > 128:
-            effective_pca_dim = 128
-
-        if effective_pca_dim is not None and effective_pca_dim < features_flat.shape[-1]:
-            if verbose:
-                print(f"Running PCA to {effective_pca_dim} dims...")
-            features_flat_tensor = torch.tensor(features_flat, dtype=torch.float32)
-            mean = features_flat_tensor.mean(dim=0)
-            features_flat_centered = features_flat_tensor - mean
-            U, S, V = torch.pca_lowrank(features_flat_centered, q=effective_pca_dim, center=False)
-            features_flat = (features_flat_centered @ V[:, :effective_pca_dim]).numpy()
-            if verbose:
-                print(f"PCA-reduced features shape: {features_flat.shape}")
-        else:
-            if verbose:
-                print(f"Using {features_flat.shape[-1]}-D features (no PCA)")
+        features_flat = maybe_run_pca(features_flat, use_pca, pca_dim, verbose)
 
         t_features = time.perf_counter()
 
@@ -228,17 +210,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                 print(f"Using fixed K = {n_clusters}")
             k_requested = int(n_clusters)
 
-        # Clean features for main clustering (same as elbow method)
-        if np.isnan(features_flat).any():
-            if verbose:
-                print("⚠️  Warning: Features contain NaN values for main clustering")
-                print("🧹 Cleaning NaN values...")
-            features_flat = np.nan_to_num(features_flat, nan=0.0, posinf=0.0, neginf=0.0)
-            
-            if np.all(features_flat == 0):
-                if verbose:
-                    print("🎲 Adding small random noise to zero features...")
-                features_flat += np.random.normal(0, 0.001, features_flat.shape)
+        features_flat = clean_features(features_flat, verbose)
 
         t_kselect = time.perf_counter()
 
