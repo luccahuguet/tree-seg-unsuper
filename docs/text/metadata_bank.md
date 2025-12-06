@@ -404,7 +404,7 @@ def latest_by_tag(tag: str, limit: int = 5) -> List[dict]:
 ### Phase 5: Future (Low Priority)
 - [ ] Meta-learning: rank configs by success for dataset family
 - [ ] Online ETA model learning from hardware + config
-- [ ] Web dashboard for browsing runs
+- [ ] (Deferred) Web dashboard for browsing runs
 - [ ] (Deferred) Feature cache for extracted tensors — skipped for now because full-run caching already avoids recompute; revisit if sweeps bottleneck on feature extraction with identical model/stride/pyramid/tiling.
 
 ## Open Questions
