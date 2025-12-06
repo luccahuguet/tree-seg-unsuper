@@ -647,6 +647,36 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
             features_norm = features_flat / norms
             kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
             labels = kmeans.fit_predict(features_norm)
+        elif clustering_method == "potts":
+            if verbose:
+                print(f"🎯 Clustering with regularized k-means (Potts on SLIC graph, k={n_clusters})...")
+            # Step 1: vanilla k-means on features
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+            labels = kmeans.fit_predict(features_flat)
+            labels = labels.reshape(H, W)
+            # Step 2: build simple 4-neighbor graph and run one alpha-expansion-like smoothing
+            beta = 0.5  # regularization weight
+            smoothed = labels.copy()
+            # Simple iterated conditional modes (ICM) as a cheap approximation
+            for _ in range(2):
+                for y in range(H):
+                    for x in range(W):
+                        neighbors = []
+                        if y > 0:
+                            neighbors.append(smoothed[y - 1, x])
+                        if y < H - 1:
+                            neighbors.append(smoothed[y + 1, x])
+                        if x > 0:
+                            neighbors.append(smoothed[y, x - 1])
+                        if x < W - 1:
+                            neighbors.append(smoothed[y, x + 1])
+                        neighbor_votes = np.bincount(neighbors, minlength=n_clusters)
+                        data_cost = np.sum((features_flat[y * W + x] - kmeans.cluster_centers_) ** 2, axis=1)
+                        smooth_cost = beta * (len(neighbors) - neighbor_votes)
+                        total_cost = data_cost + smooth_cost
+                        smoothed[y, x] = int(np.argmin(total_cost))
+            labels = smoothed
+            labels = labels.reshape(-1)
         else:  # default to kmeans
             if verbose:
                 print(f"🎯 Clustering with K-means (k={n_clusters})...")
