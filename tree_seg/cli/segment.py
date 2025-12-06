@@ -121,6 +121,11 @@ def segment_command(
         "--save-metadata/--no-save-metadata",
         help="Store run metadata in results index",
     ),
+    use_attention_features: bool = typer.Option(
+        True,
+        "--use-attn/--no-use-attn",
+        help="Include attention tokens in features (disable for legacy v1 behavior)",
+    ),
     metadata_dir: Path = typer.Option(
         Path("results"),
         "--metadata-dir",
@@ -162,6 +167,7 @@ def segment_command(
         "refine_slic_sigma": refine_slic_sigma,
         "metrics": metrics,
         "verbose": verbose,
+        "use_attention_features": use_attention_features,
     }
 
     # Apply profile defaults if not explicitly overridden

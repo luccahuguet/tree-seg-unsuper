@@ -23,6 +23,7 @@ class Config:
     version: str = "v3"  # Now using DINOv3
     stride: int = 4
     image_size: int = 1024  # Preprocess resize (square)
+    use_attention_features: bool = True  # Include attention tokens (disable for legacy v1)
 
     # Pipeline settings
     pipeline: str = "v1_5"  # Pipeline version: "v1_5" (baseline) or "v3" (species clustering)
@@ -116,6 +117,8 @@ class Config:
             raise ValueError("overlay_ratio must be between 1 and 10")
         if not (2 <= self.stride <= 8):
             raise ValueError("stride must be between 2 and 8")
+        if not isinstance(self.use_attention_features, bool):
+            raise ValueError("use_attention_features must be a boolean")
         if self.elbow_threshold <= 0:
             raise ValueError("elbow_threshold must be positive")
         if not (2 <= self.n_clusters <= 50):

@@ -38,7 +38,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  use_pyramid: bool = False, pyramid_scales: tuple = (0.5, 1.0, 2.0),
                  pyramid_aggregation: str = "concat",
                  use_soft_refine: bool = False, soft_refine_temperature: float = 1.0,
-                 soft_refine_iterations: int = 5, soft_refine_spatial_alpha: float = 0.0):
+                 soft_refine_iterations: int = 5, soft_refine_spatial_alpha: float = 0.0,
+                 use_attention_features: bool = True):
     """
     Process a single image for tree segmentation.
 
@@ -136,7 +137,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 tile_tensor = preprocess(tile_pil).to(device)
 
                 with torch.no_grad():
-                    attn_choice = "none" if version == "v1" else "o"
+                    attn_choice = "o" if use_attention_features else "none"
                     features_out = model.forward_sequential(
                         tile_tensor, 
                         attn_choice=attn_choice,
@@ -156,7 +157,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                         tile_attn_features = tile_attn_features.view(tile_H, tile_W, -1)
 
                 # Combine patch + attention features if needed
-                if tile_attn_features is not None and version in ["v1.5", "v3"]:
+                if tile_attn_features is not None and use_attention_features:
                     tile_features_combined = np.concatenate(
                         [tile_patch_features.cpu().numpy(),
                          tile_attn_features.cpu().numpy()],
@@ -230,7 +231,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
 
                     # Extract features at this scale
                     with torch.no_grad():
-                        attn_choice = "none" if version == "v1" else "o"
+                        attn_choice = "o" if use_attention_features else "none"
                         features_out = model.forward_sequential(
                             image_tensor,
                             attn_choice=attn_choice,
@@ -265,7 +266,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                                 attn_features = attn_features.view(H_scale, W_scale, -1)
 
                         # Combine patch + attention features
-                        if attn_features is not None and version in ["v1.5", "v3"]:
+                        if attn_features is not None and use_attention_features:
                             combined_features = torch.cat([patch_features, attn_features], dim=-1)
                         else:
                             combined_features = patch_features

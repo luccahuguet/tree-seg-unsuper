@@ -56,6 +56,7 @@ def _create_config(
     pyramid_aggregation: str,
     use_supervised: bool,
     quiet: bool,
+    use_attention_features: bool,
 ) -> Config:
     """Create Config object from parameters."""
     # Determine version based on configuration
@@ -84,6 +85,7 @@ def _create_config(
             refine=None,
             metrics=True,
             verbose=not quiet,
+            use_attention_features=use_attention_features,
         )
 
     # Map clustering algorithm
@@ -130,6 +132,7 @@ def _create_config(
         soft_refine_temperature=1.0,
         soft_refine_iterations=5,
         soft_refine_spatial_alpha=0.0,
+        use_attention_features=use_attention_features,
         metrics=True,
         verbose=not quiet,
     )
@@ -502,6 +505,11 @@ def evaluate_command(
         "--save-labels/--no-save-labels",
         help="Save predicted labels (NPZ) for metadata/viz regeneration",
     ),
+    use_attention_features: bool = typer.Option(
+        True,
+        "--use-attn/--no-use-attn",
+        help="Include attention tokens in features (disable for legacy v1 behavior)",
+    ),
 ):
     """
     Evaluate segmentation methods on labeled datasets.
@@ -562,6 +570,7 @@ def evaluate_command(
         pyramid_aggregation=pyramid_aggregation,
         use_supervised=supervised,
         quiet=quiet,
+        use_attention_features=use_attention_features,
     )
 
     # Run comparison or single benchmark
@@ -599,6 +608,7 @@ def evaluate_command(
             "soft_refine_temperature": config.soft_refine_temperature,
             "soft_refine_iterations": config.soft_refine_iterations,
             "soft_refine_spatial_alpha": config.soft_refine_spatial_alpha,
+            "use_attention_features": config.use_attention_features,
             "metrics": True,
         }
 

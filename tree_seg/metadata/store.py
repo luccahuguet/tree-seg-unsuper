@@ -15,6 +15,7 @@ from tree_seg.evaluation.formatters import config_to_dict
 HASH_KEYS = [
     "dataset",
     "model",
+    "use_attention_features",
     "clustering",
     "k",
     "smart_k",
@@ -48,6 +49,7 @@ HASH_DEFAULTS: Dict[str, object] = {
     "vegetation_filter": False,
     "supervised": False,
     "smart_k": False,
+    "use_attention_features": True,
 }
 
 # GPU tier buckets used for ETA scaling (rough buckets).
@@ -169,6 +171,7 @@ def _config_to_hash_config(
     hash_config: Dict[str, object] = {
         "dataset": dataset_id,
         "model": config.model_name,
+        "use_attention_features": config.use_attention_features,
         "clustering": config.clustering_method,
         "k": config.n_clusters,
         "smart_k": smart_k,
