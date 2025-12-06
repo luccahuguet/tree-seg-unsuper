@@ -15,7 +15,7 @@
   - [ ] (Optional later) BO/surrogate to propose next configs under runtime constraints
   - [ ] Expose via `tree-seg results --recommend --dataset <name>`
 - [ ] Codebase hygiene (high priority):
-  - [ ] Split CLIs (`tree_seg/cli/evaluate.py`, `tree_seg/cli/segment.py`) into config builders, runners, and output/reporting helpers.
+  - [x] Split CLIs (`tree_seg/cli/evaluate.py`, `tree_seg/cli/segment.py`) into config builders, runners, and output/reporting helpers (eval/segment runners in `tree_seg/evaluation/`).
   - [ ] Refactor evaluation/benchmark plumbing (`tree_seg/evaluation/benchmark.py`, `tree_seg/api.py`) to share data loading, segmentation calls, and metrics aggregation.
   - [ ] Break plotting into focused modules (`tree_seg/visualization/plotting.py`) for composites, metrics charts, and panel layouts.
   - [ ] Continue slimming DINO adapter: move registry/config to `registry.py` and forward/reshape helpers to `features.py`.
