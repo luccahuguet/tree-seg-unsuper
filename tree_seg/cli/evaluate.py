@@ -388,11 +388,6 @@ def evaluate_command(
         # Run comparison across multiple configs
         tree-seg eval data/fortress --compare-configs --grid tiling
     """
-    # Auto-detect dataset type if not specified
-    if not dataset_type:
-        dataset_type = _detect_dataset_type(dataset)
-        console.print(f"[dim]Auto-detected dataset type: {dataset_type}[/dim]")
-
     # Create config
     config = _create_config(
         clustering=clustering,
@@ -456,7 +451,6 @@ def evaluate_command(
 
         _run_comparison_benchmark(
             dataset_path=dataset,
-            dataset_type=dataset_type,
             grid_name=grid_name,
             base_config_params=base_config_params,
             num_samples=num_samples,
@@ -468,7 +462,6 @@ def evaluate_command(
     else:
         _run_single_benchmark(
             dataset_path=dataset,
-            dataset_type=dataset_type,
             config=config,
             output_dir=output_dir,
             num_samples=num_samples,

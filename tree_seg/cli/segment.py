@@ -1,20 +1,15 @@
 """Segment command for tree segmentation CLI."""
 
 import json
-import shutil
 from pathlib import Path
 from typing import List, Literal, Optional
-
-import numpy as np
 
 import typer
 from dotenv import load_dotenv
 from rich.console import Console
 
-from tree_seg import segment_trees
-from tree_seg.constants import PROFILE_DEFAULTS, SUPPORTED_IMAGE_EXTS
-from tree_seg.core.types import Config
-from tree_seg.metadata.store import store_segment_run
+from tree_seg.constants import PROFILE_DEFAULTS
+from tree_seg.evaluation.segment_runner import run_single_segment
 
 # Load environment variables
 load_dotenv()
@@ -182,178 +177,6 @@ def segment_command(
     if elbow_threshold is not None:
         config_kwargs["elbow_threshold"] = elbow_threshold
 
-    def _save_labels_npz(out_dir: Path, seg_result) -> None:
-        labels_dir = out_dir / "labels"
-        labels_dir.mkdir(parents=True, exist_ok=True)
-        image_id = Path(seg_result.image_path).stem if seg_result.image_path else "image"
-        label_path = labels_dir / f"{image_id}.npz"
-        try:
-            np.savez_compressed(label_path, labels=seg_result.labels_resized.astype(np.uint8))
-        except Exception as exc:
-            console.print(f"[yellow]⚠️  Failed to save labels for {image_id}: {exc}[/yellow]")
-
-    def _run_case(
-        img_path: Path,
-        mdl: str,
-        out_dir: Path,
-        overrides: Optional[dict] = None,
-        sweep_label: Optional[str] = None,
-    ):
-        """Run segmentation for a single case."""
-        # Clear output directory
-        if out_dir.exists():
-            existing_files = list(out_dir.rglob("*.png")) + list(out_dir.rglob("*.jpg"))
-            if existing_files:
-                console.print(f"[yellow]🗂️  Found {len(existing_files)} existing output file(s) in {out_dir}[/yellow]")
-                console.print(f"[yellow]🧹 Clearing output directory: {out_dir}[/yellow]")
-            shutil.rmtree(out_dir)
-        out_dir.mkdir(parents=True, exist_ok=True)
-        console.print(f"[green]📁 Output directory ready: {out_dir}[/green]")
-        console.print()
-
-        cfg = config_kwargs.copy()
-        if overrides:
-            cfg.update({k: v for k, v in overrides.items() if v is not None})
-        if cfg.get("refine") == "none":
-            cfg["refine"] = None
-        if cfg.get("elbow_threshold") is None:
-            cfg.pop("elbow_threshold", None)
-
-        # Build Config for metadata hashing
-        meta_config = Config(
-            output_dir=str(out_dir),
-            model_name=mdl,
-            auto_k=True,
-            **cfg,
-        )
-
-        collected_outputs: list = []
-
-        # Process directory or single image
-        if img_path.is_dir():
-            image_files = []
-            for ext in SUPPORTED_IMAGE_EXTS:
-                image_files.extend(img_path.glob(f"*{ext}"))
-                image_files.extend(img_path.glob(f"*{ext.upper()}"))
-
-            if not image_files:
-                console.print(f"[red]❌ No image files found in {img_path}[/red]")
-                return
-
-            console.print(f"[cyan]🖼️  Found {len(image_files)} image(s) in {img_path}[/cyan]")
-
-            try:
-                from rich.progress import Progress, BarColumn, TimeElapsedColumn, TimeRemainingColumn, TextColumn
-
-                progress = Progress(
-                    TextColumn("[bold cyan]Segment"),
-                    BarColumn(),
-                    TextColumn("{task.completed}/{task.total}"),
-                    TimeElapsedColumn(),
-                    TimeRemainingColumn(),
-                )
-                task_id = progress.add_task("segment", total=len(image_files))
-                progress.start()
-            except Exception:
-                progress = None
-                task_id = None
-
-            for p in sorted(image_files):
-                if progress:
-                    progress.console.print(f"\n[bold]🚀 Processing: {p.name}[/bold]", highlight=False)
-                else:
-                    console.print(f"\n[bold]🚀 Processing: {p.name}[/bold]")
-                try:
-                    results = segment_trees(
-                        str(p),
-                        model=mdl,
-                        auto_k=True,
-                        output_dir=str(out_dir),
-                        **cfg,
-                    )
-                    if isinstance(results, list):
-                        collected_outputs.extend(results)
-                    if metrics and isinstance(results, list) and results:
-                        res, _paths = results[0]
-                        stats = getattr(res, "processing_stats", {})
-                        line = (
-                            f"[dim]⏱️  total={stats.get('time_total_s')}s, "
-                            f"features={stats.get('time_features_s')}s, "
-                            f"kselect={stats.get('time_kselect_s')}s, "
-                            f"kmeans={stats.get('time_kmeans_s')}s, "
-                            f"refine={stats.get('time_refine_s')}s, "
-                            f"peak_vram={stats.get('peak_vram_mb')}MB[/dim]"
-                        )
-                        if progress:
-                            progress.console.print(line, highlight=False)
-                        else:
-                            console.print(line)
-                    if save_labels and isinstance(results, list):
-                        for res, _paths in results:
-                            _save_labels_npz(out_dir, res)
-                    if progress:
-                        progress.console.print(f"[green]✅ Completed: {p.name}[/green]", highlight=False)
-                    else:
-                        console.print(f"[green]✅ Completed: {p.name}[/green]")
-                except Exception as e:
-                    if progress:
-                        progress.console.print(f"[red]❌ Failed: {p.name} - {e}[/red]", highlight=False)
-                    else:
-                        console.print(f"[red]❌ Failed: {p.name} - {e}[/red]")
-                finally:
-                    if progress and task_id is not None:
-                        progress.update(task_id, advance=1)
-
-            if progress:
-                progress.stop()
-        else:
-            console.print(f"[bold]🚀 Processing: {img_path.name}[/bold]")
-            try:
-                results = segment_trees(
-                    str(img_path),
-                    model=mdl,
-                    auto_k=True,
-                    output_dir=str(out_dir),
-                    **cfg,
-                )
-                if isinstance(results, list):
-                    collected_outputs.extend(results)
-                if metrics and isinstance(results, list) and results:
-                    res, _paths = results[0]
-                    stats = getattr(res, "processing_stats", {})
-                    console.print(
-                        f"[dim]⏱️  total={stats.get('time_total_s')}s, "
-                        f"features={stats.get('time_features_s')}s, "
-                        f"kselect={stats.get('time_kselect_s')}s, "
-                        f"kmeans={stats.get('time_kmeans_s')}s, "
-                        f"refine={stats.get('time_refine_s')}s, "
-                        f"peak_vram={stats.get('peak_vram_mb')}MB[/dim]"
-                    )
-                if save_labels and isinstance(results, list):
-                    for res, _paths in results:
-                        _save_labels_npz(out_dir, res)
-                console.print("[green]✅ Tree segmentation completed![/green]")
-            except Exception as e:
-                console.print(f"[red]❌ Error: {e}[/red]")
-                raise typer.Exit(code=1)
-
-        # Persist metadata for this run
-        if save_metadata and collected_outputs:
-            try:
-                tags = metadata_tags.copy()
-                if sweep_label:
-                    tags.append(sweep_label)
-                store_segment_run(
-                    config=meta_config,
-                    input_path=img_path,
-                    outputs=collected_outputs,
-                    base_dir=metadata_dir,
-                    user_tags=tags,
-                )
-                console.print(f"[dim]📝 Metadata stored for {img_path}[/dim]")
-            except Exception as exc:
-                console.print(f"[yellow]⚠️  Failed to store metadata: {exc}[/yellow]")
-
     # Sweep mode
     if sweep:
         console.print(f"[bold cyan]🔄 Running parameter sweep from {sweep}[/bold cyan]\n")
@@ -393,7 +216,19 @@ def segment_command(
                 for key, value in PROFILE_DEFAULTS[prof].items():
                     overrides.setdefault(key, value)
 
-            _run_case(image_path, mdl, out_dir, overrides, sweep_label=name)
+            cfg = config_kwargs.copy()
+            cfg.update({k: v for k, v in overrides.items() if v is not None})
+            run_single_segment(
+                img_path=image_path,
+                out_dir=out_dir,
+                mdl=mdl,
+                cfg=cfg,
+                metrics=metrics,
+                save_labels=save_labels,
+                save_metadata=save_metadata,
+                sweep_label=name,
+                console=console,
+            )
 
         console.print("\n[bold green]✨ Sweep completed![/bold green]")
         return
@@ -410,4 +245,15 @@ def segment_command(
     console.print(f"[green]📁 Output directory ready: {output_dir}[/green]")
     console.print()
 
-    _run_case(image_path, model, output_dir, sweep_label=None)
+    cfg = config_kwargs.copy()
+    run_single_segment(
+        img_path=image_path,
+        out_dir=output_dir,
+        mdl=model,
+        cfg=cfg,
+        metrics=metrics,
+        save_labels=save_labels,
+        save_metadata=save_metadata,
+        sweep_label=None,
+        console=console,
+    )
