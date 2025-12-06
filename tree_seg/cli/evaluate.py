@@ -25,7 +25,6 @@ console = Console()
 METHOD_TO_VERSION = {
     "baseline": "v1.5",      # DINOv3 + K-means + SLIC
     "refined": "v2",         # + soft/EM refinement
-    "species": "v3",         # + vegetation filtering
     "supervised": "v4",      # Mask2Former (comparison)
 }
 
@@ -124,7 +123,7 @@ def _create_config(
         n_clusters=fixed_k if fixed_k else 6,
         auto_k=(fixed_k is None),
         image_size=image_size,
-        apply_vegetation_filter=apply_vegetation_filter or (version == "v3"),
+        apply_vegetation_filter=apply_vegetation_filter,
         exg_threshold=exg_threshold,
         use_tiling=not no_tiling,
         viz_two_panel=viz_two_panel,
@@ -325,10 +324,10 @@ def evaluate_command(
         file_okay=False,
         dir_okay=True,
     ),
-    method: Literal["baseline", "refined", "species", "supervised"] = typer.Option(
+    method: Literal["baseline", "refined", "supervised"] = typer.Option(
         "baseline",
         "--method",
-        help="Segmentation method: baseline (DINOv3+K-means), refined (+soft/EM refinement), species (+vegetation filtering), supervised (Mask2Former)",
+        help="Segmentation method: baseline (DINOv3+K-means), refined (+soft/EM refinement), supervised (Mask2Former)",
     ),
     model: Literal["small", "base", "large", "mega"] = typer.Option(
         "base",
@@ -346,7 +345,7 @@ def evaluate_command(
         None,
         "--clustering",
         "-c",
-        help="Clustering method (default: slic for baseline/refined, kmeans for species)",
+        help="Clustering method (default: slic for baseline/refined)",
     ),
     stride: int = typer.Option(
         4,
@@ -391,7 +390,7 @@ def evaluate_command(
     apply_vegetation_filter: bool = typer.Option(
         False,
         "--vegetation-filter",
-        help="Apply vegetation filtering (auto-enabled for v3)",
+        help="Apply vegetation filtering for species-level segmentation (V3 task)",
     ),
     exg_threshold: float = typer.Option(
         0.1,
@@ -467,8 +466,14 @@ def evaluate_command(
         # Evaluate baseline on FORTRESS
         tree-seg eval data/fortress --method baseline
 
-        # Evaluate species clustering with custom settings
-        tree-seg eval data/fortress --method species --model large --elbow-threshold 10.0
+        # Evaluate refined method (V2) with soft EM
+        tree-seg eval data/fortress --method refined --model large
+
+        # Species-level segmentation (V3 task) with vegetation filter
+        tree-seg eval data/fortress --method baseline --vegetation-filter
+
+        # Combine V2 method with V3 task
+        tree-seg eval data/fortress --method refined --vegetation-filter
 
         # Run comparison across multiple configs
         tree-seg eval data/fortress --compare-configs --grid tiling
@@ -520,7 +525,7 @@ def evaluate_command(
             "elbow_threshold": elbow_threshold,
             "auto_k": (fixed_k is None),
             "n_clusters": fixed_k if fixed_k else 6,
-            "apply_vegetation_filter": apply_vegetation_filter or (method == "species"),
+            "apply_vegetation_filter": apply_vegetation_filter,
             "exg_threshold": exg_threshold,
             "use_tiling": not no_tiling,
             "viz_two_panel": viz_two_panel,
