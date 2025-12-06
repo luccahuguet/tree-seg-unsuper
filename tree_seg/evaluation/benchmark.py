@@ -406,7 +406,7 @@ class BenchmarkRunner:
         runtime_seconds: float | None = None,
     ):
         """Save visualization comparing prediction and ground truth."""
-        from ..visualization.plotting import plot_evaluation_comparison
+        from ..visualization.eval_panels import plot_evaluation_comparison
         
         # Include config label in filename if running in sweep mode
         if self.config_label:
