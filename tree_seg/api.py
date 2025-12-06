@@ -3,6 +3,7 @@ Modern, clean API for tree segmentation.
 """
 
 import os
+import time
 from pathlib import Path
 from typing import List, Optional
 
@@ -10,15 +11,16 @@ import numpy as np
 import torch
 
 from .constants import SUPPORTED_IMAGE_EXTS
+from .core.segmentation import process_image
 from .core.types import Config, SegmentationResults, OutputPaths
 from .evaluation.api_runner import (
     create_output_manager,
-    ensure_mask2former,
     init_model_and_preprocess,
     run_mask2former_numpy,
     run_segmentation_numpy,
     select_device,
 )
+from .models.mask2former import Mask2FormerConfig, Mask2FormerSegmentor
 from .visualization.plotting import generate_visualizations
 
 
@@ -53,12 +55,7 @@ class TreeSegmentation:
         """Initialize the model and preprocessing pipeline."""
         if self.model is None:
             print("🔄 Initializing model...")
-            self.model = initialize_model(
-                self.config.stride, 
-                self.config.model_display_name, 
-                self.device
-            )
-            self.preprocess = get_preprocess(self.config.image_size)
+            self.model, self.preprocess = init_model_and_preprocess(self.config, self.device)
             print("✅ Model initialized")
     
     def segment_image(self, image: "np.ndarray") -> SegmentationResults:
@@ -71,8 +68,6 @@ class TreeSegmentation:
         Returns:
             SegmentationResults with labels and metadata
         """
-        import numpy as np
-
         if self.config.version == "v4":
             self._ensure_mask2former()
             return run_mask2former_numpy(

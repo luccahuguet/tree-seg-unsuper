@@ -9,7 +9,6 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
-from tree_seg.evaluation.datasets import FortressDataset
 from tree_seg.evaluation.formatters import format_comparison_table, save_comparison_summary
 from tree_seg.evaluation.grids import get_grid
 from tree_seg.evaluation.runner import (
@@ -20,7 +19,6 @@ from tree_seg.evaluation.runner import (
     run_sweep,
     try_cached_results,
 )
-from tree_seg.metadata.store import store_run
 
 # Load environment variables
 load_dotenv()

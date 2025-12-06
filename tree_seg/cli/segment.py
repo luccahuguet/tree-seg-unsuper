@@ -1,6 +1,7 @@
 """Segment command for tree segmentation CLI."""
 
 import json
+import shutil
 from pathlib import Path
 from typing import List, Literal, Optional
 

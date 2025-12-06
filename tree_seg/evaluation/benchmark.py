@@ -8,7 +8,6 @@ from typing import List, Optional, Union
 
 import numpy as np
 from PIL import Image
-import threading
 
 from contextlib import redirect_stdout, redirect_stderr
 
@@ -295,6 +294,8 @@ class BenchmarkRunner:
         dataset_name = getattr(self.dataset, "dataset_path", None)
         dataset_name = dataset_name.name if dataset_name else "unknown_dataset"
 
+        total_samples = end_idx - start_idx
+
         # Load runtime estimate from cache
         est_key = self.runtime_cache.make_key(self.config)
         cached_mean = self.runtime_cache.get_mean_runtime(est_key)
@@ -307,8 +308,6 @@ class BenchmarkRunner:
         else:
             scaled_mean = None
         est_total = cached_total if cached_total else (scaled_mean * total_samples if scaled_mean else None)
-
-        total_samples = end_idx - start_idx
         sample_results = []
 
         # Progress bar using rich (handles ETAs cleanly)

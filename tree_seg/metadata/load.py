@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional
 
-from tree_seg.metadata.store import HASH_KEYS, normalize_config
+from tree_seg.metadata.store import normalize_config
 
 
 def lookup(hash_id: str, base_dir: Path | str = "results") -> Optional[Dict]:

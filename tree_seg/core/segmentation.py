@@ -10,7 +10,7 @@ import torch
 import cv2
 from PIL import Image
 from .clustering import cluster_features
-from .refine import refine_labels, apply_vegetation_filter
+from .refine import refine_labels, apply_vegetation_filter as apply_vegetation_filter_fn
 from .metrics import compile_metrics
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
@@ -271,7 +271,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         if should_apply_filter:
             if verbose:
                 print("🌳 Applying vegetation filtering (ExG-based cluster selection)...")
-            labels_resized = apply_vegetation_filter(
+            labels_resized = apply_vegetation_filter_fn(
                 image_np,
                 labels_resized,
                 exg_threshold=exg_threshold,

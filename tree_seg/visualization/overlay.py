@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import matplotlib.pyplot as plt
-import numpy as np
 
 from ..constants import (
     HATCH_PATTERNS,
@@ -72,7 +71,7 @@ def generate_edge_overlay(results, config, output_paths, cmap, config_text: str,
 
     legend_elements = []
     for cluster_id in range(results.n_clusters_used):
-        cluster_color = cmap(cluster_id / (results.n_clusters_used - 1))[:3]
+        cluster_color = get_cluster_color(cluster_id, results.n_clusters_used, cmap)
         if config.use_hatching:
             hatch_pattern = hatch_patterns[cluster_id % len(hatch_patterns)]
             legend_elements.append(plt.Line2D([0], [0], color=cluster_color, lw=config.edge_width,

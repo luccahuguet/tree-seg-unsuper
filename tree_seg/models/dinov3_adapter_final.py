@@ -8,7 +8,7 @@ Meta implementation and our debugging discoveries.
 import sys
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple, Union
+from typing import Dict, Any, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -18,7 +18,6 @@ from .dinov3_features import extract_backbone_features
 from .dinov3_registry import (
     AttentionOptions,
     LoadingStrategy,
-    ModelConfig,
     MODEL_REGISTRY,
 )
 
@@ -32,7 +31,7 @@ if str(DINOV3_PATH) not in sys.path:
 
 # Import DINOv3 components
 try:
-    import dinov3.hub.backbones as dinov3_backbones
+    import dinov3.hub.backbones as dinov3_backbones  # noqa: F401
 except ImportError as e:
     raise ImportError(f"Failed to import DINOv3. Ensure submodule is initialized: {e}")
 
