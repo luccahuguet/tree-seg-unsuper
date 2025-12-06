@@ -399,6 +399,7 @@ def latest_by_tag(tag: str, limit: int = 5) -> List[dict]:
 - [ ] Compaction (--compact)
 - [ ] Pruning (--prune)
 - [ ] Size limits
+  - [ ] (Deferred) Prune by total size (--max-size) — not implemented; current pruning is by age only.
 
 ### Phase 5: Future (Low Priority)
 - [ ] Meta-learning: rank configs by success for dataset family
