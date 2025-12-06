@@ -22,6 +22,26 @@ from tree_seg.metadata.store import (
 )
 
 
+def detect_dataset_type(dataset_path: Path) -> str:
+    """Best-effort dataset type detection."""
+    if (dataset_path / "images").exists() and (dataset_path / "labels").exists():
+        return "fortress"
+    if (dataset_path / "2_Ortho_RGB").exists():
+        return "isprs"
+    return "generic"
+
+
+def load_dataset(dataset_path: Path, dataset_type: Optional[str] = None):
+    """Instantiate a dataset based on type or auto-detection."""
+    dtype = dataset_type or detect_dataset_type(dataset_path)
+    if dtype == "fortress":
+        return FortressDataset(dataset_path), dtype
+    if dtype == "isprs":
+        return ISPRSPotsdamDataset(dataset_path), dtype
+    # Fallback to ISPRS interface for now
+    return ISPRSPotsdamDataset(dataset_path), dtype
+
+
 def create_config(
     *,
     clustering: str,
@@ -140,7 +160,6 @@ def try_cached_results(
     *,
     config: Config,
     dataset_path: Path,
-    dataset_type: str,
     smart_k: bool,
     console: Console,
 ) -> bool:
@@ -168,7 +187,7 @@ def try_cached_results(
         table.add_column("Metric", style="cyan")
         table.add_column("Value", justify="right", style="green")
         metrics = cached.get("metrics", {})
-        table.add_row("Dataset", cached.get("dataset", dataset_type.upper()))
+        table.add_row("Dataset", cached.get("dataset", ""))
         table.add_row("Method", cached.get("method", ""))
         table.add_row("Mean mIoU", f"{metrics.get('mean_miou', 0):.4f}")
         table.add_row("Mean Pixel Accuracy", f"{metrics.get('mean_pixel_accuracy', 0):.4f}")
@@ -185,6 +204,7 @@ def try_cached_results(
 def run_single_benchmark(
     *,
     dataset_path: Path,
+    dataset_type: Optional[str],
     config: Config,
     output_dir: Path,
     num_samples: Optional[int],
@@ -196,12 +216,11 @@ def run_single_benchmark(
     """Run a single benchmark configuration and persist metadata."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    dataset_class = FortressDataset if "fortress" in dataset_path.name.lower() else ISPRSPotsdamDataset
+    dataset, _dtype = load_dataset(dataset_path, dataset_type)
 
     results = run_benchmark(
         config=config,
-        dataset_path=dataset_path,
-        dataset_class=dataset_class,
+        dataset=dataset,
         output_dir=output_dir,
         num_samples=num_samples,
         save_visualizations=save_viz,
@@ -222,6 +241,7 @@ def run_single_benchmark(
 def run_sweep(
     *,
     dataset_path: Path,
+    dataset_type: Optional[str],
     grid_name: str,
     configs_to_test: list[dict],
     base_config_params: dict,
@@ -242,6 +262,7 @@ def run_sweep(
 
     all_results = []
     model_cache = {}
+    dataset, dtype_resolved = load_dataset(dataset_path, dataset_type)
 
     for i, config_override in enumerate(configs_to_test):
         config_dict = base_config_params.copy()
@@ -257,12 +278,9 @@ def run_sweep(
         if model_key in model_cache:
             console.print(f"[dim]♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})[/dim]")
 
-        dataset_class = FortressDataset if "fortress" in dataset_path.name.lower() else ISPRSPotsdamDataset
-
         results = run_benchmark(
             config=config,
-            dataset_path=dataset_path,
-            dataset_class=dataset_class,
+            dataset=dataset,
             output_dir=sweep_dir,
             num_samples=num_samples,
             save_visualizations=save_viz,
