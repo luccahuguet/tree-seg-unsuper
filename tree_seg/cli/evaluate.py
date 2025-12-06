@@ -15,7 +15,7 @@ from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.datasets import FortressDataset
 from tree_seg.evaluation.formatters import config_to_dict, format_comparison_table, save_comparison_summary
 from tree_seg.evaluation.grids import get_grid
-from tree_seg.metadata.store import store_run
+from tree_seg.metadata.store import store_run, _config_to_hash_config, normalize_config, config_hash
 
 # Load environment variables
 load_dotenv()
@@ -148,6 +148,7 @@ def _run_single_benchmark(
     save_labels: bool,
     quiet: bool,
     smart_k: bool,
+    use_cache: bool,
 ):
     """Run a single benchmark configuration."""
     # Determine output directory
@@ -163,6 +164,41 @@ def _run_single_benchmark(
         out_dir = Path("data/output/results") / f"{dataset_type}_{method_str}_{model_str}_{timestamp}"
 
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Best-effort cache check
+    if use_cache:
+        hash_config = _config_to_hash_config(config, dataset_path.name, smart_k, grid_label=None)
+        normalized = normalize_config(hash_config)
+        hash_id = config_hash(normalized)
+        meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
+        results_json = Path("results") / "by-hash" / hash_id / "results.json"
+        if meta_path.exists():
+            try:
+                with meta_path.open() as f:
+                    meta = json.load(f)
+                artifacts = meta.get("artifacts", {})
+                rjson = artifacts.get("results_json")
+                rpath = Path(rjson) if rjson else results_json
+                if rpath.exists():
+                    console.print(f"[green]♻️  Cache hit for {hash_id}; reusing existing results.[/green]")
+                    with rpath.open() as f:
+                        cached = json.load(f)
+                    table = Table(title="Cached Benchmark Results", show_header=True, header_style="bold cyan")
+                    table.add_column("Metric", style="cyan")
+                    table.add_column("Value", justify="right", style="green")
+                    metrics = cached.get("metrics", {})
+                    table.add_row("Dataset", cached.get("dataset", dataset_type.upper()))
+                    table.add_row("Method", cached.get("method", ""))
+                    table.add_row("Mean mIoU", f"{metrics.get('mean_miou', 0):.4f}")
+                    table.add_row("Mean Pixel Accuracy", f"{metrics.get('mean_pixel_accuracy', 0):.4f}")
+                    table.add_row("Mean Runtime", f"{metrics.get('mean_runtime', 0):.2f}s")
+                    table.add_row("Total Samples", str(cached.get("total_samples", 0)))
+                    console.print()
+                    console.print(table)
+                    console.print(f"[dim]Source: {rpath}[/dim]")
+                    return None
+            except Exception:
+                pass
 
     # Load dataset
     if dataset_type == "fortress":
@@ -478,6 +514,11 @@ def evaluate_command(
         "--smart-k",
         help="Use smart K mode (match GT class count - debug only)",
     ),
+    use_cache: bool = typer.Option(
+        True,
+        "--use-cache/--no-cache",
+        help="Reuse cached results if the same config/dataset hash exists",
+    ),
     compare_configs: bool = typer.Option(
         False,
         "--compare-configs",
@@ -634,4 +675,5 @@ def evaluate_command(
             save_labels=save_labels,
             quiet=quiet,
             smart_k=smart_k,
+            use_cache=use_cache,
         )
