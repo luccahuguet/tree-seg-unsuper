@@ -533,8 +533,9 @@ def evaluate_command(
             "version": config.version,
             "refine": config.refine,
             "clustering_method": config.clustering_method,
-            "model_name": model,
+            "model_name": config.model_name,
             "stride": stride,
+            "image_size": config.image_size,
             "elbow_threshold": elbow_threshold,
             "auto_k": (fixed_k is None),
             "n_clusters": fixed_k if fixed_k else 6,
@@ -543,6 +544,14 @@ def evaluate_command(
             "use_tiling": not no_tiling,
             "viz_two_panel": viz_two_panel,
             "viz_two_panel_opaque": viz_two_panel_opaque,
+            "use_pyramid": config.use_pyramid,
+            "pyramid_scales": config.pyramid_scales,
+            "pyramid_aggregation": config.pyramid_aggregation,
+            "use_soft_refine": config.use_soft_refine,
+            "soft_refine_temperature": config.soft_refine_temperature,
+            "soft_refine_iterations": config.soft_refine_iterations,
+            "soft_refine_spatial_alpha": config.soft_refine_spatial_alpha,
+            "metrics": True,
         }
 
         _run_comparison_benchmark(
