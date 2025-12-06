@@ -608,6 +608,14 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                         nn.fit(features_flat[labels >= 0])
                         _, indices = nn.kneighbors(features_flat[labels == -1])
                         labels[labels == -1] = labels[labels >= 0][indices.flatten()]
+        elif clustering_method == "spherical":
+            if verbose:
+                print(f"🎯 Clustering with spherical k-means (cosine) (k={n_clusters})...")
+            # L2-normalize features to unit sphere
+            norms = np.linalg.norm(features_flat, axis=1, keepdims=True) + 1e-8
+            features_norm = features_flat / norms
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+            labels = kmeans.fit_predict(features_norm)
         else:  # default to kmeans
             if verbose:
                 print(f"🎯 Clustering with K-means (k={n_clusters})...")
