@@ -59,9 +59,25 @@ def generate_visualizations(results: SegmentationResults, config: Config, output
     _generate_segmentation_legend(results, config, output_paths, cmap, config_text, verbose)
     _generate_edge_overlay(results, config, output_paths, cmap, config_text, verbose)
     _generate_side_by_side(results, config, output_paths, cmap, config_text, verbose)
+    _generate_overlay(results, config, output_paths, verbose)
     
     if verbose:
         print(f"✅ Generated visualizations for {filename}")
+
+
+def _generate_overlay(results: SegmentationResults, config: Config, output_paths: OutputPaths, verbose: bool = True) -> None:
+    """Generate simple overlay image via composites helper."""
+    if config.overlay_ratio <= 0:
+        return
+    overlay_image = overlay_labels(
+        results.image_np,
+        results.labels_resized,
+        alpha=config.overlay_ratio,
+    )
+    if output_paths.overlay_path:
+        overlay_image.save(output_paths.overlay_path)
+    if verbose and output_paths.overlay_path:
+        print(f"🔳 Saved overlay: {os.path.basename(output_paths.overlay_path)}")
 
 
 def _generate_segmentation_legend(results: SegmentationResults, config: Config, 

@@ -210,6 +210,7 @@ class OutputPaths:
     segmentation_legend: str
     edge_overlay: str
     side_by_side: str
+    overlay_path: Optional[str] = None
     elbow_analysis: Optional[str] = None
     
     def all_paths(self) -> list:
