@@ -236,8 +236,27 @@ def segment_command(
 
             console.print(f"[cyan]🖼️  Found {len(image_files)} image(s) in {img_path}[/cyan]")
 
+            try:
+                from rich.progress import Progress, BarColumn, TimeElapsedColumn, TimeRemainingColumn, TextColumn
+
+                progress = Progress(
+                    TextColumn("[bold cyan]Segment"),
+                    BarColumn(),
+                    TextColumn("{task.completed}/{task.total}"),
+                    TimeElapsedColumn(),
+                    TimeRemainingColumn(),
+                )
+                task_id = progress.add_task("segment", total=len(image_files))
+                progress.start()
+            except Exception:
+                progress = None
+                task_id = None
+
             for p in sorted(image_files):
-                console.print(f"\n[bold]🚀 Processing: {p.name}[/bold]")
+                if progress:
+                    progress.console.print(f"\n[bold]🚀 Processing: {p.name}[/bold]", highlight=False)
+                else:
+                    console.print(f"\n[bold]🚀 Processing: {p.name}[/bold]")
                 try:
                     results = segment_trees(
                         str(p),
@@ -251,7 +270,7 @@ def segment_command(
                     if metrics and isinstance(results, list) and results:
                         res, _paths = results[0]
                         stats = getattr(res, "processing_stats", {})
-                        console.print(
+                        line = (
                             f"[dim]⏱️  total={stats.get('time_total_s')}s, "
                             f"features={stats.get('time_features_s')}s, "
                             f"kselect={stats.get('time_kselect_s')}s, "
@@ -259,12 +278,28 @@ def segment_command(
                             f"refine={stats.get('time_refine_s')}s, "
                             f"peak_vram={stats.get('peak_vram_mb')}MB[/dim]"
                         )
+                        if progress:
+                            progress.console.print(line, highlight=False)
+                        else:
+                            console.print(line)
                     if save_labels and isinstance(results, list):
                         for res, _paths in results:
                             _save_labels_npz(out_dir, res)
-                    console.print(f"[green]✅ Completed: {p.name}[/green]")
+                    if progress:
+                        progress.console.print(f"[green]✅ Completed: {p.name}[/green]", highlight=False)
+                    else:
+                        console.print(f"[green]✅ Completed: {p.name}[/green]")
                 except Exception as e:
-                    console.print(f"[red]❌ Failed: {p.name} - {e}[/red]")
+                    if progress:
+                        progress.console.print(f"[red]❌ Failed: {p.name} - {e}[/red]", highlight=False)
+                    else:
+                        console.print(f"[red]❌ Failed: {p.name} - {e}[/red]")
+                finally:
+                    if progress and task_id is not None:
+                        progress.update(task_id, advance=1)
+
+            if progress:
+                progress.stop()
         else:
             console.print(f"[bold]🚀 Processing: {img_path.name}[/bold]")
             try:
