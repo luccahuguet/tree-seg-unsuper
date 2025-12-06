@@ -57,6 +57,11 @@ def results_command(
         "-h",
         help="Show details for a specific run hash",
     ),
+    render: bool = typer.Option(
+        False,
+        "--render",
+        help="Attempt to regenerate visualizations if labels are available",
+    ),
     dataset: Optional[str] = typer.Option(
         None,
         "--dataset",
@@ -106,6 +111,16 @@ def results_command(
             console.print(f"[red]❌ No metadata found for hash {hash_id}[/red]")
             raise typer.Exit(code=1)
         _print_detail(meta, show_config=show_config)
+        if render:
+            artifacts = meta.get("artifacts", {})
+            viz_dir = artifacts.get("visualizations_dir")
+            labels_dir = artifacts.get("labels_dir")
+            if viz_dir:
+                console.print(f"[green]✔ Visualizations already exist at {viz_dir}[/green]")
+            elif labels_dir:
+                console.print("[yellow]⚠️ Labels present but visualization regeneration is not implemented yet.[/yellow]")
+            else:
+                console.print("[yellow]⚠️ No labels or visualizations found; nothing to render.[/yellow]")
         return
 
     entries = query_index(
