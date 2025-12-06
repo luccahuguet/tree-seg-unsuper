@@ -274,20 +274,22 @@ uv run python scripts/evaluate_fortress.py \
 Official DINOv3 repository includes linear segmentation head. Multiple approaches possible:
 
 - [ ] **Option 1: Supervised training from scratch**
-  - Train linear head (Conv2d 1×1) on FORTRESS labels
-  - Architecture: ~115K params (13 classes × 768D features)
-  - Fits in 32GB RAM (lightweight, only trains head)
+  - Train linear head (Conv2d 1×1) on FORTRESS labels with ViT-B/16 backbone
+  - Architecture: ~10K params (13 classes × 768D features)
+  - Fits in 32GB RAM (86M backbone + 10K head params)
+  - Code: Follow `dinov3/eval/segmentation/configs/config-ade20k-linear-training.yaml`
   - Expected: +30-50% mIoU (supervised upper bound)
-  - **Pros:** Shows DINOv3 feature quality ceiling
+  - **Pros:** Shows DINOv3 feature quality ceiling for FORTRESS
   - **Cons:** Changes problem from unsupervised to supervised
+  - **Note:** ViT-7B doesn't fit in 32GB; use existing ViT-B/16 backbone
 
-- [ ] **Option 2: Pre-trained vegetation filtering**
+- [x] **Option 2: Pre-trained vegetation filtering** ❌ **BLOCKED**
   - Use ADE20K pre-trained head (150 classes including "tree")
+  - Official checkpoint: ViT-7B/16 + Mask2Former on ADE20K
   - Extract "tree" class predictions as vegetation mask
-  - Apply K-means only on tree pixels
-  - Expected: +2-5% mIoU by reducing background noise
-  - **Pros:** Stays unsupervised, uses existing checkpoint
-  - **Cons:** Requires downloading/loading ADE20K checkpoint
+  - **Result:** ViT-7B + M2F doesn't fit in 32GB RAM
+  - **Alternative:** Could try with smaller backbone (ViT-B/16) if M2F checkpoint available
+  - **Status:** Blocked by memory - would need >32GB or smaller model
 
 - [ ] **Option 3: Transfer learning (fine-tune)**
   - Load ADE20K pre-trained head
