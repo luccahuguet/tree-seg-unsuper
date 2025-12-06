@@ -4,6 +4,42 @@
 
 **Goal:** Test alternative clustering and feature methods to improve unsupervised segmentation quality.
 
+## 🎛️ CLI Structure (Composable)
+
+The evaluation CLI uses composable flags at different abstraction levels:
+
+```bash
+# Clustering algorithm (what groups pixels)
+--clustering kmeans|gmm|spectral|hdbscan  # Default: kmeans
+
+# Refinement method (how to improve boundaries)
+--refine none|slic|soft-em|bilateral|soft-em+slic  # Default: slic
+
+# Task modifier (what to segment)
+--vegetation-filter  # Enable species-level segmentation (V3)
+
+# Supervised mode (different approach)
+--supervised  # Use Mask2Former instead of clustering (V4)
+```
+
+**Examples:**
+```bash
+# V1.5 baseline: K-means + SLIC
+tree-seg eval data/fortress
+
+# V2: K-means + soft EM refinement
+tree-seg eval data/fortress --refine soft-em
+
+# Experiment: GMM + soft EM
+tree-seg eval data/fortress --clustering gmm --refine soft-em
+
+# V3 task: Species segmentation
+tree-seg eval data/fortress --vegetation-filter
+
+# No refinement: just clustering
+tree-seg eval data/fortress --refine none
+```
+
 ---
 
 ## 📊 Recent Results
@@ -43,6 +79,23 @@ Tested bilateral filtering vs SLIC on FORTRESS CFB003:
 - Soft assignments may dilute cluster boundaries
 - Covariance estimation adds computational cost without benefit
 - K-means' hard assignments work better for spatial segmentation
+
+---
+
+## 🎯 V2 Soft EM Refinement (Implemented)
+
+- [x] **Soft EM Refinement (V2)** ✅ **IMPLEMENTED**
+  - Refine K-means clusters using temperature-scaled softmax
+  - Iterative EM updates in DINOv3 feature space
+  - Optional spatial blending with neighbors
+  - Code: `tree_seg/clustering/head_refine.py`
+  - Usage: `--refine soft-em` or `--refine soft-em+slic`
+  - **Parameters:**
+    - Temperature τ = 1.0 (controls boundary softness)
+    - Iterations = 5 (typical 3-5)
+    - Spatial blend α = 0.0 (disabled by default)
+  - **Status:** Ready for testing on FORTRESS
+  - **Expected:** +1-3% mIoU over baseline K-means
 
 ---
 
@@ -142,19 +195,27 @@ For each experiment:
 
 **Running Sweeps:**
 ```bash
-# Test clustering methods
-uv run python scripts/evaluate_fortress.py \
-  --dataset data/fortress_processed \
-  --method v1.5 --model base --stride 4 \
+# Test clustering methods (GMM, spectral, etc.)
+uv run tree-seg eval data/fortress_processed \
   --num-samples 1 --save-viz \
   --compare-configs --grid clustering --smart-k
 
 # Test tiling configurations
-uv run python scripts/evaluate_fortress.py \
-  --dataset data/fortress_processed \
-  --method v1.5 --model base \
+uv run tree-seg eval data/fortress_processed \
   --num-samples 1 --save-viz \
   --compare-configs --grid tiling_refine --smart-k
+
+# Test V2 soft EM refinement
+uv run tree-seg eval data/fortress_processed \
+  --refine soft-em --num-samples 1 --save-viz
+
+# Test refinement combinations
+uv run tree-seg eval data/fortress_processed \
+  --refine soft-em+slic --num-samples 1 --save-viz
+
+# Experiment: GMM with soft EM
+uv run tree-seg eval data/fortress_processed \
+  --clustering gmm --refine soft-em --num-samples 1 --save-viz
 ```
 
 ---
