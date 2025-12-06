@@ -345,10 +345,10 @@ tree-seg results --prune --older-than 30d
 ```
 
 ### Current Implementation Status (Dec 6, 2024)
-- ✅ Metadata storage: hash/index/meta.json, auto-tags, hardware info, artifacts (results/viz/labels paths)
-- ✅ Label dumping: `--save-labels/--no-save-labels` in `tree-seg eval`, saved under `<output>/labels/{image_id}.npz`
-- ✅ Results CLI: `tree-seg results` to list/filter by dataset/tags, sort, or show details for a hash (with config dump)
-- ⚠️ Not yet: visualization regeneration, feature caching, nearest-config ETA scaling in CLI, integration with `segment` command, compaction/prune commands (stubs in doc only)
+- ✅ Metadata storage: hash/index/meta.json, auto-tags, hardware info, artifacts (results/viz/labels paths), dataset_root
+- ✅ Label dumping: `--save-labels/--no-save-labels` in `tree-seg eval` and `tree-seg segment`, saved under `<output>/labels/{image_id}.npz`
+- ✅ Results CLI: `tree-seg results` to list/filter by dataset/tags, sort, show details for a hash (with config dump), regenerate viz (`--render`), compact stale entries (`--compact`), and prune old runs (`--prune-older-than`)
+- ⚠️ Not yet: feature caching, nearest-config ETA lookup exposed via CLI (internal runtime cache only), CSV export, prune by size, web dashboard
 
 ## API Surface
 
