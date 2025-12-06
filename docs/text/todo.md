@@ -7,3 +7,4 @@
   - Feature stride optimization (stride=2)
   - Potential k-means successors: spherical+soft k-means, DP-means, regularized k-means (Potts on SLIC graph)
 - Plan a larger sweep on FORTRESS (3–10 images) to identify the current peak performer across clustering/refine/tiling/stride variants.
+- Add cache reuse for eval/segment: check metadata hash before running, return existing results/viz if found; support `--force/--no-cache`; skip cached configs in sweeps; handle partial artifacts (regen viz from labels).
