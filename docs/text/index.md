@@ -4,9 +4,10 @@
 
 ### [CLI Usage](cli_usage.md)
 Quick start guide for running tree segmentation via command line.
-- Installation
+- Installation (uv)
 - Common workflows
 - Configuration options
+- Results/metadata CLI
 
 ### [Benchmarking Guide](benchmarking.md)
 Dataset setup and evaluation workflows.
@@ -76,13 +77,6 @@ Key finding: DINOv3 naturally encodes vegetation (0.95+ correlation).
 - Implications for V3
 - Dataset requirements
 
-### [K-means Successors](kmeans_successors.md)
-Alternative clustering algorithms exploration.
-- Spherical K-means
-- DP-means
-- Soft K-means
-- Implementation notes
-
 ### [Week 1 Results](week1_results.md)
 Benchmark data and results from initial experiments (Oct 2024).
 - V1.5 baseline metrics
@@ -128,7 +122,7 @@ Original planning document for V2 implementation (now complete).
 
 **Experiments:** `experiments.md` (CLI guide + results)
 
-**Research:** `dinov3_vegetation_analysis.md`, `kmeans_successors.md`, `week1_results.md`
+**Research:** `dinov3_vegetation_analysis.md`, `week1_results.md` (k-means successor ideas folded into experiments)
 
 **Datasets:** `oam_tcd_integration.md`, `dataset_search_context.md`
 
