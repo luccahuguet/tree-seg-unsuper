@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
+from tree_seg.cli.eval_utils import create_config
 from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.datasets import FortressDataset
 from tree_seg.evaluation.formatters import config_to_dict, format_comparison_table, save_comparison_summary
@@ -59,82 +60,25 @@ def _create_config(
     use_attention_features: bool,
 ) -> Config:
     """Create Config object from parameters."""
-    # Determine version based on configuration
-    if use_supervised:
-        version = "v4"
-    elif refine == "soft-em" or refine == "soft-em+slic":
-        version = "v2"
-    elif apply_vegetation_filter:
-        version = "v3"
-    else:
-        version = "v1.5"
-
-    # Handle V4 special case (supervised)
-    if use_supervised:
-        if model != "mega":
-            console.print("[yellow]⚠️  Mask2Former head only supports the ViT-7B backbone; overriding model to 'mega'.[/yellow]")
-            model = "mega"
-        if image_size == 1024:
-            image_size = 896
-        return Config(
-            version="v4",
-            model_name="mega",
-            image_size=image_size,
-            auto_k=False,
-            n_clusters=6,
-            refine=None,
-            metrics=True,
-            verbose=not quiet,
-            use_attention_features=use_attention_features,
-        )
-
-    # Map clustering algorithm
-    clustering_method = clustering  # kmeans, gmm, spectral, hdbscan
-
-    # Map refinement methods
-    refine_method = None
-    use_soft_refine = False
-
-    if refine and refine != "none":
-        if refine == "soft-em":
-            use_soft_refine = True
-            refine_method = None  # Soft EM is separate from image-space refinement
-        elif refine == "slic":
-            refine_method = "slic"
-        elif refine == "bilateral":
-            refine_method = "bilateral"
-        elif refine == "soft-em+slic":
-            use_soft_refine = True
-            refine_method = "slic"
-
-    # Parse pyramid scales
-    scales = tuple(float(s.strip()) for s in pyramid_scales.split(",")) if pyramid_scales else (0.5, 1.0, 2.0)
-
-    return Config(
-        version=version,
-        clustering_method=clustering_method,
-        refine=refine_method,
-        model_name=model,
+    return create_config(
+        clustering=clustering,
+        refine=refine,
+        model=model,
         stride=stride,
-        elbow_threshold=elbow_threshold,
-        n_clusters=fixed_k if fixed_k else 6,
-        auto_k=(fixed_k is None),
         image_size=image_size,
+        elbow_threshold=elbow_threshold,
+        fixed_k=fixed_k,
         apply_vegetation_filter=apply_vegetation_filter,
         exg_threshold=exg_threshold,
-        use_tiling=not no_tiling,
+        no_tiling=no_tiling,
         viz_two_panel=viz_two_panel,
         viz_two_panel_opaque=viz_two_panel_opaque,
         use_pyramid=use_pyramid,
-        pyramid_scales=scales,
+        pyramid_scales=pyramid_scales,
         pyramid_aggregation=pyramid_aggregation,
-        use_soft_refine=use_soft_refine,
-        soft_refine_temperature=1.0,
-        soft_refine_iterations=5,
-        soft_refine_spatial_alpha=0.0,
+        use_supervised=use_supervised,
+        quiet=quiet,
         use_attention_features=use_attention_features,
-        metrics=True,
-        verbose=not quiet,
     )
 
 
