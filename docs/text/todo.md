@@ -8,3 +8,8 @@
   - Potential k-means successors: spherical+soft k-means, DP-means, regularized k-means (Potts on SLIC graph)
 - Plan a larger sweep on FORTRESS (3–10 images) to identify the current peak performer across clustering/refine/tiling/stride variants.
 - Add cache reuse for eval/segment: check metadata hash before running, return existing results/viz if found; support `--force/--no-cache`; skip cached configs in sweeps; handle partial artifacts (regen viz from labels).
+- Future (optional): meta-learning on metadata bank
+  - Add dataset feature descriptors (resolution stats, tile counts, class counts, color/entropy/exg)
+  - Train a simple ranker/nearest-neighbor recommender for configs per dataset
+  - (Optional) BO/surrogate to propose next configs under runtime constraints
+  - Expose via `tree-seg results --recommend --dataset <name>`
