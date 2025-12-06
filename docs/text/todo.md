@@ -15,6 +15,7 @@
   - [ ] (Optional later) BO/surrogate to propose next configs under runtime constraints
   - [ ] Expose via `tree-seg results --recommend --dataset <name>`
 - [ ] Codebase hygiene:
-  - [ ] Scan for large files/duplication and DRY refactors; centralize shared logic where possible.
+  - [ ] Scan for large files/duplication; centralize shared clustering logic (k-means variants) to reduce copy/paste.
+  - [ ] Split monoliths (`core/segmentation.py`) into smaller modules for readability/testing.
   - [ ] Move to latest supported Python runtime when feasible.
 - [ ] Docs: update stale site content to reflect current CLI, metadata/results features, and removed version split.
