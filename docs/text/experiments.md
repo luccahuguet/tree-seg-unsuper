@@ -218,6 +218,10 @@ uv run tree-seg eval data/fortress_processed \
   --clustering gmm --refine soft-em --num-samples 1 --save-viz
 ```
 
+Metadata tips:
+- `--save-labels/--no-save-labels` controls NPZ dumps under `labels/` (on by default).
+- Runs auto-log into the metadata bank (best-effort) under `results/`. Query with `uv run tree-seg results ...` (e.g., `--tags kmeans,slic --sort mIoU --top 5` or `--hash <id> --render` to regenerate viz).
+
 ---
 
 ## 📊 Results Log
@@ -363,4 +367,3 @@ Official DINOv3 repository includes linear segmentation head. Multiple approache
 **Note:** Options 1 & 3 are supervised methods. Option 2 could improve unsupervised baseline.
 
 **All unsupervised clustering experiments completed. K-means + SLIC remains the best unsupervised approach.**
-
