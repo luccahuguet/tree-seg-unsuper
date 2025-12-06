@@ -10,13 +10,10 @@ import torch
 import cv2
 from PIL import Image
 from .clustering import cluster_features
+from .refine import refine_labels, apply_vegetation_filter
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 from .features import extract_tiled_features, extract_features
-try:
-    from skimage.segmentation import slic
-except Exception:
-    slic = None
 
 
 def process_image(image_path, model, preprocess, n_clusters, stride, device,
@@ -283,58 +280,16 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
             print(f"labels_resized shape: {labels_resized.shape}")
 
         # Optional edge-aware refinement
-        # Optional edge-aware refinement
-        if refine == "slic":
-            # Try OpenCV SLIC first (much faster)
-            if hasattr(cv2, 'ximgproc'):
-                if verbose:
-                    print("🔧 Refining with fast OpenCV SLIC...")
-                t_refine_start = time.perf_counter()
-                labels_resized = _refine_with_opencv_slic(
-                    image_np,
-                    labels_resized,
-                    compactness=refine_slic_compactness,
-                    region_size=48  # Approx matching 48x48 target area
-                )
-                t_refine_end = time.perf_counter()
-            # Fallback to skimage SLIC
-            elif slic is not None:
-                if verbose:
-                    print("🔧 Refining with skimage SLIC (slow)...")
-                t_refine_start = time.perf_counter()
-                labels_resized = _refine_with_slic(
-                    image_np,
-                    labels_resized,
-                    compactness=refine_slic_compactness,
-                    sigma=refine_slic_sigma,
-                )
-                t_refine_end = time.perf_counter()
-            else:
-                if verbose:
-                    print("⚠️  No SLIC implementation available (install opencv-contrib-python or scikit-image)")
-        elif refine in ("slic_skimage", "slic-skimage"):
-            if slic is not None:
-                if verbose:
-                    print("🔧 Refining with skimage SLIC (forced)...")
-                t_refine_start = time.perf_counter()
-                labels_resized = _refine_with_slic(
-                    image_np,
-                    labels_resized,
-                    compactness=refine_slic_compactness,
-                    sigma=refine_slic_sigma,
-                )
-                t_refine_end = time.perf_counter()
-            elif verbose:
-                print("⚠️  scikit-image SLIC unavailable; skipping refinement (install scikit-image)")
-        elif refine == "bilateral":
-            if verbose:
-                print("🔧 Refining segmentation with bilateral filter...")
-            t_refine_start = time.perf_counter()
-            labels_resized = _refine_with_bilateral(
-                image_np,
-                labels_resized,
-            )
-            t_refine_end = time.perf_counter()
+        t_refine_start = time.perf_counter()
+        labels_resized, refine_time = refine_labels(
+            image_np=image_np,
+            labels_resized=labels_resized,
+            method=refine,
+            compactness=refine_slic_compactness,
+            sigma=refine_slic_sigma,
+            verbose=verbose,
+        )
+        t_refine_end = t_refine_start + refine_time
 
         # Vegetation filtering (if enabled - works with any pipeline)
         # Automatically enabled for V3 pipeline for backward compatibility
@@ -343,7 +298,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         if should_apply_filter:
             if verbose:
                 print("🌳 Applying vegetation filtering (ExG-based cluster selection)...")
-            labels_resized = _apply_vegetation_filter(
+            labels_resized = apply_vegetation_filter(
                 image_np,
                 labels_resized,
                 exg_threshold=exg_threshold,
@@ -365,8 +320,8 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                 'time_preprocess_s': round(t_pre_end - t_pre_start, 3),
                 'time_features_s': round(t_features - t_pre_end, 3),
                 'time_kselect_s': round(t_kselect - t_features, 3) if auto_k else 0.0,
-                'time_kmeans_s': round((t_refine_start if refine == 'slic' and slic is not None else t_end) - t_kselect, 3),
-                'time_refine_s': round((t_refine_end - t_refine_start), 3) if refine == 'slic' and slic is not None else 0.0,
+                'time_kmeans_s': round((t_refine_start if refine_time > 0 else t_end) - t_kselect, 3),
+                'time_refine_s': round(refine_time, 3) if refine_time > 0 else 0.0,
                 'grid_H': int(H),
                 'grid_W': int(W),
                 'n_features': int(features_flat.shape[-1]),
@@ -387,222 +342,3 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
             print(f"Error processing {path_for_error}: {e}")
             traceback.print_exc()
         return None, None
-
-
-def _apply_vegetation_filter(
-    image_np: np.ndarray,
-    cluster_labels: np.ndarray,
-    exg_threshold: float = 0.10,
-    verbose: bool = True
-) -> np.ndarray:
-    """
-    Apply vegetation filtering to cluster labels.
-
-    Args:
-        image_np: RGB image (H, W, 3)
-        cluster_labels: Cluster labels (H, W)
-        exg_threshold: ExG threshold for vegetation classification
-        verbose: Print progress
-
-    Returns:
-        Filtered labels (H, W) with only vegetation clusters (0 = background)
-    """
-    try:
-        from ..vegetation_filter import apply_vegetation_filter
-
-        # Apply vegetation filter
-        filtered_labels, filter_info = apply_vegetation_filter(
-            image_np,
-            cluster_labels,
-            exg_threshold=exg_threshold,
-            verbose=verbose
-        )
-
-        if verbose:
-            print(f"  ✓ Filtered to {filter_info['n_vegetation_clusters']} vegetation clusters")
-            print(f"  ✓ Vegetation coverage: {filter_info['vegetation_percentage']:.1f}%")
-
-        return filtered_labels
-
-    except Exception as e:
-        if verbose:
-            print(f"  ⚠️  Vegetation filtering failed: {e}, returning original clusters")
-        return cluster_labels
-
-
-def _refine_with_slic(image_np: np.ndarray, labels_resized: np.ndarray,
-                       compactness: float = 10.0, sigma: float = 1.0) -> np.ndarray:
-    """Refine cluster labels using SLIC superpixels with majority voting.
-
-    Args:
-        image_np: Original RGB image as numpy array (H, W, 3)
-        labels_resized: Initial labels (H, W)
-        compactness: SLIC compactness parameter
-        sigma: SLIC Gaussian smoothing parameter
-
-    Returns:
-        Refined labels (H, W)
-    """
-    h, w = labels_resized.shape[:2]
-    # Target ~ one superpixel per ~48x48 area (tunable)
-    target_area = 48 * 48
-    n_segments = max(100, int((h * w) / target_area))
-    
-    # Cap at reasonable maximum to prevent hanging on huge images
-    # (e.g., 9000x9000 FORTRESS orthomosaics)
-    MAX_SEGMENTS = 2000
-    n_segments = min(n_segments, MAX_SEGMENTS)
-
-    # Ensure float image in [0,1]
-    img_float = image_np.astype(np.float32)
-    if img_float.max() > 1.5:
-        img_float = img_float / 255.0
-
-    segments = slic(
-        img_float,
-        n_segments=n_segments,
-        compactness=compactness,
-        sigma=sigma,
-        start_label=0,
-        channel_axis=-1,
-    )
-
-    refined = labels_resized.copy()
-    # Majority vote within each superpixel
-    # Vectorized approach via flattening
-    seg_flat = segments.reshape(-1)
-    lab_flat = labels_resized.reshape(-1)
-
-    # For each segment id, compute the mode of labels
-    seg_ids = np.unique(seg_flat)
-    for sid in seg_ids:
-        mask = (seg_flat == sid)
-        if not np.any(mask):
-            continue
-        # bincount of labels in this segment
-        vals = lab_flat[mask]
-        max_label = np.bincount(vals).argmax()
-        refined.reshape(-1)[mask] = max_label
-
-    return refined.astype(np.uint8)
-
-
-def _refine_with_opencv_slic(image_np: np.ndarray, labels_resized: np.ndarray,
-                            compactness: float = 10.0, region_size: int = 48) -> np.ndarray:
-    """Refine cluster labels using OpenCV's fast SLIC implementation.
-    
-    Much faster than skimage.segmentation.slic.
-    
-    Args:
-        image_np: Original RGB image (H, W, 3)
-        labels_resized: Initial labels (H, W)
-        compactness: SLIC compactness (smoothness)
-        region_size: Average superpixel size
-        
-    Returns:
-        Refined labels (H, W)
-    """
-    # Target number of segments to keep runtime reasonable
-    # Same logic as skimage implementation
-    MAX_SEGMENTS = 2000
-    
-    h, w = image_np.shape[:2]
-    
-    # If region_size is default (48), override it based on MAX_SEGMENTS
-    # otherwise respect the provided region_size if it results in fewer segments
-    if region_size == 48:
-        calculated_region_size = int(np.sqrt((h * w) / MAX_SEGMENTS))
-        region_size = max(region_size, calculated_region_size)
-    
-    # Initialize SLIC
-    # algorithm: 100 = SLICO (optimization), 101 = SLIC, 102 = MSLIC
-    slic = cv2.ximgproc.createSuperpixelSLIC(
-        image_np, 
-        algorithm=cv2.ximgproc.SLIC,
-        region_size=region_size,
-        ruler=float(compactness)
-    )
-    
-    # Run SLIC
-    slic.iterate(10)  # 10 iterations is standard
-    
-    # Get labels
-    segments = slic.getLabels()
-    
-    # Fast vectorized majority voting
-    # Compute 2D histogram of (segment_id, label)
-    # Rows = segments, Cols = labels
-    seg_flat = segments.reshape(-1)
-    lab_flat = labels_resized.reshape(-1)
-    
-    n_segments_actual = segments.max() + 1
-    n_labels = labels_resized.max() + 1
-    
-    # histogram2d is fast and avoids the loop
-    hist, _, _ = np.histogram2d(
-        seg_flat, 
-        lab_flat, 
-        bins=[n_segments_actual, n_labels],
-        range=[[0, n_segments_actual], [0, n_labels]]
-    )
-    
-    # Find mode label for each segment (argmax along label axis)
-    segment_modes = np.argmax(hist, axis=1).astype(np.uint8)
-    
-    # Map back to image
-    refined = segment_modes[segments]
-        
-    return refined.astype(np.uint8)
-
-
-def _refine_with_bilateral(image_np: np.ndarray, labels_resized: np.ndarray) -> np.ndarray:
-    """Refine cluster labels using bilateral filtering.
-    
-    Fast edge-aware refinement alternative to SLIC. Smooths labels while preserving
-    edges using spatial and intensity-based filtering.
-    
-    Args:
-        image_np: Original RGB image as numpy array (H, W, 3)
-        labels_resized: Initial labels (H, W)
-        
-    Returns:
-        Refined labels (H, W)
-    """
-    # Apply bilateral filter to smooth image while preserving edges
-    # Parameters tuned for aerial imagery edge preservation
-    d = 9  # Neighborhood diameter  
-    sigmaColor = 75  # Filter sigma in color space
-    sigmaSpace = 75  # Filter sigma in coordinate space
-    
-    # Filter the original image to get edge map
-    # filtered = cv2.bilateralFilter(image_np, d, sigmaColor, sigmaSpace)
-    
-    # Compute edge strength between filtered and original
-    # Strong edges in the filtered image indicate object boundaries
-    # edge_strength = np.abs(filtered.astype(np.float32) - image_np.astype(np.float32)).mean(axis=2)
-    
-    # Create label probability map by filtering the labels
-    # Convert labels to float for filtering
-    h, w = labels_resized.shape
-    n_labels = int(labels_resized.max()) + 1
-    
-    # Create one-hot encoded label maps
-    label_smoothed = np.zeros((h, w), dtype=np.uint8)
-    
-    for label_id in range(n_labels):
-        # Create binary mask for this label
-        mask = (labels_resized == label_id).astype(np.float32)
-        
-        # Apply bilateral filter to the mask
-        # This smooths within regions but preserves edges
-        smoothed_mask = cv2.bilateralFilter(
-            (mask * 255).astype(np.uint8), 
-            d, 
-            sigmaColor, 
-            sigmaSpace
-        ).astype(np.float32) / 255.0
-        
-        # Update labels where this label has highest confidence
-        label_smoothed[smoothed_mask > 0.5] = label_id
-    
-    return label_smoothed
