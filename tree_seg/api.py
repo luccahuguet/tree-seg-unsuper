@@ -3,7 +3,6 @@ Modern, clean API for tree segmentation.
 """
 
 import os
-import time
 from pathlib import Path
 from typing import List, Optional
 
@@ -11,12 +10,15 @@ import numpy as np
 import torch
 
 from .constants import SUPPORTED_IMAGE_EXTS
-
 from .core.types import Config, SegmentationResults, OutputPaths
-from .core.output_manager import OutputManager
-from .models import get_preprocess, initialize_model
-from .models.mask2former import Mask2FormerConfig, Mask2FormerSegmentor
-from .core.segmentation import process_image
+from .evaluation.api_runner import (
+    create_output_manager,
+    ensure_mask2former,
+    init_model_and_preprocess,
+    run_mask2former_numpy,
+    run_segmentation_numpy,
+    select_device,
+)
 from .visualization.plotting import generate_visualizations
 
 
@@ -35,24 +37,12 @@ class TreeSegmentation:
         self.config = config or Config()
         self.config.validate()
         
-        self.output_manager = OutputManager(self.config)
-        # Default to CPU (safer for limited GPU RAM)
-        # Set FORCE_GPU=1 to force GPU usage
+        self.output_manager = create_output_manager(self.config)
         force_gpu = os.environ.get("FORCE_GPU", "").lower() in ("1", "true", "yes")
-
-        if force_gpu:
-            if torch.cuda.is_available():
-                self.device = torch.device("cuda")
-            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-                self.device = torch.device("mps")
-            else:
-                print("⚠️  FORCE_GPU=1 but no GPU available, using CPU")
-                self.device = torch.device("cpu")
-        else:
-            self.device = torch.device("cpu")
+        self.device = select_device(force_gpu)
         self.model = None
         self.preprocess = None
-        self.mask2former_segmentor: Optional[Mask2FormerSegmentor] = None
+        self.mask2former_segmentor = None
         
         print("🌳 TreeSegmentation initialized")
         print(f"📱 Selected device: {self.device}")
@@ -83,118 +73,22 @@ class TreeSegmentation:
         """
         import numpy as np
 
-        # Process numpy array directly without temp file to avoid PIL decompression bomb limit
         if self.config.version == "v4":
-            # Use Mask2Former path
             self._ensure_mask2former()
-            import time
-
-            start_time = time.time()
-            labels = self.mask2former_segmentor.predict(image)
-            runtime = time.time() - start_time
-
-            n_segments = int(np.unique(labels).size)
-
-            stats = {
-                "original_size": image.shape[:2],
-                "labels_shape": labels.shape,
-                "model": "dinov3_vit7b16",
-                "decoder": "mask2former_m2f",
-                "runtime_s": runtime,
-                "num_decoder_classes": self.mask2former_segmentor.cfg.num_classes,
-            }
-
-            return SegmentationResults(
+            return run_mask2former_numpy(
                 image_np=image,
-                labels_resized=labels,
-                n_clusters_used=n_segments,
-                image_path="<numpy_array>",
-                processing_stats=stats,
-                n_clusters_requested=None,
+                device=self.device,
+                config=self.config,
+                mask2former_segmentor=self.mask2former_segmentor,
             )
 
-        # V1-V3 path: process directly
         self.initialize_model()
-
-        # Call process_image with numpy array directly
-        result = process_image(
-            image_path=image,  # Pass numpy array instead of path
+        return run_segmentation_numpy(
+            image_np=image,
+            config=self.config,
+            device=self.device,
             model=self.model,
             preprocess=self.preprocess,
-            n_clusters=self.config.n_clusters,
-            stride=self.config.stride,
-            version=self.config.version,
-            use_attention_features=self.config.use_attention_features,
-            device=self.device,
-            auto_k=self.config.auto_k,
-            k_range=self.config.k_range,
-            elbow_threshold=self.config.elbow_threshold_decimal,
-            use_pca=self.config.use_pca,
-            pca_dim=self.config.pca_dim,
-            feature_upsample_factor=self.config.feature_upsample_factor,
-            refine=self.config.refine,
-            refine_slic_compactness=self.config.refine_slic_compactness,
-            refine_slic_sigma=self.config.refine_slic_sigma,
-            collect_metrics=self.config.metrics,
-            model_name=self.config.model_display_name,
-            output_dir=self.config.output_dir,
-            verbose=self.config.verbose,
-            pipeline=self.config.pipeline,
-            apply_vegetation_filter=self.config.apply_vegetation_filter,
-            exg_threshold=self.config.exg_threshold,
-            use_tiling=self.config.use_tiling,
-            tile_size=self.config.tile_size,
-            tile_overlap=self.config.tile_overlap,
-            tile_threshold=self.config.tile_threshold,
-            downsample_before_tiling=self.config.downsample_before_tiling,
-            clustering_method=self.config.clustering_method,
-            use_multi_layer=self.config.use_multi_layer,
-            layer_indices=self.config.layer_indices,
-            feature_aggregation=self.config.feature_aggregation,
-            use_pyramid=self.config.use_pyramid,
-            pyramid_scales=self.config.pyramid_scales,
-            pyramid_aggregation=self.config.pyramid_aggregation,
-            use_soft_refine=self.config.use_soft_refine,
-            soft_refine_temperature=self.config.soft_refine_temperature,
-            soft_refine_iterations=self.config.soft_refine_iterations,
-            soft_refine_spatial_alpha=self.config.soft_refine_spatial_alpha,
-        )
-
-        # Support info tuple
-        image_np = result[0] if isinstance(result, tuple) else result
-        labels_resized = result[1] if isinstance(result, tuple) else None
-
-        if image_np is None:
-            raise RuntimeError("Failed to process image from numpy array")
-        if labels_resized is None and isinstance(result, tuple) and len(result) >= 2:
-            labels_resized = result[1]
-        n_clusters_used = len(torch.unique(torch.from_numpy(labels_resized)))
-
-        # Build processing stats
-        stats = {
-            'original_size': image_np.shape[:2],
-            'labels_shape': labels_resized.shape,
-            'auto_k_used': self.config.auto_k,
-            'elbow_threshold': self.config.elbow_threshold if self.config.auto_k else None,
-            'model': self.config.model_display_name,
-            'image_size': self.config.image_size,
-            'feature_upsample_factor': self.config.feature_upsample_factor,
-            'pca_dim': self.config.pca_dim,
-            'refine': self.config.refine,
-        }
-
-        info = result[2] if isinstance(result, tuple) and len(result) > 2 else None
-        if isinstance(info, dict):
-            stats.update(info)
-        k_requested = stats.get('k_requested') if isinstance(info, dict) else None
-
-        return SegmentationResults(
-            image_np=image_np,
-            labels_resized=labels_resized,
-            n_clusters_used=n_clusters_used,
-            n_clusters_requested=k_requested,
-            image_path="<numpy_array>",
-            processing_stats=stats
         )
 
     def process_single_image(self, image_path: str) -> SegmentationResults:
