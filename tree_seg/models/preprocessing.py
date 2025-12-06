@@ -24,7 +24,7 @@ def init_model_and_preprocess(model_name, stride, device, image_size: int = 518)
     Initialize DINOv3 model with preprocessing (legacy function).
     Note: This is a simplified version. Use initialize_model() for full functionality.
     """
-    from .dinov3_adapter import create_dinov3_model
+    from .dinov3_adapter_final import create_dinov3_model
     import torch
     
     model = create_dinov3_model(

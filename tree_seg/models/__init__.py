@@ -9,4 +9,4 @@ __all__ = [
     'initialize_model',
     'get_preprocess',
     'init_model_and_preprocess'
-] 
+]

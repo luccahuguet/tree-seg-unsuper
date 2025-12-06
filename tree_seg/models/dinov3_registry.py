@@ -6,6 +6,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal
 
+import sys
+from pathlib import Path
+
+# Ensure local dinov3 submodule is importable
+DINOV3_PATH = Path(__file__).parent.parent.parent / "dinov3"
+if str(DINOV3_PATH) not in sys.path:
+    sys.path.insert(0, str(DINOV3_PATH))
+
 import dinov3.hub.backbones as dinov3_backbones
 
 AttentionOptions = Literal["q", "k", "v", "o", "none"]
@@ -67,4 +75,3 @@ MODEL_REGISTRY = {
         params_count="7B",
     ),
 }
-

@@ -1,21 +1,22 @@
 """Benchmark runner for evaluating segmentation methods."""
 
-import time
 import os
+import time
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
 from PIL import Image
 
-from contextlib import redirect_stdout, redirect_stderr
-
-from tree_seg.api import TreeSegmentation
 from tree_seg.core.types import Config
 from tree_seg.evaluation.datasets import ISPRSPotsdamDataset, SegmentationDataset
 from tree_seg.evaluation.metrics import EvaluationResults, evaluate_segmentation
 from tree_seg.utils.runtime_cache import RuntimeCache
+
+if TYPE_CHECKING:
+    from tree_seg.api import TreeSegmentation
 
 
 @dataclass
@@ -111,13 +112,18 @@ class BenchmarkRunner:
 
         self._load_or_init_segmenter(self.segmenter, model_key)
 
-    def _create_segmenter(self, config: Config) -> TreeSegmentation:
+    def _create_segmenter(self, config: Config) -> "TreeSegmentation":
         if self.suppress_logs:
             with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
+                from tree_seg.api import TreeSegmentation
+
                 return TreeSegmentation(config)
+
+        from tree_seg.api import TreeSegmentation
+
         return TreeSegmentation(config)
 
-    def _load_or_init_segmenter(self, segmenter: TreeSegmentation, model_key: tuple) -> None:
+    def _load_or_init_segmenter(self, segmenter: "TreeSegmentation", model_key: tuple) -> None:
         if model_key in self.model_cache:
             cached_model, cached_preprocess = self.model_cache[model_key]
             segmenter.model = cached_model

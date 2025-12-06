@@ -8,12 +8,15 @@ import logging
 
 # Import the latest DINOv3 adapter implementation
 try:
-    from .dinov3_adapter_final import create_dinov3_model, print_model_info, list_available_models
-except ImportError:
-    # Fallback to original adapter
-    from .dinov3_adapter import create_dinov3_model
-    print_model_info = None
-    list_available_models = None
+    from .dinov3_adapter_final import (
+        create_dinov3_model,
+        print_model_info,
+        list_available_models,
+    )
+except ImportError as exc:  # pragma: no cover - defensive guard
+    raise ImportError(
+        "DINOv3 adapter not available; ensure the local dinov3 package is installed."
+    ) from exc
 
 logger = logging.getLogger(__name__)
 

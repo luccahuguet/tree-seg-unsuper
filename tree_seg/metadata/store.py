@@ -7,9 +7,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from typing import TYPE_CHECKING
+
 from tree_seg.core.types import Config, SegmentationResults
-from tree_seg.evaluation.benchmark import BenchmarkResults
 from tree_seg.evaluation.formatters import config_to_dict
+
+if TYPE_CHECKING:  # Avoid circular import at runtime
+    from tree_seg.evaluation.benchmark import BenchmarkResults
 
 # Keys that affect runtime/outputs; must be present (with defaults) in hashes.
 HASH_KEYS = [
@@ -195,7 +199,7 @@ def _config_to_hash_config(
 
 
 def store_run(
-    results: BenchmarkResults,
+    results: "BenchmarkResults",
     config: Config,
     dataset_path: Path,
     smart_k: bool = False,

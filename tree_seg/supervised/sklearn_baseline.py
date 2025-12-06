@@ -1,18 +1,26 @@
 """Quick supervised baseline using sklearn on DINOv3 features."""
 
+import os
 import time
 from pathlib import Path
 
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 from tree_seg.core.features import extract_features
 from tree_seg.core.types import Config
 from tree_seg.evaluation.benchmark import BenchmarkResults, BenchmarkSample
-from tree_seg.evaluation.datasets import load_dataset
+from tree_seg.evaluation.runner import detect_dataset_type, load_dataset
 from tree_seg.evaluation.metrics import evaluate_segmentation
-from tree_seg.models.loader import load_model_and_preprocess
+from tree_seg.models.preprocessing import init_model_and_preprocess
 from tree_seg.supervised.data import load_dataset as load_supervised_dataset
 from tree_seg.supervised.data import resize_masks_to_features
 
@@ -22,6 +30,7 @@ def train_sklearn_classifier(
     labels: np.ndarray,  # (N, H, W) integer class labels
     ignore_index: int = 255,
     max_samples: int = 100_000,  # Subsample for memory
+    multiclass_mode: str = "auto",
 ) -> LogisticRegression:
     """
     Train a per-pixel logistic regression classifier.
@@ -52,12 +61,15 @@ def train_sklearn_classifier(
 
     # Train classifier
     print(f"Training on {len(y):,} pixels...")
+    if multiclass_mode == "auto":
+        multiclass_mode = "multinomial"
+
     clf = LogisticRegression(
         max_iter=1000,
-        multi_class="multinomial",
+        multi_class=multiclass_mode,
         solver="lbfgs",
-        n_jobs=-1,
-        verbose=1,
+        n_jobs=1,  # single-process to avoid joblib shm issues in constrained envs
+        verbose=0,
     )
     clf.fit(X, y)
     return clf
@@ -108,38 +120,69 @@ def evaluate_sklearn_baseline(
 
     # Load model and preprocessing
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Leave one core idle to reduce contention on CPU runs
+    try:
+        cpu_total = os.cpu_count() or 1
+        torch.set_num_threads(max(1, cpu_total - 1))
+        torch.set_num_interop_threads(max(1, cpu_total - 1))
+    except Exception:
+        pass
     if verbose:
         print(f"Using device: {device}")
 
-    model, preprocess = load_model_and_preprocess(model_name, stride, device)
+    model, preprocess = init_model_and_preprocess(config.model_display_name, stride, device)
 
     # Load dataset using evaluation infrastructure
+    dataset = None
+    images: list[np.ndarray] = []
+    masks: list[np.ndarray] = []
+    class_names: list[str] = []
+    dataset_name = dataset_path.name
+    ignore_idx = ignore_index
+
+    detected_type = detect_dataset_type(dataset_path)
     try:
-        dataset = load_dataset(str(dataset_path))
-        dataset_name = dataset_path.name
-    except Exception:
+        # Use evaluation dataset for known types (fortress/isprs) unless we want custom downsampling
+        if detected_type in {"fortress", "isprs"}:
+            # Prefer custom downsampled loader to avoid huge RAM spikes
+            raise RuntimeError("Use custom loader for large datasets")
+
+        dataset, detected_type = load_dataset(dataset_path, detect_dataset_type(dataset_path))
+        dataset_name = dataset.dataset_path.name if hasattr(dataset, "dataset_path") else dataset_name
+        ignore_idx = getattr(dataset, "IGNORE_INDEX", ignore_idx)
+    except Exception as exc:
         # Fall back to custom loader
         if verbose:
-            print("Using custom dataset loader...")
-        images, masks, class_names = load_supervised_dataset(dataset_path)
+            print(f"Using custom dataset loader (reason: {exc})...")
+        # Cap longest side to control memory (roughly 2× preprocess size)
+        max_side = max(config.image_size * 2, 1024)
+        images, masks, class_names = load_supervised_dataset(dataset_path, max_side=max_side)
         dataset = None
 
     if dataset is not None:
         # Use evaluation dataset
+        total_samples = len(dataset)
         if verbose:
-            print(f"Loaded dataset: {dataset_name} ({len(dataset)} samples)")
+            print(f"Loaded dataset: {dataset_name} ({total_samples} samples)")
+            progress = Progress(
+                TextColumn("[bold cyan]Extracting features[/bold cyan]"),
+                BarColumn(),
+                TextColumn("{task.completed}/{task.total}"),
+                TimeElapsedColumn(),
+                TimeRemainingColumn(),
+            )
+            progress.start()
+            feat_task = progress.add_task("features", total=total_samples)
+        else:
+            progress = None
+            feat_task = None
 
         # Extract features for all images
         all_features = []
         all_masks = []
 
-        for idx in range(len(dataset)):
-            sample = dataset[idx]
-            image = sample["image"]
-            gt_mask = sample["mask"]
-
-            if verbose:
-                print(f"Extracting features for image {idx + 1}/{len(dataset)}...")
+        for idx in range(total_samples):
+            image, gt_mask, _image_id = dataset[idx]
 
             # Extract features
             start_time = time.time()
@@ -161,22 +204,35 @@ def evaluate_sklearn_baseline(
             elapsed = time.time() - start_time
 
             if verbose:
-                print(f"  Features: {features_np.shape}, time: {elapsed:.2f}s")
+                progress.update(feat_task, advance=1, description=f"[bold cyan]Extracting features[/bold cyan] ({idx+1}/{total_samples})")
 
             all_features.append(features_np)
             all_masks.append(gt_mask)
+
+        if progress:
+            progress.stop()
     else:
         # Use custom loaded data
+        total_samples = len(images)
         if verbose:
-            print(f"Loaded {len(images)} image/mask pairs")
+            print(f"Loaded {total_samples} image/mask pairs")
+            progress = Progress(
+                TextColumn("[bold cyan]Extracting features[/bold cyan]"),
+                BarColumn(),
+                TextColumn("{task.completed}/{task.total}"),
+                TimeElapsedColumn(),
+                TimeRemainingColumn(),
+            )
+            progress.start()
+            feat_task = progress.add_task("features", total=total_samples)
+        else:
+            progress = None
+            feat_task = None
 
         all_features = []
         all_masks = []
 
         for idx, (image, mask) in enumerate(zip(images, masks)):
-            if verbose:
-                print(f"Extracting features for image {idx + 1}/{len(images)}...")
-
             start_time = time.time()
             features_np, H, W = extract_features(
                 image_np=image,
@@ -196,10 +252,13 @@ def evaluate_sklearn_baseline(
             elapsed = time.time() - start_time
 
             if verbose:
-                print(f"  Features: {features_np.shape}, time: {elapsed:.2f}s")
+                progress.update(feat_task, advance=1, description=f"[bold cyan]Extracting features[/bold cyan] ({idx+1}/{total_samples})")
 
             all_features.append(features_np)
             all_masks.append(mask)
+
+        if progress:
+            progress.stop()
 
     # Stack features
     all_features = np.stack(all_features)  # (N, H, W, D)
@@ -212,30 +271,51 @@ def evaluate_sklearn_baseline(
         all_masks, target_size=all_features.shape[1:3]
     )
 
+    # Determine class count after resizing (robust to non-contiguous labels)
+    valid_pixels = all_masks_resized[all_masks_resized != ignore_idx]
+    num_classes = int(valid_pixels.max()) + 1 if valid_pixels.size > 0 else 1
+
     # Train classifier
     if verbose:
         print("\nTraining supervised classifier...")
 
     clf = train_sklearn_classifier(
-        all_features, all_masks_resized, ignore_index, max_samples
+        all_features,
+        all_masks_resized,
+        ignore_idx,
+        max_samples,
+        multiclass_mode="multinomial",
     )
 
     # Predict and evaluate
     if verbose:
         print("\nEvaluating predictions...")
+        progress = Progress(
+            TextColumn("[bold green]Evaluating[/bold green]"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+        )
+        progress.start()
+        eval_task = progress.add_task("eval", total=len(all_features))
+    else:
+        progress = None
+        eval_task = None
 
     samples = []
     for idx in range(len(all_features)):
-        if verbose:
-            print(f"Predicting image {idx + 1}/{len(all_features)}...")
-
         start_time = time.time()
         pred = predict_sklearn(clf, all_features[idx])
         elapsed = time.time() - start_time
 
         # Evaluate
         eval_result = evaluate_segmentation(
-            pred, all_masks_resized[idx], ignore_index=ignore_index
+            pred,
+            all_masks_resized[idx],
+            num_classes=num_classes,
+            ignore_index=ignore_idx,
+            use_hungarian=False,
         )
 
         sample = BenchmarkSample(
@@ -249,18 +329,19 @@ def evaluate_sklearn_baseline(
         )
         samples.append(sample)
 
-        if verbose:
-            print(
-                f"  mIoU: {eval_result.miou:.3f}, PA: {eval_result.pixel_accuracy:.3f}"
-            )
+        if progress:
+            progress.update(eval_task, advance=1, description=f"[bold green]Evaluating[/bold green] ({idx+1}/{len(all_features)})")
 
     # Aggregate results
     mean_miou = np.mean([s.miou for s in samples])
     mean_pixel_accuracy = np.mean([s.pixel_accuracy for s in samples])
     mean_runtime = np.mean([s.runtime_seconds for s in samples])
 
+    if progress:
+        progress.stop()
+
     results = BenchmarkResults(
-        dataset_name=dataset_path.name,
+        dataset_name=dataset_name,
         method_name="supervised-sklearn",
         config=config,
         samples=samples,
