@@ -217,7 +217,62 @@ def evaluate_command(
     supervised: bool = typer.Option(
         False,
         "--supervised",
-        help="Use supervised sklearn baseline (LogisticRegression on DINOv3 features)",
+        help="Use supervised baseline (sklearn or linear head on DINOv3 features)",
+    ),
+    supervised_head: Literal["linear", "sklearn", "mlp"] = typer.Option(
+        "linear",
+        "--supervised-head",
+        help="Supervised head to use: linear (PyTorch), sklearn logistic, or sklearn MLP",
+    ),
+    supervised_epochs: int = typer.Option(
+        100,
+        "--supervised-epochs",
+        help="Epochs for the linear supervised head (only used when --supervised-head linear)",
+    ),
+    supervised_max_patches: int = typer.Option(
+        1_000_000,
+        "--supervised-max-patches",
+        help="Max patches for training the supervised head (linear)",
+    ),
+    supervised_val_split: float = typer.Option(
+        0.1,
+        "--supervised-val-split",
+        help="Validation split for early stopping (linear head). 0 disables.",
+    ),
+    supervised_patience: int = typer.Option(
+        5,
+        "--supervised-patience",
+        help="Patience for early stopping on val loss (linear head). 0 disables.",
+    ),
+    supervised_lr: float = typer.Option(
+        1e-3,
+        "--supervised-lr",
+        help="Learning rate for the linear supervised head",
+    ),
+    supervised_ignore_index: Optional[int] = typer.Option(
+        None,
+        "--supervised-ignore-index",
+        help="Ignore index for supervised training/eval (set to 255 if your masks use 255 as unlabeled; default=None keeps all labels)",
+    ),
+    supervised_hidden_dim: int = typer.Option(
+        1024,
+        "--supervised-hidden-dim",
+        help="Hidden dimension for the linear head MLP",
+    ),
+    supervised_dropout: float = typer.Option(
+        0.1,
+        "--supervised-dropout",
+        help="Dropout for the linear head MLP",
+    ),
+    supervised_use_xy: bool = typer.Option(
+        False,
+        "--supervised-use-xy",
+        help="Append normalized XY coords to patch features (torch linear head)",
+    ),
+    supervised_mlp_use_xy: bool = typer.Option(
+        False,
+        "--supervised-mlp-use-xy",
+        help="Append normalized XY coords to patch features for sklearn MLP head",
     ),
     model: Literal["small", "base", "large", "mega"] = typer.Option(
         "base",
@@ -259,6 +314,11 @@ def evaluate_command(
         "--num-samples",
         "-n",
         help="Number of samples to evaluate (default: all)",
+    ),
+    supervised_train_ratio: float = typer.Option(
+        1.0,
+        "--supervised-train-ratio",
+        help="Fraction of samples to use for supervised training (rest used for validation/holdout)",
     ),
     output_dir: Optional[Path] = typer.Option(
         None,
@@ -403,6 +463,9 @@ def evaluate_command(
         # Supervised sklearn baseline
         tree-seg eval data/fortress --supervised
 
+        # Supervised PyTorch linear head
+        tree-seg eval data/fortress --supervised --supervised-head linear
+
         # Run comparison across multiple configs
         tree-seg eval data/fortress --compare-configs --grid tiling
     """
@@ -412,18 +475,58 @@ def evaluate_command(
 
     # Handle supervised baseline
     if supervised:
-        from tree_seg.supervised.sklearn_baseline import evaluate_sklearn_baseline
+        from tree_seg.supervised.sklearn_baseline import (
+            evaluate_mlp_baseline,
+            evaluate_linear_head,
+            evaluate_sklearn_baseline,
+        )
 
         console.print(
-            "\n[bold cyan]🎓 Running supervised sklearn baseline[/bold cyan]\n"
+            "\n[bold cyan]🎓 Running supervised baseline[/bold cyan]\n"
         )
 
-        results = evaluate_sklearn_baseline(
-            dataset_path=dataset,
-            model_name=model,
-            stride=stride,
-            verbose=not quiet,
-        )
+        if supervised_head == "sklearn":
+            results = evaluate_sklearn_baseline(
+                dataset_path=dataset,
+                model_name=model,
+                stride=stride,
+                verbose=not quiet,
+                num_samples=num_samples,
+                ignore_index=supervised_ignore_index,
+            )
+        elif supervised_head == "mlp":
+            results = evaluate_mlp_baseline(
+                dataset_path=dataset,
+                model_name=model,
+                stride=stride,
+                verbose=not quiet,
+                num_samples=num_samples,
+                ignore_index=supervised_ignore_index,
+                max_samples=supervised_max_patches,
+                max_iter=supervised_epochs,
+                lr=supervised_lr,
+                hidden_dim=supervised_hidden_dim,
+                use_xy=supervised_mlp_use_xy,
+                val_split=supervised_val_split,
+                patience=supervised_patience,
+            )
+        else:
+            results = evaluate_linear_head(
+                dataset_path=dataset,
+                model_name=model,
+                stride=stride,
+                verbose=not quiet,
+                num_samples=num_samples,
+                epochs=supervised_epochs,
+                max_patches=supervised_max_patches,
+                val_split=supervised_val_split,
+                patience=supervised_patience,
+                lr=supervised_lr,
+                hidden_dim=supervised_hidden_dim,
+                dropout=supervised_dropout,
+                ignore_index=supervised_ignore_index,
+                use_xy=supervised_use_xy,
+            )
 
         # Print summary
         table = Table(
