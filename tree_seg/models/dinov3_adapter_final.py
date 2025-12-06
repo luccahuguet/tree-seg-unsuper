@@ -8,14 +8,18 @@ Meta implementation and our debugging discoveries.
 import sys
 import logging
 from pathlib import Path
-from typing import Dict, Any, Literal, Optional, Tuple, Union
-from dataclasses import dataclass
-from enum import Enum
+from typing import Dict, Any, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 
 from .dinov3_loader import HuggingFaceWeightLoader, WeightLoadingError
+from .dinov3_registry import (
+    AttentionOptions,
+    LoadingStrategy,
+    ModelConfig,
+    MODEL_REGISTRY,
+)
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -30,65 +34,6 @@ try:
     import dinov3.hub.backbones as dinov3_backbones
 except ImportError as e:
     raise ImportError(f"Failed to import DINOv3. Ensure submodule is initialized: {e}")
-
-AttentionOptions = Literal["q", "k", "v", "o", "none"]
-
-
-class LoadingStrategy(Enum):
-    """DINOv3 model loading strategies."""
-    ORIGINAL_HUB = "original_hub"
-    HUGGINGFACE = "huggingface" 
-    RANDOM_WEIGHTS = "random_weights"
-
-
-@dataclass
-class ModelConfig:
-    """Configuration for a DINOv3 model variant."""
-    hub_fn: callable
-    hf_model: str
-    feat_dim: int
-    description: str
-    params_count: str
-
-
-# Model registry - official DINOv3 variants
-MODEL_REGISTRY = {
-    "dinov3_vits16": ModelConfig(
-        hub_fn=dinov3_backbones.dinov3_vits16,
-        hf_model="facebook/dinov3-vits16-pretrain-lvd1689m",
-        feat_dim=384,
-        description="Small model - good balance of speed and accuracy",
-        params_count="21M"
-    ),
-    "dinov3_vitb16": ModelConfig(
-        hub_fn=dinov3_backbones.dinov3_vitb16,
-        hf_model="facebook/dinov3-vitb16-pretrain-lvd1689m", 
-        feat_dim=768,
-        description="Base model - recommended for most use cases",
-        params_count="86M"
-    ),
-    "dinov3_vitl16": ModelConfig(
-        hub_fn=dinov3_backbones.dinov3_vitl16,
-        hf_model="facebook/dinov3-vitl16-pretrain-lvd1689m",
-        feat_dim=1024,
-        description="Large model - higher accuracy, slower processing",
-        params_count="304M"
-    ),
-    "dinov3_vith16plus": ModelConfig(
-        hub_fn=dinov3_backbones.dinov3_vith16plus,
-        hf_model="facebook/dinov3-vith16plus-pretrain-lvd1689m",
-        feat_dim=1280,
-        description="Huge+ model - best accuracy, requires significant GPU memory",
-        params_count="1.1B"
-    ),
-    "dinov3_vit7b16": ModelConfig(
-        hub_fn=dinov3_backbones.dinov3_vit7b16,
-        hf_model="facebook/dinov3-vit7b16-pretrain-lvd1689m",
-        feat_dim=4096,
-        description="Mega model - satellite-grade accuracy, 40+ GB VRAM required",
-        params_count="7B"
-    ),
-}
 
 
 class DINOv3Exception(Exception):
