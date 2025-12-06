@@ -184,7 +184,6 @@ def try_cached_results(
 def run_single_benchmark(
     *,
     dataset_path: Path,
-    dataset_type: str,
     config: Config,
     output_dir: Path,
     num_samples: Optional[int],
@@ -196,15 +195,18 @@ def run_single_benchmark(
     """Run a single benchmark configuration and persist metadata."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    dataset_class = FortressDataset if "fortress" in dataset_path.name.lower() else ISPRSPotsdamDataset
+
     results = run_benchmark(
-        dataset_path,
-        dataset_type,
         config=config,
+        dataset_path=dataset_path,
+        dataset_class=dataset_class,
         output_dir=output_dir,
         num_samples=num_samples,
-        save_viz=save_viz,
+        save_visualizations=save_viz,
         save_labels=save_labels,
-        silent=quiet,
+        verbose=not quiet,
+        use_smart_k=smart_k,
     )
 
     summary_info = save_comparison_summary([config_to_dict(config)], results, output_dir, smart_k=smart_k)
@@ -219,7 +221,6 @@ def run_single_benchmark(
 def run_sweep(
     *,
     dataset_path: Path,
-    dataset_type: str,
     grid_name: str,
     configs_to_test: list[dict],
     base_config_params: dict,
@@ -255,15 +256,17 @@ def run_sweep(
         if model_key in model_cache:
             console.print(f"[dim]♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})[/dim]")
 
+        dataset_class = FortressDataset if "fortress" in dataset_path.name.lower() else ISPRSPotsdamDataset
+
         results = run_benchmark(
             config=config,
             dataset_path=dataset_path,
-            dataset_type=dataset_type,
+            dataset_class=dataset_class,
             output_dir=sweep_dir,
             num_samples=num_samples,
-            save_viz=save_viz,
+            save_visualizations=save_viz,
             save_labels=save_labels,
-            silent=quiet,
+            verbose=not quiet,
             use_smart_k=smart_k,
             model_cache=model_cache,
             config_label=label,
