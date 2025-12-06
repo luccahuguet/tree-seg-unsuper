@@ -14,3 +14,6 @@
     - Optional LightGBM/RandomForest ranker to score configs; output top-K
   - (Optional later) BO/surrogate to propose next configs under runtime constraints
   - Expose via `tree-seg results --recommend --dataset <name>`
+- Codebase hygiene:
+  - Scan for large files/duplication and DRY refactors; centralize shared logic where possible.
+  - Move to latest supported Python runtime when feasible.
