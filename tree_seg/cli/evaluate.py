@@ -1,6 +1,5 @@
 """Evaluate command for benchmarking segmentation methods."""
 
-import datetime
 from pathlib import Path
 from typing import Literal, Optional
 

@@ -12,6 +12,7 @@ from rich.table import Table
 
 from tree_seg.core.types import Config
 from tree_seg.evaluation.benchmark import run_benchmark
+from tree_seg.evaluation.datasets import FortressDataset, ISPRSPotsdamDataset
 from tree_seg.evaluation.formatters import config_to_dict, save_comparison_summary
 from tree_seg.metadata.store import (
     _config_to_hash_config,
