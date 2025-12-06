@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from tree_seg.metadata.load import lookup
+from tree_seg.metadata.load import lookup, lookup_nearest
 from tree_seg.metadata.query import query as query_index, compact as compact_index, prune_older_than
 from tree_seg.visualization.plotting import generate_visualizations
 from tree_seg.core.types import Config, OutputPaths, SegmentationResults
@@ -189,6 +189,11 @@ def results_command(
         "--prune-older-than",
         help="Prune entries older than N days (removes meta dirs and rewrites index)",
     ),
+    nearest: Optional[str] = typer.Option(
+        None,
+        "--nearest",
+        help="JSON string of config fields to estimate ETA/runtime (uses nearest match)",
+    ),
 ):
     """
     Query stored experiment metadata or show details for a specific run.
@@ -221,6 +226,20 @@ def results_command(
         _print_detail(meta, show_config=show_config)
         if render:
             _render_visualizations(meta, base_dir=base_dir)
+        return
+
+    if nearest:
+        try:
+            nearest_config = json.loads(nearest)
+        except json.JSONDecodeError:
+            console.print("[red]❌ --nearest must be valid JSON[/red]")
+            raise typer.Exit(code=1)
+        match = lookup_nearest(nearest_config, base_dir=base_dir)
+        if match:
+            console.print("[bold green]Closest match for ETA/runtime:[/bold green]")
+            console.print_json(data=match)
+        else:
+            console.print("[yellow]No runs in index to match against.[/yellow]")
         return
 
     entries = query_index(
