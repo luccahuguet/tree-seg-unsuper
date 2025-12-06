@@ -27,12 +27,19 @@ Complete technical overview of the codebase.
 
 ### [Version Roadmap](version_roadmap.md)
 Master roadmap defining all versions and their relationships.
-- V1.5: Baseline (DINOv3 + K-means)
-- V2: Soft/EM refinement
-- V3: Species clustering (vegetation filtering)
+- V1.5: Baseline (DINOv3 + K-means + SLIC) ✅
+- V2: Soft EM refinement ✅ **IMPLEMENTED**
+- V3: Species clustering (vegetation filtering) ✅
 - V4: Mask2Former baseline
 - V5: Multispectral
 - V6: Clustering variants
+
+### [V2 Soft EM Refinement](w2_head_refine_plan.md) ✅ **IMPLEMENTED**
+Feature space refinement using iterative soft EM.
+- Temperature-scaled softmax assignments
+- Iterative cluster center updates
+- Optional spatial blending
+- Usage: `--refine soft-em` or `--refine soft-em+slic`
 
 ### [V3 Species Clustering](v3_species_clustering.md)
 Complete V3 documentation: background, implementation, usage.
@@ -53,6 +60,14 @@ Project timeline and version descriptions for paper.
 - Version goals
 
 ## Research & Analysis
+
+### [Improvement Experiments](experiments.md)
+Systematic testing of clustering and refinement methods.
+- V2 soft EM implementation status
+- Clustering algorithm comparisons (GMM, spectral, HDBSCAN)
+- Refinement method tests (SLIC, bilateral, CRF)
+- Multi-scale feature experiments
+- Composable CLI usage guide
 
 ### [DINOv3 Vegetation Analysis](dinov3_vegetation_analysis.md)
 Key finding: DINOv3 naturally encodes vegetation (0.95+ correlation).
@@ -92,11 +107,11 @@ Dataset requirements and search criteria.
 
 ## Planning & Future Work
 
-### [V2 Head Refinement Plan](w2_head_refine_plan.md)
-Planning document for V2 implementation.
+### [V2 Head Refinement Plan](w2_head_refine_plan.md) ✅ **COMPLETED**
+Original planning document for V2 implementation (now complete).
 - Soft/EM refinement approach
 - Integration strategy
-- Expected improvements
+- Implementation: `tree_seg/clustering/head_refine.py`
 
 ---
 
@@ -106,12 +121,31 @@ Planning document for V2 implementation.
 
 **Technical docs:** `architecture.md`, `version_roadmap.md`, `tiling_implementation.md`
 
-**V3 docs:** `v3_species_clustering.md`, `dinov3_vegetation_analysis.md`
+**Implemented methods:**
+- V1.5: Baseline (default config)
+- V2: `w2_head_refine_plan.md` - Soft EM refinement ✅
+- V3: `v3_species_clustering.md` - Species clustering ✅
 
-**Implementation:** `tiling_implementation.md` (high-res imagery processing)
+**Experiments:** `experiments.md` (CLI guide + results)
 
 **Research:** `dinov3_vegetation_analysis.md`, `kmeans_successors.md`, `week1_results.md`
 
 **Datasets:** `oam_tcd_integration.md`, `dataset_search_context.md`
 
-**Planning:** `w2_head_refine_plan.md`, `paper_timeline.md`
+**Planning:** `paper_timeline.md`
+
+---
+
+## 🎛️ Composable CLI
+
+**New unified interface** (Dec 2024):
+```bash
+# Each flag controls a different aspect
+tree-seg eval data/fortress \
+  --clustering kmeans|gmm|spectral|hdbscan \
+  --refine none|slic|soft-em|bilateral|soft-em+slic \
+  --vegetation-filter \
+  --supervised
+```
+
+See `experiments.md` for detailed usage examples.
