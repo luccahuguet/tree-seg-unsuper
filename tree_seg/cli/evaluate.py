@@ -1,7 +1,6 @@
 """Evaluate command for benchmarking segmentation methods."""
 
 import datetime
-import json
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -11,12 +10,17 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
-from tree_seg.cli.eval_utils import create_config
 from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.datasets import FortressDataset
-from tree_seg.evaluation.formatters import config_to_dict, format_comparison_table, save_comparison_summary
+from tree_seg.evaluation.formatters import format_comparison_table, save_comparison_summary
 from tree_seg.evaluation.grids import get_grid
-from tree_seg.metadata.store import store_run, _config_to_hash_config, normalize_config, config_hash
+from tree_seg.evaluation.runner import (
+    create_config,
+    resolve_output_dir,
+    run_single_benchmark,
+    try_cached_results,
+)
+from tree_seg.metadata.store import store_run
 
 # Load environment variables
 load_dotenv()
@@ -95,109 +99,40 @@ def _run_single_benchmark(
     use_cache: bool,
 ):
     """Run a single benchmark configuration."""
-    # Determine output directory
-    if output_dir:
-        out_dir = output_dir
-    else:
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        refine_str = config.refine if config.refine else config.clustering_method
-        method_str = f"{config.version}_{refine_str}"
-        if smart_k:
-            method_str += "_smartk"
-        model_str = config.model_display_name.lower().replace(" ", "_")
-        out_dir = Path("data/output/results") / f"{dataset_type}_{method_str}_{model_str}_{timestamp}"
+    out_dir = resolve_output_dir(
+        config=config,
+        dataset_type=dataset_type,
+        smart_k=smart_k,
+        output_dir=output_dir,
+    )
 
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if use_cache and try_cached_results(
+        config=config,
+        dataset_path=dataset_path,
+        dataset_type=dataset_type,
+        smart_k=smart_k,
+        console=console,
+    ):
+        return None
 
-    # Best-effort cache check
-    if use_cache:
-        hash_config = _config_to_hash_config(config, dataset_path.name, smart_k, grid_label=None)
-        normalized = normalize_config(hash_config)
-        hash_id = config_hash(normalized)
-        meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
-        results_json = Path("results") / "by-hash" / hash_id / "results.json"
-        if meta_path.exists():
-            try:
-                with meta_path.open() as f:
-                    meta = json.load(f)
-                artifacts = meta.get("artifacts", {})
-                rjson = artifacts.get("results_json")
-                rpath = Path(rjson) if rjson else results_json
-                if rpath.exists():
-                    console.print(f"[green]♻️  Cache hit for {hash_id}; reusing existing results.[/green]")
-                    with rpath.open() as f:
-                        cached = json.load(f)
-                    table = Table(title="Cached Benchmark Results", show_header=True, header_style="bold cyan")
-                    table.add_column("Metric", style="cyan")
-                    table.add_column("Value", justify="right", style="green")
-                    metrics = cached.get("metrics", {})
-                    table.add_row("Dataset", cached.get("dataset", dataset_type.upper()))
-                    table.add_row("Method", cached.get("method", ""))
-                    table.add_row("Mean mIoU", f"{metrics.get('mean_miou', 0):.4f}")
-                    table.add_row("Mean Pixel Accuracy", f"{metrics.get('mean_pixel_accuracy', 0):.4f}")
-                    table.add_row("Mean Runtime", f"{metrics.get('mean_runtime', 0):.2f}s")
-                    table.add_row("Total Samples", str(cached.get("total_samples", 0)))
-                    console.print()
-                    console.print(table)
-                    console.print(f"[dim]Source: {rpath}[/dim]")
-                    return None
-            except Exception:
-                pass
-
-    # Load dataset
-    if dataset_type == "fortress":
-        dataset = FortressDataset(dataset_path)
-    else:
-        # Use generic dataset loader (would need to be implemented)
-        console.print(f"[yellow]⚠️  Dataset type '{dataset_type}' not fully implemented yet[/yellow]")
-        raise typer.Exit(code=1)
-
-    # Run benchmark
     console.print(f"\n[bold cyan]🚀 Running benchmark on {dataset_type.upper()} dataset[/bold cyan]")
     console.print(f"[dim]Config: {config.version} | {config.model_display_name} | stride={config.stride}[/dim]\n")
 
-    results = run_benchmark(
+    results = run_single_benchmark(
+        dataset_path=dataset_path,
+        dataset_type=dataset_type,
         config=config,
-        dataset=dataset,
         output_dir=out_dir,
         num_samples=num_samples,
-        save_visualizations=save_viz,
+        save_viz=save_viz,
         save_labels=save_labels,
-        verbose=not quiet,
-        use_smart_k=smart_k,
+        quiet=quiet,
+        smart_k=smart_k,
     )
 
-    # Save results
-    results_dict = {
-        "dataset": dataset_type.upper(),
-        "method": results.method_name,
-        "config": config_to_dict(config),
-        "metrics": {
-            "mean_miou": float(results.mean_miou),
-            "mean_pixel_accuracy": float(results.mean_pixel_accuracy),
-            "mean_runtime": float(results.mean_runtime),
-        },
-        "samples": [
-            {
-                "image_id": s.image_id,
-                "miou": float(s.miou),
-                "pixel_accuracy": float(s.pixel_accuracy),
-                "num_clusters": int(s.num_clusters),
-                "runtime_seconds": float(s.runtime_seconds),
-            }
-            for s in results.samples
-        ],
-        "total_samples": results.total_samples,
-    }
+    if results is None:
+        return None
 
-    if dataset_type == "fortress":
-        results_dict["num_classes"] = FortressDataset.NUM_CLASSES
-
-    output_path = out_dir / "results.json"
-    with open(output_path, "w") as f:
-        json.dump(results_dict, f, indent=2)
-
-    # Print results summary
     table = Table(title="Benchmark Results", show_header=True, header_style="bold cyan")
     table.add_column("Metric", style="cyan")
     table.add_column("Value", justify="right", style="green")
@@ -211,27 +146,7 @@ def _run_single_benchmark(
 
     console.print()
     console.print(table)
-    console.print(f"\n[green]✅ Results saved to: {output_path}[/green]")
-
-    # Persist metadata entry (best-effort)
-    try:
-        artifacts = {"results_json": str(output_path)}
-        viz_dir = out_dir / "visualizations"
-        if viz_dir.exists():
-            artifacts["visualizations_dir"] = str(viz_dir)
-        labels_dir = out_dir / "labels"
-        if labels_dir.exists():
-            artifacts["labels_dir"] = str(labels_dir)
-        hash_id = store_run(
-            results=results,
-            config=config,
-            dataset_path=dataset_path,
-            smart_k=smart_k,
-            artifacts=artifacts,
-        )
-        console.print(f"[dim]📝 Metadata stored at results/by-hash/{hash_id}[/dim]")
-    except Exception as exc:  # best-effort; do not fail CLI
-        console.print(f"[yellow]⚠️  Failed to store metadata: {exc}[/yellow]")
+    console.print(f"\n[green]✅ Results saved to: {out_dir / 'results.json'}[/green]")
 
     return results
 

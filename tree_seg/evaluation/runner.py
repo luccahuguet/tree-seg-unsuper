@@ -1,4 +1,4 @@
-"""Helpers for evaluate CLI (config creation, caching, single benchmark runs)."""
+"""Shared helpers for running evaluation benchmarks (single and cache-aware)."""
 
 from __future__ import annotations
 
@@ -192,8 +192,8 @@ def run_single_benchmark(
     save_labels: bool,
     quiet: bool,
     smart_k: bool,
-) -> None:
-    """Run a single benchmark configuration."""
+):
+    """Run a single benchmark configuration and persist metadata."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
     results = run_benchmark(
@@ -212,3 +212,5 @@ def run_single_benchmark(
         store_run(summary_info)
     except Exception:
         pass
+
+    return results
