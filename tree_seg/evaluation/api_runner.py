@@ -133,11 +133,5 @@ def run_mask2former_numpy(
     )
 
 
-def ensure_mask2former(cfg: Config, device: torch.device) -> Mask2FormerSegmentor:
-    m_cfg = Mask2FormerConfig(device=device, num_queries=256, num_classes=2)
-    segmentor = Mask2FormerSegmentor(m_cfg)
-    return segmentor
-
-
 def create_output_manager(cfg: Config) -> OutputManager:
     return OutputManager(cfg)

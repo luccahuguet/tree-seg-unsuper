@@ -28,19 +28,6 @@ console = Console()
 # Removed METHOD_TO_VERSION - using explicit clustering/refine flags instead
 
 
-def _detect_dataset_type(dataset_path: Path) -> str:
-    """Auto-detect dataset type from directory structure."""
-    # Check for FORTRESS structure (images/ and labels/ directories)
-    if (dataset_path / "images").exists() and (dataset_path / "labels").exists():
-        return "fortress"
-    # Check for ISPRS Potsdam structure
-    elif (dataset_path / "2_Ortho_RGB").exists():
-        return "isprs"
-    else:
-        # Generic structure - assume images and labels in root
-        return "generic"
-
-
 def _create_config(
     clustering: str,
     refine: Optional[str],
