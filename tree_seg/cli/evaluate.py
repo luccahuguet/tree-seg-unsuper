@@ -364,11 +364,11 @@ def evaluate_command(
         file_okay=False,
         dir_okay=True,
     ),
-    clustering: Literal["kmeans", "gmm", "spectral", "hdbscan", "spherical"] = typer.Option(
+    clustering: Literal["kmeans", "gmm", "spectral", "hdbscan", "spherical", "dpmeans"] = typer.Option(
         "kmeans",
         "--clustering",
         "-c",
-        help="Clustering algorithm: kmeans (default), gmm, spectral, hdbscan, spherical (cosine k-means)",
+        help="Clustering algorithm: kmeans (default), gmm, spectral, hdbscan, spherical (cosine k-means), dpmeans (auto-K)",
     ),
     refine: Optional[Literal["none", "slic", "soft-em", "bilateral", "soft-em+slic"]] = typer.Option(
         "slic",

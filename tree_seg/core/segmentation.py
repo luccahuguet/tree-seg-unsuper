@@ -608,6 +608,37 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                         nn.fit(features_flat[labels >= 0])
                         _, indices = nn.kneighbors(features_flat[labels == -1])
                         labels[labels == -1] = labels[labels >= 0][indices.flatten()]
+        elif clustering_method == "dpmeans":
+            if verbose:
+                print(f"🎯 Clustering with DP-means (auto K via lambda; k={n_clusters} init)...")
+            # Compute lambda as median pairwise distance squared times 0.7
+            sample_size = min(5000, features_flat.shape[0])
+            idx = np.random.choice(features_flat.shape[0], sample_size, replace=False)
+            sample = features_flat[idx]
+            # Pairwise distances
+            pdists = np.sum((sample[:, None, :] - sample[None, :, :]) ** 2, axis=-1)
+            median_dist = np.median(pdists)
+            lam = 0.7 * median_dist
+
+            # Simple DP-means implementation
+            centers = [features_flat[np.random.choice(features_flat.shape[0])]]
+            assignments = np.zeros(features_flat.shape[0], dtype=int)
+            for _ in range(10):  # fixed iterations
+                # Assign to nearest center
+                dists = np.stack([np.sum((features_flat - c) ** 2, axis=1) for c in centers], axis=1)
+                min_dists = dists.min(axis=1)
+                assignments = dists.argmin(axis=1)
+                # Create new centers where distance > lam
+                new_centers = features_flat[min_dists > lam]
+                if len(new_centers):
+                    for c in new_centers:
+                        centers.append(c)
+                # Update centers
+                for k in range(len(centers)):
+                    mask = assignments == k
+                    if mask.any():
+                        centers[k] = features_flat[mask].mean(axis=0)
+            labels = assignments
         elif clustering_method == "spherical":
             if verbose:
                 print(f"🎯 Clustering with spherical k-means (cosine) (k={n_clusters})...")
