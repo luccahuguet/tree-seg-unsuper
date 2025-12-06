@@ -347,8 +347,9 @@ tree-seg results --prune --older-than 30d
 ### Current Implementation Status (Dec 6, 2024)
 - ✅ Metadata storage: hash/index/meta.json, auto-tags, hardware info, artifacts (results/viz/labels paths), dataset_root
 - ✅ Label dumping: `--save-labels/--no-save-labels` in `tree-seg eval` and `tree-seg segment`, saved under `<output>/labels/{image_id}.npz`
-- ✅ Results CLI: `tree-seg results` to list/filter by dataset/tags, sort, show details for a hash (with config dump), regenerate viz (`--render`), compact stale entries (`--compact`), and prune old runs (`--prune-older-than`)
-- ⚠️ Not yet: feature caching, nearest-config ETA lookup exposed via CLI (internal runtime cache only), CSV export, prune by size, web dashboard
+- ✅ Results CLI: `tree-seg results` to list/filter by dataset/tags, sort, show details for a hash (with config dump), regenerate viz (`--render`), compact stale entries (`--compact`), prune old runs (`--prune-older-than`), CSV export (`--export`)
+- ✅ Nearest-config ETA lookup: `lookup_nearest()` in load.py with weighted matching
+- ⚠️ Deferred: feature caching, prune by size, comparison view, web dashboard
 
 ## API Surface
 
@@ -376,36 +377,34 @@ def latest_by_tag(tag: str, limit: int = 5) -> List[dict]:
 
 ## Implementation Plan
 
-### Phase 1: Core Infrastructure
-- [ ] `tree_seg/metadata/store.py` - store_run, config hashing
-- [ ] `tree_seg/metadata/load.py` - lookup, lookup_nearest
-- [ ] `tree_seg/metadata/query.py` - query, latest_by_tag
-- [ ] labels.npz compression/decompression
-- [ ] Auto-derive tags from config
+### Phase 1: Core Infrastructure ✅
+- [x] `tree_seg/metadata/store.py` - store_run, config hashing
+- [x] `tree_seg/metadata/load.py` - lookup, lookup_nearest
+- [x] `tree_seg/metadata/query.py` - query, latest_by_tag
+- [x] labels.npz compression/decompression
+- [x] Auto-derive tags from config
 
-### Phase 2: CLI Integration
-- [ ] Auto-save after `tree-seg eval`
-- [ ] `tree-seg results` subcommand
-- [ ] Query filtering (--clustering, --dataset, --tags)
-- [ ] Rich table output
+### Phase 2: CLI Integration ✅
+- [x] Auto-save after `tree-seg eval`
+- [x] `tree-seg results` subcommand
+- [x] Query filtering (--clustering, --dataset, --tags)
+- [x] Rich table output
 
-### Phase 3: Advanced Features
-- [ ] Runtime fallback (nearest config matching)
-- [ ] Visualization regeneration (--render)
-- [ ] Export to CSV/markdown
+### Phase 3: Advanced Features ✅
+- [x] Runtime fallback (nearest config matching)
+- [x] Visualization regeneration (--render)
+- [x] Export to CSV/markdown
 - [ ] Comparison view (--compare)
 
-### Phase 4: Maintenance
-- [ ] Compaction (--compact)
-- [ ] Pruning (--prune)
-- [ ] Size limits
-  - [ ] (Deferred) Prune by total size (--max-size) — not implemented; current pruning is by age only.
+### Phase 4: Maintenance ✅
+- [x] Compaction (--compact)
+- [x] Pruning (--prune)
+- [ ] (Deferred) Prune by total size (--max-size) — current pruning is by age only
 
 ### Phase 5: Future (Low Priority)
-- [ ] Meta-learning: rank configs by success for dataset family
-- [ ] Online ETA model learning from hardware + config
 - [ ] (Deferred) Web dashboard for browsing runs
-- [ ] (Deferred) Feature cache for extracted tensors — skipped for now because full-run caching already avoids recompute; revisit if sweeps bottleneck on feature extraction with identical model/stride/pyramid/tiling.
+- [ ] (Deferred) Feature cache — full-run caching already avoids recompute
+- [x] ~~Meta-learning~~ — scrapped; manual sweep + results table is sufficient for research scale
 
 ## Open Questions
 
@@ -424,7 +423,7 @@ def latest_by_tag(tag: str, limit: int = 5) -> List[dict]:
 ---
 
 *Created: 2024-12-06*
-*Status: Planning*
+*Status: Implemented (Phases 1-4 complete)*
 *Merged from: claude_ideas.md + codex_ideas.md*
 *Refined with: Codex feedback (hash inputs, length, schema, artifacts toggle, ETA weights)*
 *Final polish: Config normalization, labels path structure, GPU tier buckets*
