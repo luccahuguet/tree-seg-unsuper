@@ -17,3 +17,4 @@
 - Codebase hygiene:
   - Scan for large files/duplication and DRY refactors; centralize shared logic where possible.
   - Move to latest supported Python runtime when feasible.
+- Docs: update stale site content to reflect current CLI, metadata/results features, and removed version split.
