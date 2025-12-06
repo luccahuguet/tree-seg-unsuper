@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 import threading
 
-from contextlib import contextmanager, redirect_stdout, redirect_stderr
+from contextlib import redirect_stdout, redirect_stderr
 
 from tree_seg.api import TreeSegmentation
 from tree_seg.core.types import Config
@@ -308,101 +308,58 @@ class BenchmarkRunner:
             scaled_mean = None
         est_total = cached_total if cached_total else (scaled_mean * total_samples if scaled_mean else None)
 
-        # Progress bar setup
         total_samples = end_idx - start_idx
-        bar_total = total_samples if total_samples > 1 else 100
         sample_results = []
-        est_total = cached_total if cached_total else (cached_mean * total_samples if cached_mean else None)
-        est_remaining = est_total
 
-        def _format_eta(seconds: float) -> str:
-            if seconds is None:
-                return "?"
-            seconds = max(seconds, 0)
-            minutes = int(seconds // 60)
-            sec = seconds % 60
-            if minutes == 0:
-                return f"{sec:04.1f}s"
-            return f"{minutes}m {sec:04.1f}s"
+        # Progress bar using rich (handles ETAs cleanly)
+        progress = None
+        task_id = None
+        try:
+            from rich.progress import Progress, BarColumn, TimeRemainingColumn, TimeElapsedColumn, TextColumn
 
-        @contextmanager
-        def maybe_progress(total):
-            try:
-                from tqdm import tqdm
-            except ImportError:
-                yield None
-                return
-            bar = tqdm(total=total, desc="Benchmark", unit="img")
-            try:
+            progress = Progress(
+                TextColumn("[bold cyan]Benchmark"),
+                BarColumn(),
+                TextColumn("{task.completed}/{task.total}"),
+                TimeElapsedColumn(),
+                TimeRemainingColumn(),
+            )
+            task_id = progress.add_task("benchmark", total=total_samples)
+            progress.start()
+        except Exception:
+            progress = None
+
+        total_runtime_accum = 0.0
+
+        for idx in range(start_idx, end_idx):
+            t0 = time.time()
+            sample_verbose = verbose and progress is None
+            sample_result, eval_results = self.run_single_sample(
+                idx,
+                verbose=sample_verbose,
+                suppress_output=progress is not None,
+            )
+            dt = time.time() - t0
+            total_runtime_accum += dt
+            sample_results.append(sample_result)
+
+            if progress is not None and task_id is not None:
+                completed = len(sample_results)
+                progress.update(task_id, completed=completed, total=total_samples)
+                # Display ETA using accumulated runtime vs. est_total when available
                 if est_total:
-                    bar.set_postfix(eta=_format_eta(est_total))
-                yield bar
-            finally:
-                bar.close()
-
-        stop_heartbeat = threading.Event()
-
-        def heartbeat(bar, start_time, est_total_val):
-            if bar is None or est_total_val is None:
-                return
-            last_pct_printed = -1
-            while not stop_heartbeat.is_set():
-                elapsed = time.time() - start_time
-                remaining = est_total_val - elapsed
-                # Smooth in-sample progress by fraction of estimated total
-                frac = min(max(elapsed / est_total_val, 0.0), 1.0)
-                bar.n = int(frac * bar.total)
-                pct_val = min(100, max(0, int(frac * 100)))
-                # Only update every 5% to reduce verbosity
-                pct_bucket = (pct_val // 5) * 5
-                if pct_bucket != last_pct_printed:
-                    last_pct_printed = pct_bucket
-                    pct = f"{pct_val}%"
-                    bar.set_postfix(eta=_format_eta(remaining), pct=pct)
-                    bar.refresh()
-                stop_heartbeat.wait(1.0)
-
-        total_start = time.time()
-
-        with maybe_progress(bar_total) as bar:
-            self.suppress_logs = bar is not None
-            if bar is not None and est_total is not None:
-                threading.Thread(target=heartbeat, args=(bar, total_start, est_total), daemon=True).start()
-            for idx in range(start_idx, end_idx):
-                t0 = time.time()
-                sample_verbose = verbose and bar is None
-                sample_result, eval_results = self.run_single_sample(
-                    idx, 
-                    verbose=sample_verbose, 
-                    suppress_output=bar is not None
+                    remaining = max(est_total - total_runtime_accum, 0)
+                    progress.update(task_id, time_remaining=remaining)
+                progress.console.print(
+                    f"{sample_result.image_id}: mIoU={sample_result.miou:.3f}, "
+                    f"PA={sample_result.pixel_accuracy:.3f}, "
+                    f"K={sample_result.num_clusters}, "
+                    f"Time={sample_result.runtime_seconds:.1f}s",
+                    highlight=False,
                 )
-                dt = time.time() - t0
-                sample_results.append(sample_result)
 
-                # Update ETA
-                if bar is not None:
-                    if est_remaining is not None:
-                        est_remaining = max(est_remaining - dt, 0)
-                    else:
-                        est_remaining = dt * (total_samples - len(sample_results))
-                    if bar.total == total_samples:
-                        bar.update(1)
-                        pct = f"{min(100, max(0, int((len(sample_results) / total_samples) * 100)))}%"
-                        bar.set_postfix(eta=_format_eta(est_remaining), pct=pct)
-                    else:
-                        bar.set_postfix(eta=_format_eta(est_remaining))
-                    # Light per-sample line without breaking the bar
-                    bar.write(
-                        f"{sample_result.image_id}: mIoU={sample_result.miou:.3f}, "
-                        f"PA={sample_result.pixel_accuracy:.3f}, "
-                        f"K={sample_result.num_clusters}, "
-                        f"Time={sample_result.runtime_seconds:.1f}s"
-                    )
-        stop_heartbeat.set()
-        if bar is not None:
-            bar.n = bar.total
-            bar.set_postfix(eta="0s", pct="100%")
-            bar.refresh()
+        if progress is not None:
+            progress.stop()
 
         # Compute aggregated metrics
         mean_miou = np.mean([s.miou for s in sample_results])
