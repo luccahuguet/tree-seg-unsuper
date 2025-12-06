@@ -3,7 +3,9 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Literal, Optional
+from typing import List, Literal, Optional
+
+import numpy as np
 
 import typer
 from dotenv import load_dotenv
@@ -11,6 +13,8 @@ from rich.console import Console
 
 from tree_seg import segment_trees
 from tree_seg.constants import PROFILE_DEFAULTS, SUPPORTED_IMAGE_EXTS
+from tree_seg.core.types import Config
+from tree_seg.metadata.store import store_segment_run
 
 # Load environment variables
 load_dotenv()
@@ -107,6 +111,27 @@ def segment_command(
         "-q",
         help="Suppress detailed processing output",
     ),
+    save_labels: bool = typer.Option(
+        True,
+        "--save-labels/--no-save-labels",
+        help="Save predicted labels (NPZ) for each image",
+    ),
+    save_metadata: bool = typer.Option(
+        True,
+        "--save-metadata/--no-save-metadata",
+        help="Store run metadata in results index",
+    ),
+    metadata_dir: Path = typer.Option(
+        Path("results"),
+        "--metadata-dir",
+        help="Base directory for metadata storage",
+    ),
+    metadata_tags: List[str] = typer.Option(
+        [],
+        "--tag",
+        "-t",
+        help="User tags to attach to metadata entries",
+    ),
 ):
     """
     Segment trees in aerial imagery using DINOv3 features.
@@ -151,11 +176,22 @@ def segment_command(
     if elbow_threshold is not None:
         config_kwargs["elbow_threshold"] = elbow_threshold
 
+    def _save_labels_npz(out_dir: Path, seg_result) -> None:
+        labels_dir = out_dir / "labels"
+        labels_dir.mkdir(parents=True, exist_ok=True)
+        image_id = Path(seg_result.image_path).stem if seg_result.image_path else "image"
+        label_path = labels_dir / f"{image_id}.npz"
+        try:
+            np.savez_compressed(label_path, labels=seg_result.labels_resized.astype(np.uint8))
+        except Exception as exc:
+            console.print(f"[yellow]⚠️  Failed to save labels for {image_id}: {exc}[/yellow]")
+
     def _run_case(
         img_path: Path,
         mdl: str,
         out_dir: Path,
         overrides: Optional[dict] = None,
+        sweep_label: Optional[str] = None,
     ):
         """Run segmentation for a single case."""
         # Clear output directory
@@ -176,6 +212,16 @@ def segment_command(
             cfg["refine"] = None
         if cfg.get("elbow_threshold") is None:
             cfg.pop("elbow_threshold", None)
+
+        # Build Config for metadata hashing
+        meta_config = Config(
+            output_dir=str(out_dir),
+            model_name=mdl,
+            auto_k=True,
+            **cfg,
+        )
+
+        collected_outputs: list = []
 
         # Process directory or single image
         if img_path.is_dir():
@@ -200,6 +246,8 @@ def segment_command(
                         output_dir=str(out_dir),
                         **cfg,
                     )
+                    if isinstance(results, list):
+                        collected_outputs.extend(results)
                     if metrics and isinstance(results, list) and results:
                         res, _paths = results[0]
                         stats = getattr(res, "processing_stats", {})
@@ -211,6 +259,9 @@ def segment_command(
                             f"refine={stats.get('time_refine_s')}s, "
                             f"peak_vram={stats.get('peak_vram_mb')}MB[/dim]"
                         )
+                    if save_labels and isinstance(results, list):
+                        for res, _paths in results:
+                            _save_labels_npz(out_dir, res)
                     console.print(f"[green]✅ Completed: {p.name}[/green]")
                 except Exception as e:
                     console.print(f"[red]❌ Failed: {p.name} - {e}[/red]")
@@ -224,6 +275,8 @@ def segment_command(
                     output_dir=str(out_dir),
                     **cfg,
                 )
+                if isinstance(results, list):
+                    collected_outputs.extend(results)
                 if metrics and isinstance(results, list) and results:
                     res, _paths = results[0]
                     stats = getattr(res, "processing_stats", {})
@@ -235,10 +288,30 @@ def segment_command(
                         f"refine={stats.get('time_refine_s')}s, "
                         f"peak_vram={stats.get('peak_vram_mb')}MB[/dim]"
                     )
+                if save_labels and isinstance(results, list):
+                    for res, _paths in results:
+                        _save_labels_npz(out_dir, res)
                 console.print("[green]✅ Tree segmentation completed![/green]")
             except Exception as e:
                 console.print(f"[red]❌ Error: {e}[/red]")
                 raise typer.Exit(code=1)
+
+        # Persist metadata for this run
+        if save_metadata and collected_outputs:
+            try:
+                tags = metadata_tags.copy()
+                if sweep_label:
+                    tags.append(sweep_label)
+                store_segment_run(
+                    config=meta_config,
+                    input_path=img_path,
+                    outputs=collected_outputs,
+                    base_dir=metadata_dir,
+                    user_tags=tags,
+                )
+                console.print(f"[dim]📝 Metadata stored for {img_path}[/dim]")
+            except Exception as exc:
+                console.print(f"[yellow]⚠️  Failed to store metadata: {exc}[/yellow]")
 
     # Sweep mode
     if sweep:
@@ -279,7 +352,7 @@ def segment_command(
                 for key, value in PROFILE_DEFAULTS[prof].items():
                     overrides.setdefault(key, value)
 
-            _run_case(image_path, mdl, out_dir, overrides)
+            _run_case(image_path, mdl, out_dir, overrides, sweep_label=name)
 
         console.print("\n[bold green]✨ Sweep completed![/bold green]")
         return
@@ -296,4 +369,4 @@ def segment_command(
     console.print(f"[green]📁 Output directory ready: {output_dir}[/green]")
     console.print()
 
-    _run_case(image_path, model, output_dir)
+    _run_case(image_path, model, output_dir, sweep_label=None)

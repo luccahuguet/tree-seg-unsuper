@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from tree_seg.core.types import Config
+from tree_seg.core.types import Config, SegmentationResults
 from tree_seg.evaluation.benchmark import BenchmarkResults
 from tree_seg.evaluation.formatters import config_to_dict
 
@@ -290,6 +290,103 @@ def store_run(
         "config": {
             k: (list(v) if isinstance(v, tuple) else v) for k, v in normalized.items()
         },
+    }
+    with index_path.open("a") as f:
+        f.write(json.dumps(index_entry) + "\n")
+
+    return hash_id
+
+
+def store_segment_run(
+    config: Config,
+    input_path: Path,
+    outputs: List[tuple[SegmentationResults, object]],
+    base_dir: Path | str = "results",
+    user_tags: Optional[List[str]] = None,
+    notes: Optional[str] = None,
+) -> str:
+    """
+    Persist unlabeled segment runs (no GT metrics), capturing timings and artifacts.
+
+    Args:
+        config: Config used for segmentation
+        input_path: Path to processed file or directory
+        outputs: List of (SegmentationResults, OutputPaths)
+    """
+    base_dir = Path(base_dir)
+    by_hash_dir = base_dir / "by-hash"
+    _ensure_dir(by_hash_dir)
+
+    dataset_id = input_path.name if input_path.is_dir() else input_path.parent.name
+    hash_config = _config_to_hash_config(config, dataset_id, smart_k=False, grid_label=None)
+    normalized = normalize_config(hash_config)
+    hash_id = config_hash(normalized)
+
+    run_dir = by_hash_dir / hash_id
+    _ensure_dir(run_dir)
+
+    created_at = _now_iso()
+    auto_tags = derive_tags(normalized)
+    all_tags = {"auto": auto_tags, "user": user_tags or []}
+
+    # Sample stats
+    sample_entries = []
+    total_runtime = 0.0
+    for seg_result, path_obj in outputs:
+        stats = getattr(seg_result, "processing_stats", {}) or {}
+        runtime = float(stats.get("time_total_s") or 0.0)
+        total_runtime += runtime
+        sample_entries.append(
+            {
+                "image_id": Path(seg_result.image_path).stem if seg_result.image_path else None,
+                "n_clusters_used": seg_result.n_clusters_used,
+                "runtime_seconds": runtime,
+                "stats": stats,
+                "outputs": path_obj.__dict__ if hasattr(path_obj, "__dict__") else {},
+            }
+        )
+
+    hardware = _hardware_info()
+    config_full = config_to_dict(config)
+
+    meta = {
+        "hash": hash_id,
+        "created_at": created_at,
+        "git_sha": os.getenv("GIT_SHA"),
+        "dataset": dataset_id,
+        "config": normalized,
+        "config_full": config_full,
+        "tags": all_tags,
+        "samples": {
+            "num_samples": len(outputs),
+            "per_sample_stats": sample_entries,
+        },
+        "hardware": hardware,
+        "timing": {
+            "total_runtime_s": total_runtime,
+        },
+        "metrics": {},
+        "artifacts": {},
+        "notes": notes,
+        "metadata_version": 1,
+        "type": "segment",
+    }
+
+    meta_path = run_dir / "meta.json"
+    with meta_path.open("w") as f:
+        json.dump(meta, f, indent=2)
+
+    index_path = base_dir / "index.jsonl"
+    index_entry = {
+        "hash": hash_id,
+        "dataset": dataset_id,
+        "tags": auto_tags + (user_tags or []),
+        "total_s": float(total_runtime),
+        "created_at": created_at,
+        "config": {
+            k: (list(v) if isinstance(v, tuple) else v) for k, v in normalized.items()
+        },
+        "type": "segment",
     }
     with index_path.open("a") as f:
         f.write(json.dumps(index_entry) + "\n")
