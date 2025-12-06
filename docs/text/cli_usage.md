@@ -1,6 +1,6 @@
 # CLI Usage Guide
 
-Command-line entrypoints for running tree segmentation workflows with sensible defaults and configurable profiles.
+Command-line entrypoints (`tree-seg segment|eval|results`) for running tree segmentation workflows with sensible defaults and configurable profiles.
 
 ---
 
@@ -21,10 +21,10 @@ All commands below assume you run them from the project root.
 
 ```bash
 # Process every image in data/input/ with the balanced profile
-UV_CACHE_DIR=.uv_cache uv run python main.py
+UV_CACHE_DIR=.uv_cache uv run tree-seg segment
 
 # Inspect available flags
-UV_CACHE_DIR=.uv_cache uv run python main.py --help
+UV_CACHE_DIR=.uv_cache uv run tree-seg --help
 ```
 
 Defaults:
@@ -39,24 +39,24 @@ Defaults:
 
 ### 3.1 Single Image, Custom Output
 ```bash
-UV_CACHE_DIR=.uv_cache uv run python main.py \
+UV_CACHE_DIR=.uv_cache uv run tree-seg segment \
   data/input/forest2.jpeg \
   base \
-  data/output/my_run
+  --output-dir data/output/my_run
 ```
 
 ### 3.2 Quality vs. Speed Profiles
 ```bash
 # Highest quality (larger resize, more refinement)
-UV_CACHE_DIR=.uv_cache uv run python main.py --profile quality
+UV_CACHE_DIR=.uv_cache uv run tree-seg segment --profile quality
 
 # Fastest runtime / lowest memory
-UV_CACHE_DIR=.uv_cache uv run python main.py --profile speed
+UV_CACHE_DIR=.uv_cache uv run tree-seg segment --profile speed
 ```
 
 ### 3.3 Manual Overrides
 ```bash
-UV_CACHE_DIR=.uv_cache uv run python main.py \
+UV_CACHE_DIR=.uv_cache uv run tree-seg segment \
   --image-size 1280 \
   --feature-upsample 1 \
   --pca-dim 128 \
@@ -66,7 +66,7 @@ UV_CACHE_DIR=.uv_cache uv run python main.py \
 
 ### 3.4 Quiet Mode (for scripts)
 ```bash
-UV_CACHE_DIR=.uv_cache uv run python main.py --quiet
+UV_CACHE_DIR=.uv_cache uv run tree-seg segment --quiet
 ```
 
 ---
@@ -91,10 +91,10 @@ The CLI can apply multiple configurations in sequence via `--sweep`. Create a YA
 Run the sweep:
 
 ```bash
-UV_CACHE_DIR=.uv_cache uv run python main.py \
+UV_CACHE_DIR=.uv_cache uv run tree-seg segment \
   data/input \
   giant \
-  data/output \
+  --output-dir data/output \
   --sweep sweeps/example.yaml \
   --metrics
 ```
@@ -126,6 +126,10 @@ UV_CACHE_DIR=.uv_cache uv run python scripts/generate_docs_images.py data/input/
 | `--sweep-prefix` | Subfolder under output for sweeps | `sweeps` |
 | `--clean-output` | Remove existing contents before writing | off |
 | `--verbose` / `--quiet` | Control console output detail | verbose |
+| `--save-labels` | Save predicted labels (NPZ) for regen/metadata | on |
+| `--save-metadata` | Store run in metadata bank (`results/`) | on |
+| `--metadata-dir` | Where to store metadata/results index | `results` |
+| `--tag` | User tags to attach to metadata entries | `[]` |
 
 ---
 
@@ -137,42 +141,58 @@ UV_CACHE_DIR=.uv_cache uv run python scripts/generate_docs_images.py data/input/
 - **Verbose vs. quiet**: Passing `--quiet` disables verbose logging even if `--verbose` is set earlier.
 - **Metrics during sweeps**: `--metrics` applies to both single runs and all sweep items.
 
-## 7. Benchmark CLI (`scripts/bench.py`)
+## 7. Benchmark CLI (`tree-seg eval`)
 
-The benchmark runner shares the same configuration backbone as `main.py`, but evaluates segmentation quality against labeled datasets. Treat it as a companion CLI:
+Evaluate on labeled datasets with rich progress, metadata, and label dumps:
 
 ```bash
-# Recommended baseline on ISPRS Potsdam (10 samples, saves visuals)
-UV_CACHE_DIR=.uv_cache uv run python scripts/bench.py \
-  --dataset data/isprs_potsdam \
-  --method v1.5 \
+# Baseline on FORTRESS with viz + labels
+UV_CACHE_DIR=.uv_cache uv run tree-seg eval data/fortress_processed \
   --model base \
-  --clustering slic \
-  --elbow-threshold 20.0 \
-  --num-samples 10 \
+  --clustering kmeans \
+  --refine slic \
+  --num-samples 5 \
   --save-viz \
-  --output-dir data/output/results/base_e20_slic_run
+  --save-labels
 ```
 
-Need a quick comparison sweep?
+Comparison sweep with metadata per config:
 
 ```bash
-UV_CACHE_DIR=.uv_cache uv run python scripts/bench.py \
-  --dataset data/isprs_potsdam \
-  --method v1.5 \
-  --compare-configs \
-  --num-samples 5
+UV_CACHE_DIR=.uv_cache uv run tree-seg eval data/fortress_processed \
+  --compare-configs --grid tiling --smart-k \
+  --num-samples 1 \
+  --save-viz --save-labels
 ```
 
-Key notes:
-- Defaults mirror the main CLI (balanced behaviour, stride 4, elbow threshold 5.0). Adjust them explicitly via flags (`--stride`, `--elbow-threshold`, `--clustering`, etc.).
-- Outputs go to `data/output/results/<method>_<model>_<timestamp>/` unless you supply `--output-dir` (as shown above).
-- Comparison mode (`--compare-configs`) iterates over a pre-defined grid of settings; top-level flags seed the base config, while each comparison case applies its overrides.
-- For quick CSV-style profiling (runtime/VRAM per image) see `scripts/utils/benchmark_profiles.py`, which simply wraps `segment_trees` with metrics enabled.
+Notes:
+- Outputs land in `data/output/results/<dataset>_<method>_<timestamp>/` unless `--output-dir` is provided.
+- `--save-labels/--no-save-labels` controls NPZ dumps under `labels/`; metadata is stored best-effort in `results/`.
+- Progress bar shows ETA using cached runtimes (scaled by hardware tier).
 
-Because the benchmark CLI is a separate script, you can invoke it directly, or add an alias (e.g., `uvx tree-seg-bench`) if you want it to feel like a subcommand.
+## 8. Results CLI (`tree-seg results`)
 
-## 8. Environment Helpers
+Query the metadata bank, regenerate visuals, and manage index size:
+
+```bash
+# List top runs for fortress kmeans+slic
+uv run tree-seg results --dataset fortress --tags kmeans,slic --sort mIoU --top 5
+
+# Show details for a hash
+uv run tree-seg results --hash abc123 --show-config
+
+# Regenerate visualizations from labels
+uv run tree-seg results --hash abc123 --render
+
+# Nearest-config ETA lookup
+uv run tree-seg results --nearest '{"clustering":"kmeans","model":"base","stride":4,"tiling":false}'
+
+# Maintenance
+uv run tree-seg results --compact
+uv run tree-seg results --prune-older-than 30
+```
+
+## 9. Environment Helpers
 
 - **Force GPU**: set `FORCE_GPU=1` to prefer CUDA/MPS if available.
 - **CPU fallback**: default behavior automatically runs on CPU when GPUs are missing or exhausted.
@@ -180,7 +200,7 @@ Because the benchmark CLI is a separate script, you can invoke it directly, or a
 
 ---
 
-## 9. Troubleshooting Tips
+## 10. Troubleshooting Tips
 
 - Ensure input files have supported extensions (`.jpg`, `.jpeg`, `.png`, `.tif`, `.tiff`).
 - Use `--clean-output` if you need fresh directories between runs.
