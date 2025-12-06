@@ -23,7 +23,7 @@ except Exception:
     slic = None
 
 
-def process_image(image_path, model, preprocess, n_clusters, stride, version, device,
+def process_image(image_path, model, preprocess, n_clusters, stride, device,
                  auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, pca_dim=None,
                  feature_upsample_factor: int = 1, refine: str | None = None,
                  refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
@@ -49,7 +49,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
         preprocess: Preprocessing pipeline
         n_clusters: Number of clusters (if auto_k=False)
         stride: Model stride
-        version: Model version ("v1" or "v1.5")
+        version: (deprecated) unused
         device: PyTorch device
         auto_k: Whether to use automatic K selection
         k_range: Range for K selection (min_k, max_k)
@@ -146,7 +146,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                         feature_aggregation=feature_aggregation
                     )
                     tile_patch_features = features_out["x_norm_patchtokens"]
-                    tile_attn_features = features_out.get("x_patchattn", None)
+                    tile_attn_features = features_out.get("x_patchattn", None) if use_attention_features else None
 
                 # Reshape if needed
                 if tile_patch_features.dim() == 2:
@@ -327,8 +327,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                     print(f"Preprocessed tensor shape: {image_tensor.shape}")
 
                 with torch.no_grad():
-                    # DINOv3 always uses attention features for v3 (equivalent to v1.5)
-                    attn_choice = "none" if version == "v1" else "o"
+                    attn_choice = "o" if use_attention_features else "none"
                     features_out = model.forward_sequential(
                         image_tensor,
                         attn_choice=attn_choice,
@@ -340,15 +339,15 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                         print(f"features_out type: {type(features_out)}")
 
                     # DINOv3 adapter returns a dictionary with patch features
-                    if isinstance(features_out, dict):
-                        patch_features = features_out["x_norm_patchtokens"]
-                        attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
-                        if verbose:
-                            print(f"patch_features shape: {patch_features.shape}")
-                            if attn_features is not None:
-                                print(f"attn_features shape: {attn_features.shape}")
-                        # DINOv3 features are already in spatial format (H, W, D)
-                        # No need to take mean across batch dimension
+                        if isinstance(features_out, dict):
+                            patch_features = features_out["x_norm_patchtokens"]
+                            attn_features = features_out.get("x_patchattn", None) if use_attention_features else None
+                            if verbose:
+                                print(f"patch_features shape: {patch_features.shape}")
+                                if attn_features is not None:
+                                    print(f"attn_features shape: {attn_features.shape}")
+                            # DINOv3 features are already in spatial format (H, W, D)
+                            # No need to take mean across batch dimension
                     else:
                         # Fallback for legacy tensor format
                         if verbose:
@@ -402,7 +401,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                     if verbose:
                         print(f"Upsampled features to: {H}x{W}")
 
-                if attn_features is not None and version in ["v1.5", "v3"]:
+                if attn_features is not None and use_attention_features:
                     features_np = np.concatenate(
                         [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
                     )
@@ -458,7 +457,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
             png_output_dir = os.path.join(output_dir, "png")
             os.makedirs(png_output_dir, exist_ok=True)
             plot_elbow_analysis(k_scores, png_output_dir, output_prefix, elbow_threshold * 100,
-                               model_name, version, stride, optimal_k, auto_k, image_path_str)
+                               model_name, "n/a", stride, optimal_k, auto_k, image_path_str)
 
             n_clusters = optimal_k
             k_requested = int(optimal_k)
@@ -978,7 +977,6 @@ def run_processing(
     stride=4,
     model_name="dinov2_vits14",
     filename=None,
-    version="v1.5"
 ):
     """
     Run processing on single file or directory (legacy function).
@@ -1004,7 +1002,7 @@ def run_processing(
         if os.path.exists(image_path) and filename.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff")):
             output_prefix = os.path.splitext(filename)[0]
             print(f"Processing {filename} ...")
-            return process_image(image_path, model, preprocess, n_clusters, stride, version, device,
+            return process_image(image_path, model, preprocess, n_clusters, stride, device,
                                auto_k=False, k_range=(3, 10), verbose=True), output_prefix
         else:
             print(f"File {filename} not found or is not a supported image format.")
@@ -1016,7 +1014,7 @@ def run_processing(
                 image_path = os.path.join(input_dir, filename)
                 output_prefix = os.path.splitext(filename)[0]
                 print(f"Processing {filename} ...")
-                result = process_image(image_path, model, preprocess, n_clusters, stride, version, device,
+                result = process_image(image_path, model, preprocess, n_clusters, stride, device,
                                       auto_k=False, k_range=(3, 10), verbose=True)
                 results.append((result, output_prefix))
         return results 

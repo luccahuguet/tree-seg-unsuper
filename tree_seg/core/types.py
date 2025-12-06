@@ -20,7 +20,6 @@ class Config:
     
     # Model settings
     model_name: str = "base"  # small/base/large/giant/mega or full DINOv3 name
-    version: str = "v3"  # Now using DINOv3
     stride: int = 4
     image_size: int = 1024  # Preprocess resize (square)
     use_attention_features: bool = True  # Include attention tokens (disable for legacy v1)
