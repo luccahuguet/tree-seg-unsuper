@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 import cv2
 from PIL import Image
-from sklearn.cluster import KMeans, SpectralClustering
+from sklearn.cluster import SpectralClustering
 from sklearn.mixture import GaussianMixture
 from sklearn.neighbors import NearestNeighbors
 import hdbscan
@@ -577,8 +577,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                 if len(unique_labels) == 0:
                     if verbose:
                         print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
-                    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-                    labels = kmeans.fit_predict(features_flat)
+                    labels = run_kmeans(features_flat, n_clusters, verbose=False)
                 else:
                     # Propagate labels to full dataset using nearest neighbor
                     if verbose:
@@ -606,8 +605,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                 if len(unique_labels) == 0:
                     if verbose:
                         print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
-                    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-                    labels = kmeans.fit_predict(features_flat)
+                    labels = run_kmeans(features_flat, n_clusters, verbose=False)
                 else:
                     # Assign noise (-1) to nearest non-noise cluster
                     if np.any(labels == -1):
