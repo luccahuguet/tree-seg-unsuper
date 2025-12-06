@@ -17,5 +17,10 @@
 - [ ] Codebase hygiene:
   - [ ] Scan for large files/duplication; centralize shared clustering logic (k-means variants) to reduce copy/paste.
   - [ ] Split monoliths (`core/segmentation.py`) into smaller modules for readability/testing.
+  - [ ] Split CLIs (`tree_seg/cli/evaluate.py`, `tree_seg/cli/segment.py`) into config builders, runners, and output/reporting helpers.
+  - [ ] Refactor evaluation/benchmark plumbing (`tree_seg/evaluation/benchmark.py`, `tree_seg/api.py`) to share data loading, segmentation calls, and metrics aggregation.
+  - [ ] Break plotting into focused modules (`tree_seg/visualization/plotting.py`) for composites, metrics charts, and panel layouts.
+  - [ ] Continue slimming DINO adapter: move registry/config to `registry.py` and forward/reshape helpers to `features.py`.
+  - [ ] Extract k-selection/PCA/metrics assembly from `core/segmentation.py` into dedicated helpers.
   - [ ] Move to latest supported Python runtime when feasible.
 - [ ] Docs: update stale site content to reflect current CLI, metadata/results features, and removed version split.
