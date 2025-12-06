@@ -7,23 +7,12 @@ import time
 import traceback
 import numpy as np
 import torch
-import torch.nn.functional as F
 import cv2
 from PIL import Image
-from sklearn.cluster import SpectralClustering
-from sklearn.mixture import GaussianMixture
-from sklearn.neighbors import NearestNeighbors
-import hdbscan
-
-from .clustering import (
-    run_kmeans,
-    run_dpmeans,
-    run_spherical_kmeans,
-    run_potts_kmeans,
-)
+from .clustering import cluster_features
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
-
+from .features import extract_tiled_features, extract_features
 try:
     from skimage.segmentation import slic
 except Exception:
@@ -119,308 +108,76 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
 
         t_pre_start = time.perf_counter()
 
-        if needs_tiling:
-            if verbose:
-                grid_info = tile_manager.get_grid_info(h, w)
-                print("🔲 Using tile-based processing:")
-                print(f"   Tile size: {tile_size}×{tile_size}, Overlap: {tile_overlap}px")
-                print(f"   Grid: {grid_info['n_tiles_y']}×{grid_info['n_tiles_x']} = {grid_info['n_tiles']} tiles")
-
-            # Extract tiles
-            tiles = tile_manager.extract_tiles(image_np)
-
-            # Process each tile
-            tile_features_list = []
-            tile_coords_list = []
-
-            for i, tile_info in enumerate(tiles):
-                if verbose and (i % 10 == 0 or i == len(tiles) - 1):
-                    print(f"   Processing tile {i+1}/{len(tiles)}...")
-
-                # Convert tile to PIL Image for preprocessing
-                tile_pil = Image.fromarray(tile_info.tile_array)
-
-                # Preprocess and extract features
-                tile_tensor = preprocess(tile_pil).to(device)
-
-                with torch.no_grad():
-                    attn_choice = "o" if use_attention_features else "none"
-                    features_out = model.forward_sequential(
-                        tile_tensor, 
-                        attn_choice=attn_choice,
-                        use_multi_layer=use_multi_layer,
-                        layer_indices=layer_indices,
-                        feature_aggregation=feature_aggregation
-                    )
-                    tile_patch_features = features_out["x_norm_patchtokens"]
-                    tile_attn_features = features_out.get("x_patchattn", None) if use_attention_features else None
-
-                # Reshape if needed
-                if tile_patch_features.dim() == 2:
-                    n_patches = tile_patch_features.shape[0]
-                    tile_H = tile_W = int(np.sqrt(n_patches))
-                    tile_patch_features = tile_patch_features.view(tile_H, tile_W, -1)
-                    if tile_attn_features is not None:
-                        tile_attn_features = tile_attn_features.view(tile_H, tile_W, -1)
-
-                # Combine patch + attention features if needed
-                if tile_attn_features is not None and use_attention_features:
-                    tile_features_combined = np.concatenate(
-                        [tile_patch_features.cpu().numpy(),
-                         tile_attn_features.cpu().numpy()],
-                        axis=-1
-                    )
-                else:
-                    tile_features_combined = tile_patch_features.cpu().numpy()
-
-                tile_features_list.append(tile_features_combined)
-                tile_coords_list.append((tile_info.x_start, tile_info.y_start,
-                                        tile_info.x_end, tile_info.y_end))
-
-            # Stitch features with weighted blending
-            if verbose:
-                print("   Stitching tile features...")
-
-            # Calculate output feature grid size
-            # DINOv3 uses patch size 14 with 518px default input
-            # For 2048px tile -> ~146 patches per side
-            if len(tile_features_list) > 0:
-                first_tile_feat_h, first_tile_feat_w = tile_features_list[0].shape[:2]
-                feat_scale = tile_size / first_tile_feat_h
+        if needs_tiling and verbose:
+            grid_info = tile_manager.get_grid_info(h, w)
+            print("🔲 Using tile-based processing:")
+            print(f"   Tile size: {tile_size}×{tile_size}, Overlap: {tile_overlap}px")
+            print(f"   Grid: {grid_info['n_tiles_y']}×{grid_info['n_tiles_x']} = {grid_info['n_tiles']} tiles")
+        elif verbose:
+            if use_pyramid:
+                print(f"🔺 Using pyramid processing at {len(pyramid_scales)} scales: {pyramid_scales}")
             else:
-                feat_scale = 14.0  # Default DINOv3 patch size
-
-            output_h = int(h / feat_scale)
-            output_w = int(w / feat_scale)
-
-            features_np = tile_manager.stitch_features(
-                tile_features_list,
-                tile_coords_list,
-                output_shape=(output_h, output_w)
-            )
-
-            H, W = features_np.shape[:2]
-
-            if verbose:
-                print(f"   Stitched feature map: {H}×{W}×{features_np.shape[-1]}")
-
-        else:
-            # Use existing single-image processing
-            if verbose:
-                if use_pyramid:
-                    print(f"🔺 Using pyramid processing at {len(pyramid_scales)} scales: {pyramid_scales}")
-                else:
-                    print("Using full-image processing (no tiling)")
+                print("Using full-image processing (no tiling)")
 
         t_pre_end = time.perf_counter()
 
-        # Feature extraction (skip if already done via tiling)
-        if not needs_tiling:
-            if use_pyramid:
-                # Multi-scale pyramid feature extraction
-                pyramid_feature_maps = []
+        features_np = None
+        H, W = None, None
 
-                for scale_idx, scale in enumerate(pyramid_scales):
-                    if verbose:
-                        print(f"   Processing scale {scale}× ({scale_idx+1}/{len(pyramid_scales)})...")
+        if needs_tiling:
+            features_np, H, W = extract_tiled_features(
+                image_np=image_np,
+                model=model,
+                preprocess=preprocess,
+                stride=stride,
+                use_attention_features=use_attention_features,
+                use_multi_layer=use_multi_layer,
+                layer_indices=layer_indices,
+                feature_aggregation=feature_aggregation,
+                tile_size=tile_size,
+                tile_overlap=tile_overlap,
+                tile_threshold=tile_threshold,
+                verbose=verbose,
+                device=device,
+            )
 
-                    # Resize image to this scale
-                    scaled_h = int(h * scale)
-                    scaled_w = int(w * scale)
-                    scaled_image_np = cv2.resize(image_np, (scaled_w, scaled_h), interpolation=cv2.INTER_LINEAR)
+        if features_np is None:
+            features_np, H, W = extract_features(
+                image_np=image_np,
+                model=model,
+                preprocess=preprocess,
+                stride=stride,
+                use_attention_features=use_attention_features,
+                use_multi_layer=use_multi_layer,
+                layer_indices=layer_indices,
+                feature_aggregation=feature_aggregation,
+                use_pyramid=use_pyramid,
+                pyramid_scales=pyramid_scales,
+                pyramid_aggregation=pyramid_aggregation,
+                verbose=verbose,
+                device=device,
+            )
+            needs_tiling = False
 
-                    # Convert to PIL and preprocess
-                    image = Image.fromarray(scaled_image_np)
-                    image_tensor = preprocess(image).to(device)
+        # Optional upsampling of the feature grid for smoother segmentation
+        if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
+            up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
+            features_np = cv2.resize(features_np, (up_w, up_h), interpolation=cv2.INTER_LINEAR)
+            H, W = up_h, up_w
+            if verbose:
+                print(f"Upsampled features to: {H}x{W}")
 
-                    if verbose and scale_idx == 0:
-                        print(f"   Preprocessed tensor shape: {image_tensor.shape}")
+        if use_pyramid and pyramid_aggregation == "concat" and features_np.shape[-1] > 1536:
+            H_pyr, W_pyr, D_pyr = features_np.shape
+            features_flat_pca = features_np.reshape(-1, D_pyr)
+            from sklearn.decomposition import PCA
 
-                    # Extract features at this scale
-                    with torch.no_grad():
-                        attn_choice = "o" if use_attention_features else "none"
-                        features_out = model.forward_sequential(
-                            image_tensor,
-                            attn_choice=attn_choice,
-                            use_multi_layer=use_multi_layer,
-                            layer_indices=layer_indices,
-                            feature_aggregation=feature_aggregation
-                        )
-
-                        if isinstance(features_out, dict):
-                            patch_features = features_out["x_norm_patchtokens"]
-                            attn_features = features_out.get("x_patchattn", None) if version in ["v1.5", "v3"] else None
-                        else:
-                            if hasattr(features_out, "dim") and features_out.dim() == 4:
-                                features = features_out.mean(dim=0)
-                            else:
-                                features = features_out
-                            H_scale = W_scale = 518 // stride
-                            features = features.unsqueeze(0)
-                            features = torch.nn.functional.interpolate(
-                                features, size=(H_scale, W_scale), mode="bilinear", align_corners=False
-                            ).squeeze(0)
-                            features = features.permute(1, 2, 0)
-                            patch_features = features
-                            attn_features = None
-
-                        # Reshape if needed
-                        if patch_features.dim() == 2:
-                            n_patches = patch_features.shape[0]
-                            H_scale = W_scale = int(np.sqrt(n_patches))
-                            patch_features = patch_features.view(H_scale, W_scale, -1)
-                            if attn_features is not None:
-                                attn_features = attn_features.view(H_scale, W_scale, -1)
-
-                        # Combine patch + attention features
-                        if attn_features is not None and use_attention_features:
-                            combined_features = torch.cat([patch_features, attn_features], dim=-1)
-                        else:
-                            combined_features = patch_features
-
-                        pyramid_feature_maps.append(combined_features.cpu().numpy())
-
-                        if verbose:
-                            print(f"   Scale {scale}× features: {combined_features.shape}")
-
-                # Resize all feature maps to the size of scale=1.0
-                reference_idx = pyramid_scales.index(1.0) if 1.0 in pyramid_scales else len(pyramid_scales) // 2
-                ref_shape = pyramid_feature_maps[reference_idx].shape[:2]
-
-                if verbose:
-                    print(f"   Resizing all feature maps to reference size: {ref_shape}")
-
-                resized_features = []
-                for scale_idx, feat_map in enumerate(pyramid_feature_maps):
-                    if feat_map.shape[:2] != ref_shape:
-                        # Resize each channel separately
-                        feat_resized = cv2.resize(feat_map, (ref_shape[1], ref_shape[0]), interpolation=cv2.INTER_LINEAR)
-                        resized_features.append(feat_resized)
-                    else:
-                        resized_features.append(feat_map)
-
-                # Aggregate features across scales
-                if pyramid_aggregation == "concat":
-                    # Concatenate along feature dimension
-                    features_np = np.concatenate(resized_features, axis=-1)
-                    if verbose:
-                        print(f"   Concatenated pyramid features: {features_np.shape}")
-
-                    # Apply PCA to reduce dimensionality if needed
-                    if features_np.shape[-1] > 1536:  # Reduce if too large
-                        H_pyr, W_pyr, D_pyr = features_np.shape
-                        features_flat_pca = features_np.reshape(-1, D_pyr)
-                        from sklearn.decomposition import PCA
-                        pca = PCA(n_components=1536, random_state=42)
-                        features_reduced = pca.fit_transform(features_flat_pca)
-                        features_np = features_reduced.reshape(H_pyr, W_pyr, 1536)
-                        if verbose:
-                            explained_var = pca.explained_variance_ratio_.sum() * 100
-                            print(f"   PCA reduced {D_pyr}D → 1536D ({explained_var:.1f}% variance)")
-                else:  # average
-                    features_np = np.mean(resized_features, axis=0)
-                    if verbose:
-                        print(f"   Averaged pyramid features: {features_np.shape}")
-
-                H, W = features_np.shape[:2]
-
-            else:
-                # Single-scale processing (original code)
-                # Convert numpy array to PIL Image for preprocessing
-                image = Image.fromarray(image_np)
-                image_tensor = preprocess(image).to(device)
-
-                if verbose:
-                    print(f"Preprocessed tensor shape: {image_tensor.shape}")
-
-                with torch.no_grad():
-                    attn_choice = "o" if use_attention_features else "none"
-                    features_out = model.forward_sequential(
-                        image_tensor,
-                        attn_choice=attn_choice,
-                        use_multi_layer=use_multi_layer,
-                        layer_indices=layer_indices,
-                        feature_aggregation=feature_aggregation
-                    )
-                    if verbose:
-                        print(f"features_out type: {type(features_out)}")
-
-                    # DINOv3 adapter returns a dictionary with patch features
-                        if isinstance(features_out, dict):
-                            patch_features = features_out["x_norm_patchtokens"]
-                            attn_features = features_out.get("x_patchattn", None) if use_attention_features else None
-                            if verbose:
-                                print(f"patch_features shape: {patch_features.shape}")
-                                if attn_features is not None:
-                                    print(f"attn_features shape: {attn_features.shape}")
-                            # DINOv3 features are already in spatial format (H, W, D)
-                            # No need to take mean across batch dimension
-                    else:
-                        # Fallback for legacy tensor format
-                        if verbose:
-                            print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
-                        if hasattr(features_out, "dim") and features_out.dim() == 4:
-                            features = features_out.mean(dim=0)
-                        else:
-                            features = features_out
-                        H = W = 518 // stride
-                        features = features.unsqueeze(0)
-                        features = torch.nn.functional.interpolate(
-                            features, size=(H, W), mode="bilinear", align_corners=False
-                        ).squeeze(0)
-                        features = features.permute(1, 2, 0)
-                        patch_features = features
-                        attn_features = None
-
-                time.perf_counter()
-                if patch_features.dim() == 2:
-                    n_patches = patch_features.shape[0]
-                    H = W = int(np.sqrt(n_patches))
-                    if H * W != n_patches:
-                        raise ValueError(f"Cannot infer H, W from n_patches={n_patches}")
-                    patch_features = patch_features.view(H, W, -1)
-                    if attn_features is not None:
-                        attn_features = attn_features.view(H, W, -1)
-                else:
-                    H, W = patch_features.shape[:2]
-                if verbose:
-                    print(f"patch_features reshaped: {patch_features.shape}")
-                    if attn_features is not None:
-                        print(f"attn_features reshaped: {attn_features.shape}")
-                    # Report actual compute device used by features
-                    try:
-                        print(f"🖥️ Compute device: {patch_features.device}")
-                    except Exception:
-                        pass
-
-                # Optional upsampling of the feature grid for smoother segmentation
-                if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
-                    up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
-                    # Upsample patch features (H, W, D) -> (up_h, up_w, D)
-                    pf = patch_features.permute(2, 0, 1).unsqueeze(0)  # 1, D, H, W
-                    pf_up = F.interpolate(pf, size=(up_h, up_w), mode="bilinear", align_corners=False)
-                    patch_features = pf_up.squeeze(0).permute(1, 2, 0)
-                    if attn_features is not None:
-                        af = attn_features.permute(2, 0, 1).unsqueeze(0)
-                        af_up = F.interpolate(af, size=(up_h, up_w), mode="bilinear", align_corners=False)
-                        attn_features = af_up.squeeze(0).permute(1, 2, 0)
-                    H, W = up_h, up_w
-                    if verbose:
-                        print(f"Upsampled features to: {H}x{W}")
-
-                if attn_features is not None and use_attention_features:
-                    features_np = np.concatenate(
-                        [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
-                    )
-                    if verbose:
-                        print(f"Combined features shape: {features_np.shape}")
-                else:
-                    features_np = patch_features.cpu().numpy()
-                    if verbose:
-                        print(f"Patch-only features shape: {features_np.shape}")
-
-                H, W = features_np.shape[:2]
-        # If tiling was used, features_np, H, W are already set from stitching
+            pca = PCA(n_components=1536, random_state=42)
+            features_reduced = pca.fit_transform(features_flat_pca)
+            features_np = features_reduced.reshape(H_pyr, W_pyr, 1536)
+            if verbose:
+                explained_var = pca.explained_variance_ratio_.sum() * 100
+                print(f"   PCA reduced {D_pyr}D → 1536D ({explained_var:.1f}% variance)")
 
         features_flat = features_np.reshape(-1, features_np.shape[-1])
         if verbose:
@@ -487,140 +244,14 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
 
         t_kselect = time.perf_counter()
 
-        # Clustering
-        if clustering_method == "gmm":
-            if verbose:
-                print(f"🎯 Clustering with GMM (n_components={n_clusters})...")
-            # Use diagonal covariance for stability with high-dimensional features
-            # Full covariance can fail with 1536-D DINOv3 features
-            gmm = GaussianMixture(
-                n_components=n_clusters,
-                random_state=42,
-                covariance_type='diag',  # More stable than 'full' for high-D
-                reg_covar=1e-6  # Add regularization
-            )
-            labels = gmm.fit_predict(features_flat)
-        elif clustering_method == "spectral":
-            if verbose:
-                print(f"🎯 Clustering with Spectral Clustering (n_clusters={n_clusters})...")
-            
-            n_samples = features_flat.shape[0]
-            max_samples = 10000  # Spectral is O(n^3), so subsample for efficiency
-            
-            if n_samples > max_samples:
-                if verbose:
-                    print(f"   Subsampling {max_samples} of {n_samples} pixels for affinity matrix...")
-                
-                # Stratified subsampling using spatial grid
-                np.random.seed(42)
-                subsample_idx = np.random.choice(n_samples, max_samples, replace=False)
-                features_subsample = features_flat[subsample_idx]
-                
-                # Fit spectral clustering on subsample
-                spectral = SpectralClustering(
-                    n_clusters=n_clusters,
-                    affinity='nearest_neighbors',
-                    n_neighbors=10,
-                    random_state=42,
-                    assign_labels='kmeans'
-                )
-                subsample_labels = spectral.fit_predict(features_subsample)
-                
-                # Propagate labels to full dataset using nearest neighbor
-                if verbose:
-                    print(f"   Propagating labels to all {n_samples} pixels...")
-                nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
-                nn.fit(features_subsample)
-                _, indices = nn.kneighbors(features_flat)
-                labels = subsample_labels[indices.flatten()]
-            else:
-                # Small enough to run directly
-                spectral = SpectralClustering(
-                    n_clusters=n_clusters,
-                    affinity='nearest_neighbors',
-                    n_neighbors=10,
-                    random_state=42,
-                    assign_labels='kmeans'
-                )
-                labels = spectral.fit_predict(features_flat)
-        elif clustering_method == "hdbscan":
-            if verbose:
-                print("🎯 Clustering with HDBSCAN (automatic K detection)...")
-
-            n_samples = features_flat.shape[0]
-            max_samples = 10000  # HDBSCAN is also expensive, subsample for large datasets
-
-            if n_samples > max_samples:
-                if verbose:
-                    print(f"   Subsampling {max_samples} of {n_samples} pixels...")
-
-                # Stratified subsampling
-                np.random.seed(42)
-                subsample_idx = np.random.choice(n_samples, max_samples, replace=False)
-                features_subsample = features_flat[subsample_idx]
-
-                # Fit HDBSCAN on subsample
-                clusterer = hdbscan.HDBSCAN(
-                    min_cluster_size=50,  # Minimum cluster size
-                    min_samples=10,  # How conservative
-                    cluster_selection_epsilon=0.0,
-                    metric='euclidean'
-                )
-                subsample_labels = clusterer.fit_predict(features_subsample)
-
-                # HDBSCAN returns -1 for noise - check if any clusters found
-                unique_labels = np.unique(subsample_labels[subsample_labels >= 0])
-                if verbose:
-                    print(f"   HDBSCAN found {len(unique_labels)} clusters")
-
-                # Fallback to K-means if HDBSCAN found 0 clusters
-                if len(unique_labels) == 0:
-                    if verbose:
-                        print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
-                    labels = run_kmeans(features_flat, n_clusters, verbose=False)
-                else:
-                    # Propagate labels to full dataset using nearest neighbor
-                    if verbose:
-                        print(f"   Propagating labels to all {n_samples} pixels...")
-                    nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
-                    nn.fit(features_subsample[subsample_labels >= 0])  # Only use non-noise points
-                    _, indices = nn.kneighbors(features_flat)
-                    labels = subsample_labels[subsample_labels >= 0][indices.flatten()]
-            else:
-                # Small enough to run directly
-                clusterer = hdbscan.HDBSCAN(
-                    min_cluster_size=50,
-                    min_samples=10,
-                    cluster_selection_epsilon=0.0,
-                    metric='euclidean'
-                )
-                labels = clusterer.fit_predict(features_flat)
-
-                # Handle noise points
-                unique_labels = np.unique(labels[labels >= 0])
-                if verbose:
-                    print(f"   HDBSCAN found {len(unique_labels)} clusters")
-
-                # Fallback to K-means if HDBSCAN found 0 clusters
-                if len(unique_labels) == 0:
-                    if verbose:
-                        print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
-                    labels = run_kmeans(features_flat, n_clusters, verbose=False)
-                else:
-                    # Assign noise (-1) to nearest non-noise cluster
-                    if np.any(labels == -1):
-                        nn = NearestNeighbors(n_neighbors=1, algorithm='auto')
-                        nn.fit(features_flat[labels >= 0])
-                        _, indices = nn.kneighbors(features_flat[labels == -1])
-                        labels[labels == -1] = labels[labels >= 0][indices.flatten()]
-        elif clustering_method == "dpmeans":
-            labels = run_dpmeans(features_flat, n_clusters, verbose=verbose)
-        elif clustering_method == "spherical":
-            labels = run_spherical_kmeans(features_flat, n_clusters, verbose=verbose)
-        elif clustering_method == "potts":
-            labels = run_potts_kmeans(features_flat, n_clusters, H, W, verbose=verbose)
-        else:  # default to kmeans
-            labels = run_kmeans(features_flat, n_clusters, verbose=verbose)
+        labels = cluster_features(
+            features_flat=features_flat,
+            method=clustering_method,
+            n_clusters=n_clusters,
+            H=H,
+            W=W,
+            verbose=verbose,
+        )
 
         # V2: Optional soft EM refinement in feature space
         if use_soft_refine:
@@ -742,7 +373,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                 'n_vectors': int(features_flat.shape[0]),
                 'n_clusters': int(n_clusters),
                 'device_requested': str(device),
-                'device_actual': str(device) if needs_tiling else str(getattr(patch_features, 'device', device)),
+                'device_actual': str(device),
                 'peak_vram_mb': round(peak_vram_mb, 1) if peak_vram_mb is not None else None,
                 'used_tiling': needs_tiling,
             })
@@ -975,4 +606,3 @@ def _refine_with_bilateral(image_np: np.ndarray, labels_resized: np.ndarray) -> 
         label_smoothed[smoothed_mask > 0.5] = label_id
     
     return label_smoothed
-

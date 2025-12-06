@@ -1,8 +1,10 @@
 """Clustering utilities for tree_seg segmentation."""
 
 import numpy as np
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering
+from sklearn.mixture import GaussianMixture
 from sklearn.neighbors import NearestNeighbors
+import hdbscan
 
 
 def run_kmeans(features_flat: np.ndarray, n_clusters: int, verbose: bool = False) -> np.ndarray:
@@ -71,3 +73,129 @@ def run_potts_kmeans(features_flat: np.ndarray, n_clusters: int, H: int, W: int,
                 total_cost = data_cost + smooth_cost
                 smoothed[y, x] = int(np.argmin(total_cost))
     return smoothed.reshape(-1)
+
+
+def run_gmm(features_flat: np.ndarray, n_clusters: int, verbose: bool = False) -> np.ndarray:
+    if verbose:
+        print(f"🎯 Clustering with GMM (n_components={n_clusters})...")
+    gmm = GaussianMixture(
+        n_components=n_clusters,
+        random_state=42,
+        covariance_type="diag",
+        reg_covar=1e-6,
+    )
+    return gmm.fit_predict(features_flat)
+
+
+def run_spectral(features_flat: np.ndarray, n_clusters: int, verbose: bool = False, max_samples: int = 10000) -> np.ndarray:
+    if verbose:
+        print(f"🎯 Clustering with Spectral Clustering (n_clusters={n_clusters})...")
+
+    n_samples = features_flat.shape[0]
+    if n_samples > max_samples:
+        if verbose:
+            print(f"   Subsampling {max_samples} of {n_samples} pixels for affinity matrix...")
+        np.random.seed(42)
+        subsample_idx = np.random.choice(n_samples, max_samples, replace=False)
+        features_subsample = features_flat[subsample_idx]
+        spectral = SpectralClustering(
+            n_clusters=n_clusters,
+            affinity="nearest_neighbors",
+            n_neighbors=10,
+            random_state=42,
+            assign_labels="kmeans",
+        )
+        subsample_labels = spectral.fit_predict(features_subsample)
+        if verbose:
+            print(f"   Propagating labels to all {n_samples} pixels...")
+        nn = NearestNeighbors(n_neighbors=1, algorithm="auto")
+        nn.fit(features_subsample)
+        _, indices = nn.kneighbors(features_flat)
+        return subsample_labels[indices.flatten()]
+
+    spectral = SpectralClustering(
+        n_clusters=n_clusters,
+        affinity="nearest_neighbors",
+        n_neighbors=10,
+        random_state=42,
+        assign_labels="kmeans",
+    )
+    return spectral.fit_predict(features_flat)
+
+
+def run_hdbscan(features_flat: np.ndarray, n_clusters: int, verbose: bool = False, max_samples: int = 10000) -> np.ndarray:
+    if verbose:
+        print("🎯 Clustering with HDBSCAN (automatic K detection)...")
+
+    def _cluster_and_resolve(data: np.ndarray) -> np.ndarray:
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=50,
+            min_samples=10,
+            cluster_selection_epsilon=0.0,
+            metric="euclidean",
+        )
+        labels_local = clusterer.fit_predict(data)
+        unique_labels = np.unique(labels_local[labels_local >= 0])
+        return labels_local, unique_labels
+
+    n_samples = features_flat.shape[0]
+    if n_samples > max_samples:
+        if verbose:
+            print(f"   Subsampling {max_samples} of {n_samples} pixels...")
+        np.random.seed(42)
+        subsample_idx = np.random.choice(n_samples, max_samples, replace=False)
+        features_subsample = features_flat[subsample_idx]
+        subsample_labels, unique_labels = _cluster_and_resolve(features_subsample)
+        if verbose:
+            print(f"   HDBSCAN found {len(unique_labels)} clusters")
+        if len(unique_labels) == 0:
+            if verbose:
+                print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
+            return run_kmeans(features_flat, n_clusters, verbose=False)
+        if verbose:
+            print(f"   Propagating labels to all {n_samples} pixels...")
+        nn = NearestNeighbors(n_neighbors=1, algorithm="auto")
+        nn.fit(features_subsample[subsample_labels >= 0])
+        _, indices = nn.kneighbors(features_flat)
+        return subsample_labels[subsample_labels >= 0][indices.flatten()]
+
+    labels, unique_labels = _cluster_and_resolve(features_flat)
+    if verbose:
+        print(f"   HDBSCAN found {len(unique_labels)} clusters")
+    if len(unique_labels) == 0:
+        if verbose:
+            print(f"   ⚠️  HDBSCAN found no clusters, falling back to K-means (k={n_clusters})")
+        return run_kmeans(features_flat, n_clusters, verbose=False)
+
+    if np.any(labels == -1):
+        nn = NearestNeighbors(n_neighbors=1, algorithm="auto")
+        nn.fit(features_flat[labels >= 0])
+        _, indices = nn.kneighbors(features_flat[labels == -1])
+        labels[labels == -1] = labels[labels >= 0][indices.flatten()]
+    return labels
+
+
+def cluster_features(
+    features_flat: np.ndarray,
+    method: str,
+    n_clusters: int,
+    H: int | None = None,
+    W: int | None = None,
+    verbose: bool = False,
+) -> np.ndarray:
+    method = (method or "kmeans").lower()
+    if method == "gmm":
+        return run_gmm(features_flat, n_clusters, verbose=verbose)
+    if method == "spectral":
+        return run_spectral(features_flat, n_clusters, verbose=verbose)
+    if method == "hdbscan":
+        return run_hdbscan(features_flat, n_clusters, verbose=verbose)
+    if method == "dpmeans":
+        return run_dpmeans(features_flat, n_clusters, verbose=verbose)
+    if method == "spherical":
+        return run_spherical_kmeans(features_flat, n_clusters, verbose=verbose)
+    if method == "potts":
+        if H is None or W is None:
+            raise ValueError("Potts regularization requires H and W for the feature grid.")
+        return run_potts_kmeans(features_flat, n_clusters, H, W, verbose=verbose).reshape(-1)
+    return run_kmeans(features_flat, n_clusters, verbose=verbose)
