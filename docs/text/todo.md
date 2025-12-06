@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] Verify v1/v2/v3/v4 separation; consider abandoning the version split if it no longer maps cleanly to the current pipelines.
+- [x] Verify v1/v2/v3/v4 separation; consider abandoning the version split if it no longer maps cleanly to the current pipelines. (Done: removed version gating; attention now explicit; version retained only as a label/supervised switch.)
 - [ ] Schedule untried experiments from `experiments.md`:
   - [ ] Tile overlap optimization (128/384/512px)
   - [ ] Potential k-means successors: spherical+soft k-means, DP-means, regularized k-means (Potts on SLIC graph)
