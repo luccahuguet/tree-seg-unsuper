@@ -11,7 +11,7 @@ from tree_seg.core.segmentation import process_image
 from tree_seg.core.types import Config, SegmentationResults
 from tree_seg.core.output_manager import OutputManager
 from tree_seg.models import get_preprocess, initialize_model
-from tree_seg.models.mask2former import Mask2FormerConfig, Mask2FormerSegmentor
+from tree_seg.models.mask2former import Mask2FormerSegmentor
 
 
 def select_device(force_gpu: bool = False) -> torch.device:
