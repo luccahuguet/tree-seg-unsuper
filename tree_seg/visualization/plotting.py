@@ -14,6 +14,7 @@ from ..constants import (
     DPI_EDGE_OVERLAY,
     DPI_SIDE_BY_SIDE,
 )
+from .composites import overlay_labels
 # Removed circular import - we'll reimplement detect_segmentation_edges if needed
 
 
