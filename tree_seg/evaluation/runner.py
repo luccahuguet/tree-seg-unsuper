@@ -162,8 +162,12 @@ def try_cached_results(
     dataset_path: Path,
     smart_k: bool,
     console: Console,
+    force: bool = False,
 ) -> bool:
     """Best-effort cache lookup; returns True if we reused existing results."""
+    if force:
+        return False
+
     hash_config = _config_to_hash_config(config, dataset_path.name, smart_k, grid_label=None)
     normalized = normalize_config(hash_config)
     hash_id = config_hash(normalized)
@@ -212,6 +216,7 @@ def run_single_benchmark(
     save_labels: bool,
     quiet: bool,
     smart_k: bool,
+    use_cache: bool,
 ):
     """Run a single benchmark configuration and persist metadata."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -251,6 +256,7 @@ def run_sweep(
     quiet: bool,
     smart_k: bool,
     console: Console,
+    use_cache: bool = True,
 ):
     """Run a grid sweep and return results + sweep_dir."""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -273,6 +279,15 @@ def run_sweep(
 
         console.print(f"\n[bold][{i + 1}/{len(configs_to_test)}] Testing: {label}[/bold]")
         console.print("-" * 40)
+
+        if use_cache:
+            hash_config = _config_to_hash_config(config, dataset_path.name, smart_k, grid_label=label)
+            normalized = normalize_config(hash_config)
+            hash_id = config_hash(normalized)
+            meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
+            if meta_path.exists():
+                console.print(f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]")
+                continue
 
         model_key = (config.model_display_name, config.stride, config.image_size)
         if model_key in model_cache:

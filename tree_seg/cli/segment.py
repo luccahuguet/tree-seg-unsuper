@@ -117,6 +117,17 @@ def segment_command(
         "--save-metadata/--no-save-metadata",
         help="Store run metadata in results index",
     ),
+    use_cache: bool = typer.Option(
+        True,
+        "--use-cache/--no-cache",
+        help="Reuse cached results if a matching input/config hash exists",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Re-run even if cached results exist for this input/config",
+    ),
     use_attention_features: bool = typer.Option(
         True,
         "--use-attn/--no-use-attn",
@@ -229,6 +240,8 @@ def segment_command(
                 save_metadata=save_metadata,
                 sweep_label=name,
                 console=console,
+                use_cache=use_cache,
+                force=force,
             )
 
         console.print("\n[bold green]✨ Sweep completed![/bold green]")
@@ -257,4 +270,6 @@ def segment_command(
         save_metadata=save_metadata,
         sweep_label=None,
         console=console,
+        use_cache=use_cache,
+        force=force,
     )

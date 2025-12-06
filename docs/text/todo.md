@@ -1,11 +1,11 @@
 # TODO
 
 - [x] Verify v1/v2/v3/v4 separation; consider abandoning the version split if it no longer maps cleanly to the current pipelines. (Done: removed version gating; attention now explicit; version retained only as a label/supervised switch.)
-- [ ] Schedule untried experiments from `experiments.md`:
-  - [ ] Tile overlap optimization (128/384/512px)
+- [x] Schedule untried experiments from `experiments.md`:
+  - [x] Tile overlap optimization (128/384/512px)
   - [x] Potential k-means successors: spherical k-means (cosine), DP-means (auto-K), Potts-regularized k-means added to CLI
+- [x] Add cache reuse for eval/segment: check metadata hash before running, return existing results/viz if found; support `--force/--no-cache`; skip cached configs in sweeps; handle partial artifacts (regen viz from labels).
 - [ ] Plan a larger sweep on FORTRESS (3–10 images) to identify the current peak performer across clustering/refine/tiling/stride variants.
-- [ ] Add cache reuse for eval/segment: check metadata hash before running, return existing results/viz if found; support `--force/--no-cache`; skip cached configs in sweeps; handle partial artifacts (regen viz from labels).
 - [ ] Future (optional): meta-learning on metadata bank
   - [ ] Add dataset feature descriptors (resolution stats, tile counts, class counts, color/entropy/exg)
   - [ ] Add a simple recommender:
@@ -14,7 +14,7 @@
     - [ ] Optional LightGBM/RandomForest ranker to score configs; output top-K
   - [ ] (Optional later) BO/surrogate to propose next configs under runtime constraints
   - [ ] Expose via `tree-seg results --recommend --dataset <name>`
-- [ ] Codebase hygiene (high priority):
+- [x] Codebase hygiene (high priority):
   - [x] Split CLIs (`tree_seg/cli/evaluate.py`, `tree_seg/cli/segment.py`) into config builders, runners, and output/reporting helpers (eval/segment runners in `tree_seg/evaluation/`).
   - [x] Refactor evaluation/benchmark plumbing (`tree_seg/evaluation/benchmark.py`, `tree_seg/api.py`) to share data loading, segmentation calls, and metrics aggregation.
   - [x] Break plotting into focused modules (`tree_seg/visualization/plotting.py`) for composites, metrics charts, and panel layouts. (Edge/side-by-side in `visualization/overlay.py`; eval panels in `visualization/eval_panels.py`; exported via `visualization/__init__.py`.)

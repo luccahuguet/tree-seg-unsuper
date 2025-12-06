@@ -82,6 +82,7 @@ def _run_single_benchmark(
     quiet: bool,
     smart_k: bool,
     use_cache: bool,
+    force: bool,
 ):
     """Run a single benchmark configuration."""
     out_dir = resolve_output_dir(
@@ -97,6 +98,7 @@ def _run_single_benchmark(
         dataset_type=dataset_type,
         smart_k=smart_k,
         console=console,
+        force=force,
     ):
         return None
 
@@ -113,6 +115,7 @@ def _run_single_benchmark(
         save_labels=save_labels,
         quiet=quiet,
         smart_k=smart_k,
+        use_cache=use_cache,
     )
 
     if results is None:
@@ -146,6 +149,7 @@ def _run_comparison_benchmark(
     save_labels: bool,
     quiet: bool,
     smart_k: bool,
+    use_cache: bool,
 ):
     """Run comparison across multiple configurations."""
     grid = get_grid(grid_name)
@@ -168,6 +172,7 @@ def _run_comparison_benchmark(
         quiet=quiet,
         smart_k=smart_k,
         console=console,
+        use_cache=use_cache,
     )
 
     console.print("\n" + format_comparison_table(all_results) + "\n")
@@ -304,6 +309,12 @@ def evaluate_command(
         True,
         "--use-cache/--no-cache",
         help="Reuse cached results if the same config/dataset hash exists",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Re-run even if a cache entry exists for this config/dataset hash",
     ),
     compare_configs: bool = typer.Option(
         False,
@@ -448,6 +459,7 @@ def evaluate_command(
             save_labels=save_labels,
             quiet=quiet,
             smart_k=smart_k,
+            use_cache=use_cache,
         )
     else:
         _run_single_benchmark(
@@ -461,4 +473,5 @@ def evaluate_command(
             quiet=quiet,
             smart_k=smart_k,
             use_cache=use_cache,
+            force=force,
         )

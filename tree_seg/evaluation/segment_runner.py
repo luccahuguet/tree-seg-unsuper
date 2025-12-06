@@ -62,13 +62,28 @@ def run_single_segment(
     save_metadata: bool,
     sweep_label: Optional[str],
     console: Console,
+    use_cache: bool,
+    force: bool,
 ):
     """Run segmentation for a single case (file or directory)."""
+    meta_config = build_config_from_kwargs(mdl, out_dir, cfg)
+
+    if use_cache:
+        from tree_seg.metadata.store import _config_to_hash_config, normalize_config, config_hash
+
+        dataset_id = img_path.name if img_path.is_dir() else img_path.parent.name
+        hash_config = _config_to_hash_config(meta_config, dataset_id, smart_k=False, grid_label=None)
+        normalized = normalize_config(hash_config)
+        hash_id = config_hash(normalized)
+        meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
+        if meta_path.exists() and not force:
+            console.print(f"[green]♻️  Cache hit for {dataset_id} ({hash_id}); reusing outputs.[/green]")
+            _reuse_segment_outputs(meta_path, out_dir, console)
+            return
+
     clean_output_dir(out_dir, console)
     console.print(f"[green]📁 Output directory ready: {out_dir}[/green]")
     console.print()
-
-    meta_config = build_config_from_kwargs(mdl, out_dir, cfg)
 
     collected_outputs: list = []
 
@@ -172,3 +187,30 @@ def _save_labels_npz(out_dir: Path, res) -> None:
     labels_np = getattr(res, "labels")
     label_path = out_dir / f"{getattr(res, 'image_stem', 'segmentation')}_labels.npz"
     np.savez_compressed(label_path, labels=labels_np)
+
+
+def _reuse_segment_outputs(meta_path: Path, out_dir: Path, console: Console) -> None:
+    """Copy cached outputs referenced by meta.json into the requested output dir."""
+    try:
+        import json
+        with meta_path.open() as f:
+            meta = json.load(f)
+        samples = meta.get("samples", {}).get("per_sample_stats", [])
+        out_dir.mkdir(parents=True, exist_ok=True)
+        copied = 0
+        for sample in samples:
+            outputs = sample.get("outputs", {}) or {}
+            for _name, path_str in outputs.items():
+                if not path_str:
+                    continue
+                src = Path(path_str)
+                if src.exists():
+                    dest = out_dir / src.name
+                    dest.write_bytes(src.read_bytes())
+                    copied += 1
+        if copied:
+            console.print(f"[dim]↩️  Restored {copied} cached artifact(s) into {out_dir}[/dim]")
+        else:
+            console.print("[yellow]⚠️  Cache hit but no artifacts to restore.[/yellow]")
+    except Exception as exc:
+        console.print(f"[yellow]⚠️  Cache hit but failed to reuse outputs: {exc}[/yellow]")
