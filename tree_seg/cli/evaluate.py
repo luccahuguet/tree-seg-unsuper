@@ -488,7 +488,7 @@ def evaluate_command(
         "--smart-grid",
         help="Use smart grid search (8 configs)",
     ),
-    grid: Optional[Literal["ofat", "smart", "full", "tiling", "tiling_refine", "clustering", "slic_params"]] = typer.Option(
+    grid: Optional[Literal["ofat", "smart", "full", "tiling", "tiling_refine", "clustering", "slic_params", "tile_overlap"]] = typer.Option(
         None,
         "--grid",
         "-g",

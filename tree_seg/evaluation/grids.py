@@ -126,6 +126,16 @@ GRIDS = {
             {"refine": "slic", "refine_slic_compactness": 10.0, "refine_slic_sigma": 2.0, "label": "slic_c10_s2.0"},
         ],
     },
+    "tile_overlap": {
+        "name": "Tile Overlap Sweep",
+        "description": "Vary tile overlap to reduce stitching artifacts (tiling on, base model, stride 4)",
+        "configs": [
+            {"use_tiling": True, "tile_overlap": 128, "refine": "slic", "label": "overlap_128"},
+            {"use_tiling": True, "tile_overlap": 256, "refine": "slic", "label": "overlap_256"},  # baseline
+            {"use_tiling": True, "tile_overlap": 384, "refine": "slic", "label": "overlap_384"},
+            {"use_tiling": True, "tile_overlap": 512, "refine": "slic", "label": "overlap_512"},
+        ],
+    },
 }
 
 

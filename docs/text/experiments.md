@@ -216,6 +216,11 @@ uv run tree-seg eval data/fortress_processed \
 # Experiment: GMM with soft EM
 uv run tree-seg eval data/fortress_processed \
   --clustering gmm --refine soft-em --num-samples 1 --save-viz
+
+# Tile overlap sweep
+uv run tree-seg eval data/fortress_processed \
+  --num-samples 3 --save-viz \
+  --compare-configs --grid tile_overlap --smart-k
 ```
 
 Metadata tips:
