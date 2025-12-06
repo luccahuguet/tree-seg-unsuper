@@ -63,6 +63,7 @@ class BenchmarkRunner:
         dataset: SegmentationDataset,
         output_dir: Optional[Path] = None,
         save_visualizations: bool = False,
+        save_labels: bool = False,
         use_smart_k: bool = False,
         model_cache: Optional[dict] = None,
         suppress_logs: bool = False,
@@ -85,6 +86,7 @@ class BenchmarkRunner:
         self.output_dir = Path(output_dir) if output_dir else None
         self.config_label = config_label
         self.save_visualizations = save_visualizations
+        self.save_labels = save_labels
         self.use_smart_k = use_smart_k
         self.model_cache = model_cache if model_cache is not None else {}
         self.runtime_cache = RuntimeCache()
@@ -97,6 +99,8 @@ class BenchmarkRunner:
             self.output_dir.mkdir(parents=True, exist_ok=True)
             if save_visualizations:
                 (self.output_dir / "visualizations").mkdir(exist_ok=True)
+            if save_labels:
+                (self.output_dir / "labels").mkdir(exist_ok=True)
 
     def _maybe_load_cached_model(self):
         """Load model from cache if available, otherwise initialize and cache it."""
@@ -244,6 +248,16 @@ class BenchmarkRunner:
                 eval_results,
                 runtime_seconds=runtime,
             )
+
+        # Save labels if requested
+        if self.save_labels and self.output_dir:
+            labels_dir = self.output_dir / "labels"
+            labels_dir.mkdir(exist_ok=True)
+            label_path = labels_dir / f"{image_id}.npz"
+            try:
+                np.savez_compressed(label_path, labels=pred_labels_resized.astype(np.uint8))
+            except Exception as exc:
+                print(f"⚠️ Failed to save labels for {image_id}: {exc}")
 
         return sample_result, eval_results
 
@@ -470,6 +484,7 @@ def run_benchmark(
     use_smart_k: bool = False,
     model_cache: Optional[dict] = None,
     config_label: Optional[str] = None,
+    save_labels: bool = False,
 ) -> BenchmarkResults:
     """
     Convenience function to run benchmark.
@@ -482,6 +497,7 @@ def run_benchmark(
         output_dir: Optional output directory for results
         num_samples: Number of samples to evaluate (None = all)
         save_visualizations: Whether to save visualization images
+        save_labels: Whether to save predicted labels to disk (for metadata/viz regen)
         verbose: Whether to print progress
         use_smart_k: If True, set K to match the number of classes in each image's ground truth
         model_cache: Optional dict to cache models across runs
@@ -506,6 +522,7 @@ def run_benchmark(
         dataset=dataset,
         output_dir=output_dir,
         save_visualizations=save_visualizations,
+        save_labels=save_labels,
         use_smart_k=use_smart_k,
         model_cache=model_cache,
         config_label=config_label,

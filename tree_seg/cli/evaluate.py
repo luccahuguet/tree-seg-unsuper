@@ -15,6 +15,7 @@ from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.datasets import FortressDataset
 from tree_seg.evaluation.formatters import config_to_dict, format_comparison_table, save_comparison_summary
 from tree_seg.evaluation.grids import get_grid
+from tree_seg.metadata.store import store_run
 
 # Load environment variables
 load_dotenv()
@@ -141,6 +142,7 @@ def _run_single_benchmark(
     output_dir: Optional[Path],
     num_samples: Optional[int],
     save_viz: bool,
+    save_labels: bool,
     quiet: bool,
     smart_k: bool,
 ):
@@ -177,6 +179,7 @@ def _run_single_benchmark(
         output_dir=out_dir,
         num_samples=num_samples,
         save_visualizations=save_viz,
+        save_labels=save_labels,
         verbose=not quiet,
         use_smart_k=smart_k,
     )
@@ -227,6 +230,26 @@ def _run_single_benchmark(
     console.print(table)
     console.print(f"\n[green]✅ Results saved to: {output_path}[/green]")
 
+    # Persist metadata entry (best-effort)
+    try:
+        artifacts = {"results_json": str(output_path)}
+        viz_dir = out_dir / "visualizations"
+        if viz_dir.exists():
+            artifacts["visualizations_dir"] = str(viz_dir)
+        labels_dir = out_dir / "labels"
+        if labels_dir.exists():
+            artifacts["labels_dir"] = str(labels_dir)
+        hash_id = store_run(
+            results=results,
+            config=config,
+            dataset_path=dataset_path,
+            smart_k=smart_k,
+            artifacts=artifacts,
+        )
+        console.print(f"[dim]📝 Metadata stored at results/by-hash/{hash_id}[/dim]")
+    except Exception as exc:  # best-effort; do not fail CLI
+        console.print(f"[yellow]⚠️  Failed to store metadata: {exc}[/yellow]")
+
     return results
 
 
@@ -237,6 +260,7 @@ def _run_comparison_benchmark(
     base_config_params: dict,
     num_samples: Optional[int],
     save_viz: bool,
+    save_labels: bool,
     quiet: bool,
     smart_k: bool,
 ):
@@ -292,6 +316,7 @@ def _run_comparison_benchmark(
             output_dir=sweep_dir,
             num_samples=num_samples,
             save_visualizations=save_viz,
+            save_labels=save_labels,
             verbose=not quiet,
             use_smart_k=smart_k,
             model_cache=model_cache,
@@ -299,6 +324,24 @@ def _run_comparison_benchmark(
         )
 
         all_results.append({"label": label, "config": config_dict, "results": results})
+        # Persist metadata entry (best-effort per config in sweep)
+        try:
+            artifacts = {"sweep_dir": str(sweep_dir)}
+            labels_dir = sweep_dir / "labels"
+            if labels_dir.exists():
+                artifacts["labels_dir"] = str(labels_dir)
+            hash_id = store_run(
+                results=results,
+                config=config,
+                dataset_path=dataset_path,
+                smart_k=smart_k,
+                user_tags=[grid_name, label],
+                grid_label=label,
+                artifacts=artifacts,
+            )
+            console.print(f"[dim]📝 Stored metadata: results/by-hash/{hash_id}[/dim]")
+        except Exception as exc:
+            console.print(f"[yellow]⚠️  Failed to store metadata for {label}: {exc}[/yellow]")
 
     # Print comparison table
     console.print("\n" + format_comparison_table(all_results) + "\n")
@@ -454,6 +497,11 @@ def evaluate_command(
         "-q",
         help="Suppress progress output",
     ),
+    save_labels: bool = typer.Option(
+        True,
+        "--save-labels/--no-save-labels",
+        help="Save predicted labels (NPZ) for metadata/viz regeneration",
+    ),
 ):
     """
     Evaluate segmentation methods on labeled datasets.
@@ -561,6 +609,7 @@ def evaluate_command(
             base_config_params=base_config_params,
             num_samples=num_samples,
             save_viz=save_viz,
+            save_labels=save_labels,
             quiet=quiet,
             smart_k=smart_k,
         )
@@ -572,6 +621,7 @@ def evaluate_command(
             output_dir=output_dir,
             num_samples=num_samples,
             save_viz=save_viz,
+            save_labels=save_labels,
             quiet=quiet,
             smart_k=smart_k,
         )

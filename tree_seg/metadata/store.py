@@ -1,0 +1,297 @@
+"""Metadata storage for benchmark runs."""
+
+import json
+import os
+import platform
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from tree_seg.core.types import Config
+from tree_seg.evaluation.benchmark import BenchmarkResults
+from tree_seg.evaluation.formatters import config_to_dict
+
+# Keys that affect runtime/outputs; must be present (with defaults) in hashes.
+HASH_KEYS = [
+    "dataset",
+    "model",
+    "clustering",
+    "k",
+    "smart_k",
+    "elbow_threshold",
+    "refine",
+    "soft_refine",
+    "soft_refine_temperature",
+    "soft_refine_iterations",
+    "vegetation_filter",
+    "supervised",
+    "stride",
+    "tiling",
+    "tile_overlap",
+    "image_size",
+    "pyramid",
+    "pyramid_scales",
+    "pyramid_aggregation",
+    "grid_label",
+]
+
+# Defaults used when a field is absent in the raw config.
+HASH_DEFAULTS: Dict[str, object] = {
+    "tiling": False,
+    "tile_overlap": 0,
+    "pyramid": False,
+    "pyramid_scales": [1],
+    "pyramid_aggregation": "mean",
+    "soft_refine": False,
+    "soft_refine_temperature": 1.0,
+    "soft_refine_iterations": 5,
+    "vegetation_filter": False,
+    "supervised": False,
+    "smart_k": False,
+}
+
+# GPU tier buckets used for ETA scaling (rough buckets).
+GPU_TIERS: Dict[str, List[str]] = {
+    "extreme": ["A100", "H100", "RTX 4090", "RTX 3090"],
+    "high": ["RTX 4080", "RTX 3080", "A6000", "V100"],
+    "mid": ["RTX 4070", "RTX 3070", "RTX 2080", "T4"],
+    "low": ["RTX 3060", "GTX 1080", "P100", "CPU"],
+}
+
+
+def _now_iso() -> str:
+    """UTC ISO timestamp with Z suffix."""
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _ensure_dir(path: Path) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def _detect_gpu_tier(name: str) -> str:
+    """Map GPU name to tier bucket."""
+    if not name:
+        return "low"
+    name_upper = name.upper()
+    for tier, matches in GPU_TIERS.items():
+        if any(m.upper() in name_upper for m in matches):
+            return tier
+    return "mid"
+
+
+def _hardware_info() -> Dict[str, object]:
+    """Collect lightweight hardware info."""
+    gpu_name = None
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+    except Exception:
+        gpu_name = None
+
+    cpu_name = platform.processor() or platform.machine() or "unknown-cpu"
+    threads = os.cpu_count() or 1
+    return {
+        "gpu": gpu_name or "CPU",
+        "gpu_tier": _detect_gpu_tier(gpu_name or "CPU"),
+        "cpu": cpu_name,
+        "cpu_threads": threads,
+        "ram_gb": None,  # Can be filled later if needed
+    }
+
+
+def normalize_config(raw_config: Dict[str, object]) -> Dict[str, object]:
+    """Normalize config for consistent hashing."""
+    normalized: Dict[str, object] = {}
+    for key in HASH_KEYS:
+        value = raw_config.get(key, HASH_DEFAULTS.get(key))
+        if value is None:
+            continue
+        # Freeze mutable types for hashing
+        if isinstance(value, list):
+            value = tuple(value)
+        normalized[key] = value
+    return normalized
+
+
+def derive_tags(config: Dict[str, object]) -> List[str]:
+    """Generate auto-tags from normalized config."""
+    tags: List[str] = []
+    if config.get("dataset"):
+        tags.append(str(config["dataset"]))
+    if config.get("clustering"):
+        tags.append(str(config["clustering"]))
+    if "k" in config and config["k"] is not None:
+        tags.append(f"k{config['k']}")
+    if config.get("refine"):
+        tags.append(str(config["refine"]))
+    if config.get("model"):
+        tags.append(str(config["model"]))
+    if config.get("stride") is not None:
+        tags.append(f"stride-{config['stride']}")
+    if config.get("vegetation_filter"):
+        tags.append("veg-filter")
+    if config.get("smart_k"):
+        tags.append("smart-k")
+    if config.get("supervised"):
+        tags.append("supervised")
+    if config.get("pyramid"):
+        tags.append("pyramid")
+    return tags
+
+
+def config_hash(normalized_config: Dict[str, object]) -> str:
+    """Generate stable hash for normalized config."""
+    serializable = {
+        k: list(v) if isinstance(v, tuple) else v for k, v in normalized_config.items()
+    }
+    canonical = json.dumps(serializable, sort_keys=True, separators=(",", ":"))
+    return hashlib_sha256(canonical)[:10]
+
+
+def hashlib_sha256(text: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _config_to_hash_config(
+    config: Config,
+    dataset_id: str,
+    smart_k: bool,
+    grid_label: Optional[str],
+) -> Dict[str, object]:
+    """Build the minimal config dict used for hashing and tags."""
+    image_size = config.image_size
+    if isinstance(image_size, int):
+        image_size = (image_size, image_size)
+    hash_config: Dict[str, object] = {
+        "dataset": dataset_id,
+        "model": config.model_name,
+        "clustering": config.clustering_method,
+        "k": config.n_clusters,
+        "smart_k": smart_k,
+        "elbow_threshold": config.elbow_threshold,
+        "refine": config.refine or "none",
+        "soft_refine": config.use_soft_refine,
+        "soft_refine_temperature": config.soft_refine_temperature,
+        "soft_refine_iterations": config.soft_refine_iterations,
+        "vegetation_filter": config.apply_vegetation_filter,
+        "supervised": config.version == "v4",
+        "stride": config.stride,
+        "tiling": config.use_tiling,
+        "tile_overlap": getattr(config, "tile_overlap", 0),
+        "image_size": image_size,
+        "pyramid": config.use_pyramid,
+        "pyramid_scales": config.pyramid_scales,
+        "pyramid_aggregation": config.pyramid_aggregation,
+        "grid_label": grid_label,
+    }
+    return hash_config
+
+
+def store_run(
+    results: BenchmarkResults,
+    config: Config,
+    dataset_path: Path,
+    smart_k: bool = False,
+    user_tags: Optional[List[str]] = None,
+    notes: Optional[str] = None,
+    base_dir: Path | str = "results",
+    grid_label: Optional[str] = None,
+    artifacts: Optional[Dict[str, str]] = None,
+) -> str:
+    """
+    Persist benchmark results to the metadata bank.
+
+    Returns:
+        hash_id: The hash of the normalized config (used as directory name).
+    """
+    base_dir = Path(base_dir)
+    by_hash_dir = base_dir / "by-hash"
+    _ensure_dir(by_hash_dir)
+
+    dataset_id = dataset_path.name
+    hash_config = _config_to_hash_config(config, dataset_id, smart_k, grid_label)
+    normalized = normalize_config(hash_config)
+    hash_id = config_hash(normalized)
+
+    run_dir = by_hash_dir / hash_id
+    _ensure_dir(run_dir)
+
+    created_at = _now_iso()
+    auto_tags = derive_tags(normalized)
+    all_tags = {
+        "auto": auto_tags,
+        "user": user_tags or [],
+    }
+
+    # Metrics and timing
+    total_runtime = sum(s.runtime_seconds for s in results.samples)
+    per_sample_stats = [
+        {
+            "image_id": s.image_id,
+            "miou": float(s.miou),
+            "pixel_accuracy": float(s.pixel_accuracy),
+            "num_clusters": int(s.num_clusters),
+            "runtime_seconds": float(s.runtime_seconds),
+            "image_shape": list(s.image_shape),
+        }
+        for s in results.samples
+    ]
+
+    hardware = _hardware_info()
+    config_full = config_to_dict(config)
+    config_full["smart_k"] = smart_k
+    config_full["grid_label"] = grid_label
+
+    meta = {
+        "hash": hash_id,
+        "created_at": created_at,
+        "git_sha": os.getenv("GIT_SHA"),
+        "dataset": dataset_id,
+        "config": normalized,
+        "config_full": config_full,
+        "tags": all_tags,
+        "samples": {
+            "num_samples": results.total_samples,
+            "per_sample_stats": per_sample_stats,
+        },
+        "hardware": hardware,
+        "timing": {
+            "mean_runtime_s": float(results.mean_runtime),
+            "total_runtime_s": float(total_runtime),
+        },
+        "metrics": {
+            "mean_miou": float(results.mean_miou),
+            "mean_pixel_accuracy": float(results.mean_pixel_accuracy),
+        },
+        "artifacts": artifacts or {},
+        "notes": notes,
+        "metadata_version": 1,
+    }
+
+    # Write meta.json
+    meta_path = run_dir / "meta.json"
+    with meta_path.open("w") as f:
+        json.dump(meta, f, indent=2)
+
+    # Append to index
+    index_path = base_dir / "index.jsonl"
+    index_entry = {
+        "hash": hash_id,
+        "dataset": dataset_id,
+        "tags": auto_tags + (user_tags or []),
+        "mIoU": float(results.mean_miou),
+        "pixel_accuracy": float(results.mean_pixel_accuracy),
+        "total_s": float(total_runtime),
+        "created_at": created_at,
+        "config": {
+            k: (list(v) if isinstance(v, tuple) else v) for k, v in normalized.items()
+        },
+    }
+    with index_path.open("a") as f:
+        f.write(json.dumps(index_entry) + "\n")
+
+    return hash_id
