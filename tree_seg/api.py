@@ -153,6 +153,10 @@ class TreeSegmentation:
             use_pyramid=self.config.use_pyramid,
             pyramid_scales=self.config.pyramid_scales,
             pyramid_aggregation=self.config.pyramid_aggregation,
+            use_soft_refine=self.config.use_soft_refine,
+            soft_refine_temperature=self.config.soft_refine_temperature,
+            soft_refine_iterations=self.config.soft_refine_iterations,
+            soft_refine_spatial_alpha=self.config.soft_refine_spatial_alpha,
         )
 
         # Support info tuple
@@ -248,6 +252,10 @@ class TreeSegmentation:
             use_pyramid=self.config.use_pyramid,
             pyramid_scales=self.config.pyramid_scales,
             pyramid_aggregation=self.config.pyramid_aggregation,
+            use_soft_refine=self.config.use_soft_refine,
+            soft_refine_temperature=self.config.soft_refine_temperature,
+            soft_refine_iterations=self.config.soft_refine_iterations,
+            soft_refine_spatial_alpha=self.config.soft_refine_spatial_alpha,
         )
         
         # Support info tuple

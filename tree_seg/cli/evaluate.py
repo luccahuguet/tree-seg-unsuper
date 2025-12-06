@@ -111,6 +111,9 @@ def _create_config(
     # Parse pyramid scales
     scales = tuple(float(s.strip()) for s in pyramid_scales.split(",")) if pyramid_scales else (0.5, 1.0, 2.0)
 
+    # V2: Enable soft EM refinement
+    use_soft_refine = (version == "v2")
+
     return Config(
         version=version,
         clustering_method=clustering_method,
@@ -129,6 +132,10 @@ def _create_config(
         use_pyramid=use_pyramid,
         pyramid_scales=scales,
         pyramid_aggregation=pyramid_aggregation,
+        use_soft_refine=use_soft_refine,
+        soft_refine_temperature=1.0,
+        soft_refine_iterations=5,
+        soft_refine_spatial_alpha=0.0,
         metrics=True,
         verbose=not quiet,
     )

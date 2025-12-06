@@ -52,6 +52,12 @@ class Config:
     refine_slic_compactness: float = 10.0
     refine_slic_sigma: float = 1.0
 
+    # V2 soft EM refinement (feature space)
+    use_soft_refine: bool = False  # Apply soft EM refinement after K-means
+    soft_refine_temperature: float = 1.0  # τ - lower = softer boundaries (0.5-2.0)
+    soft_refine_iterations: int = 5  # Number of EM iterations (3-5 typical)
+    soft_refine_spatial_alpha: float = 0.0  # α - spatial blend weight (0-1, 0=none)
+
     # Vegetation filtering (works with any method: V1.5, V2, V3)
     apply_vegetation_filter: bool = False  # Enable ExG-based vegetation filtering
     exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
@@ -141,6 +147,15 @@ class Config:
                 raise ValueError("layer_indices must be between 1 and 40")
             if self.feature_aggregation not in ("concat", "average", "weighted"):
                 raise ValueError("feature_aggregation must be 'concat', 'average', or 'weighted'")
+
+        # V2 soft refinement validation
+        if self.use_soft_refine:
+            if self.soft_refine_temperature <= 0:
+                raise ValueError("soft_refine_temperature must be positive")
+            if self.soft_refine_iterations < 1 or self.soft_refine_iterations > 20:
+                raise ValueError("soft_refine_iterations must be between 1 and 20")
+            if self.soft_refine_spatial_alpha < 0 or self.soft_refine_spatial_alpha > 1:
+                raise ValueError("soft_refine_spatial_alpha must be between 0 and 1")
 
 
 @dataclass

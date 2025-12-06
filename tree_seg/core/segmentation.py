@@ -36,7 +36,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                  use_multi_layer: bool = False, layer_indices: tuple = (3, 6, 9, 12),
                  feature_aggregation: str = "concat",
                  use_pyramid: bool = False, pyramid_scales: tuple = (0.5, 1.0, 2.0),
-                 pyramid_aggregation: str = "concat"):
+                 pyramid_aggregation: str = "concat",
+                 use_soft_refine: bool = False, soft_refine_temperature: float = 1.0,
+                 soft_refine_iterations: int = 5, soft_refine_spatial_alpha: float = 0.0):
     """
     Process a single image for tree segmentation.
 
@@ -611,6 +613,23 @@ def process_image(image_path, model, preprocess, n_clusters, stride, version, de
                 print(f"🎯 Clustering with K-means (k={n_clusters})...")
             kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
             labels = kmeans.fit_predict(features_flat)
+
+        # V2: Optional soft EM refinement in feature space
+        if use_soft_refine:
+            if verbose:
+                print(f"🔬 Refining with soft EM (τ={soft_refine_temperature}, iter={soft_refine_iterations}, α={soft_refine_spatial_alpha})...")
+            from tree_seg.clustering.head_refine import soft_em_refine
+
+            labels = soft_em_refine(
+                features=features_flat,
+                initial_labels=labels,
+                n_clusters=n_clusters,
+                temperature=soft_refine_temperature,
+                iterations=soft_refine_iterations,
+                spatial_blend_alpha=soft_refine_spatial_alpha,
+                height=H,
+                width=W,
+            )
 
         if verbose:
             print(f"Labels shape after clustering: {labels.shape}")
