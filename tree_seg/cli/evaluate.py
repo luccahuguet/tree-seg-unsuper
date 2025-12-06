@@ -10,7 +10,6 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
-from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.datasets import FortressDataset
 from tree_seg.evaluation.formatters import format_comparison_table, save_comparison_summary
 from tree_seg.evaluation.grids import get_grid
@@ -18,6 +17,7 @@ from tree_seg.evaluation.runner import (
     create_config,
     resolve_output_dir,
     run_single_benchmark,
+    run_sweep,
     try_cached_results,
 )
 from tree_seg.metadata.store import store_run
@@ -171,80 +171,22 @@ def _run_comparison_benchmark(
     console.print(f"Description: {grid['description']}")
     console.print(f"Configurations: {len(configs_to_test)}\n")
 
-    # Create sweep directory
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    smartk_suffix = "_smartk" if smart_k else ""
-    sweep_dir = Path("data/output/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
-    sweep_dir.mkdir(parents=True, exist_ok=True)
+    all_results, sweep_dir = run_sweep(
+        dataset_path=dataset_path,
+        dataset_type=dataset_type,
+        grid_name=grid_name,
+        configs_to_test=configs_to_test,
+        base_config_params=base_config_params,
+        num_samples=num_samples,
+        save_viz=save_viz,
+        save_labels=save_labels,
+        quiet=quiet,
+        smart_k=smart_k,
+        console=console,
+    )
 
-    console.print(f"[green]📁 Sweep directory: {sweep_dir}[/green]\n")
-
-    # Load dataset once
-    if dataset_type == "fortress":
-        dataset = FortressDataset(dataset_path)
-    else:
-        console.print(f"[yellow]⚠️  Dataset type '{dataset_type}' not fully implemented yet[/yellow]")
-        raise typer.Exit(code=1)
-
-    all_results = []
-    model_cache = {}
-
-    console.print("[bold]" + "=" * 60 + "[/bold]")
-    console.print("[bold cyan]RUNNING COMPARISON BENCHMARK[/bold cyan]")
-    console.print("[bold]" + "=" * 60 + "[/bold]\n")
-
-    for i, config_override in enumerate(configs_to_test):
-        config_dict = base_config_params.copy()
-        config_dict.update({k: v for k, v in config_override.items() if k != "label"})
-
-        config = Config(**config_dict)
-        label = config_override["label"]
-
-        console.print(f"\n[bold][{i + 1}/{len(configs_to_test)}] Testing: {label}[/bold]")
-        console.print("-" * 40)
-
-        # Check model cache
-        model_key = (config.model_display_name, config.stride, config.image_size)
-        if model_key in model_cache:
-            console.print(f"[dim]♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})[/dim]")
-
-        results = run_benchmark(
-            config=config,
-            dataset=dataset,
-            output_dir=sweep_dir,
-            num_samples=num_samples,
-            save_visualizations=save_viz,
-            save_labels=save_labels,
-            verbose=not quiet,
-            use_smart_k=smart_k,
-            model_cache=model_cache,
-            config_label=label,
-        )
-
-        all_results.append({"label": label, "config": config_dict, "results": results})
-        # Persist metadata entry (best-effort per config in sweep)
-        try:
-            artifacts = {"sweep_dir": str(sweep_dir)}
-            labels_dir = sweep_dir / "labels"
-            if labels_dir.exists():
-                artifacts["labels_dir"] = str(labels_dir)
-            hash_id = store_run(
-                results=results,
-                config=config,
-                dataset_path=dataset_path,
-                smart_k=smart_k,
-                user_tags=[grid_name, label],
-                grid_label=label,
-                artifacts=artifacts,
-            )
-            console.print(f"[dim]📝 Stored metadata: results/by-hash/{hash_id}[/dim]")
-        except Exception as exc:
-            console.print(f"[yellow]⚠️  Failed to store metadata for {label}: {exc}[/yellow]")
-
-    # Print comparison table
     console.print("\n" + format_comparison_table(all_results) + "\n")
 
-    # Save summary
     comparison_path = sweep_dir / f"sweep_summary_{grid_name}.json"
     save_comparison_summary(all_results, comparison_path)
     console.print(f"[green]📊 Sweep summary saved to: {comparison_path}[/green]")

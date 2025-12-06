@@ -214,3 +214,77 @@ def run_single_benchmark(
         pass
 
     return results
+
+
+def run_sweep(
+    *,
+    dataset_path: Path,
+    dataset_type: str,
+    grid_name: str,
+    configs_to_test: list[dict],
+    base_config_params: dict,
+    num_samples: Optional[int],
+    save_viz: bool,
+    save_labels: bool,
+    quiet: bool,
+    smart_k: bool,
+    console: Console,
+):
+    """Run a grid sweep and return results + sweep_dir."""
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    smartk_suffix = "_smartk" if smart_k else ""
+    sweep_dir = Path("data/output/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
+    sweep_dir.mkdir(parents=True, exist_ok=True)
+
+    console.print(f"[green]📁 Sweep directory: {sweep_dir}[/green]\n")
+
+    all_results = []
+    model_cache = {}
+
+    for i, config_override in enumerate(configs_to_test):
+        config_dict = base_config_params.copy()
+        config_dict.update({k: v for k, v in config_override.items() if k != "label"})
+
+        config = Config(**config_dict)
+        label = config_override["label"]
+
+        console.print(f"\n[bold][{i + 1}/{len(configs_to_test)}] Testing: {label}[/bold]")
+        console.print("-" * 40)
+
+        model_key = (config.model_display_name, config.stride, config.image_size)
+        if model_key in model_cache:
+            console.print(f"[dim]♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})[/dim]")
+
+        results = run_benchmark(
+            config=config,
+            dataset_path=dataset_path,
+            dataset_type=dataset_type,
+            output_dir=sweep_dir,
+            num_samples=num_samples,
+            save_viz=save_viz,
+            save_labels=save_labels,
+            silent=quiet,
+            use_smart_k=smart_k,
+            model_cache=model_cache,
+            config_label=label,
+        )
+
+        all_results.append({"label": label, "config": config_dict, "results": results})
+        try:
+            artifacts = {"sweep_dir": str(sweep_dir)}
+            labels_dir = sweep_dir / "labels"
+            if labels_dir.exists():
+                artifacts["labels_dir"] = str(labels_dir)
+            store_run(
+                results=results,
+                config=config,
+                dataset_path=dataset_path,
+                smart_k=smart_k,
+                user_tags=[grid_name, label],
+                grid_label=label,
+                artifacts=artifacts,
+            )
+        except Exception:
+            pass
+
+    return all_results, sweep_dir
