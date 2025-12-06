@@ -11,6 +11,7 @@ import cv2
 from PIL import Image
 from .clustering import cluster_features
 from .refine import refine_labels, apply_vegetation_filter
+from .metrics import compile_metrics
 
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 from .features import extract_tiled_features, extract_features
@@ -315,23 +316,26 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                     peak_vram_mb = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
                 except Exception:
                     peak_vram_mb = None
-            metrics.update({
-                'time_total_s': round(t_end - t0, 3),
-                'time_preprocess_s': round(t_pre_end - t_pre_start, 3),
-                'time_features_s': round(t_features - t_pre_end, 3),
-                'time_kselect_s': round(t_kselect - t_features, 3) if auto_k else 0.0,
-                'time_kmeans_s': round((t_refine_start if refine_time > 0 else t_end) - t_kselect, 3),
-                'time_refine_s': round(refine_time, 3) if refine_time > 0 else 0.0,
-                'grid_H': int(H),
-                'grid_W': int(W),
-                'n_features': int(features_flat.shape[-1]),
-                'n_vectors': int(features_flat.shape[0]),
-                'n_clusters': int(n_clusters),
-                'device_requested': str(device),
-                'device_actual': str(device),
-                'peak_vram_mb': round(peak_vram_mb, 1) if peak_vram_mb is not None else None,
-                'used_tiling': needs_tiling,
-            })
+            metrics.update(
+                compile_metrics(
+                    t_start=t0,
+                    t_pre_start=t_pre_start,
+                    t_pre_end=t_pre_end,
+                    t_features=t_features,
+                    t_kselect=t_kselect,
+                    t_refine_start=t_refine_start if refine_time > 0 else t_end,
+                    t_refine_end=t_refine_end if refine_time > 0 else t_end,
+                    auto_k=auto_k,
+                    refine_time=refine_time,
+                    H=H,
+                    W=W,
+                    features_flat=features_flat,
+                    n_clusters=n_clusters,
+                    device=device,
+                    peak_vram_mb=peak_vram_mb,
+                    needs_tiling=needs_tiling,
+                )
+            )
 
         return (image_np, labels_resized, metrics) if collect_metrics else (image_np, labels_resized)
 
