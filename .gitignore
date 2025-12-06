@@ -12,6 +12,9 @@ data/input/*.jpg
 data/input/*.jpeg
 data/input/*.png
 
+# Local caches
+.cache/
+
 # Environment variables and secrets
 .env
 .env.local
@@ -36,6 +39,9 @@ weights/*
  
 # Pre-commit cache
 .pre-commit-cache/
+
+# Metadata/results cache
+results/
 
 # Local benchmark outputs
 bench_models.csv
