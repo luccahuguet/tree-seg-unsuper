@@ -56,3 +56,75 @@ def latest_by_tag(tag: str, limit: int = 5, base_dir: Path | str = "results") ->
     entries = query(tags=[tag], base_dir=base_dir)
     entries.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return entries[:limit]
+
+
+def compact(base_dir: Path | str = "results") -> int:
+    """
+    Compact the index by removing entries whose meta.json is missing.
+
+    Returns number of entries removed.
+    """
+    index_path = Path(base_dir) / "index.jsonl"
+    if not index_path.exists():
+        return 0
+
+    entries = _load_index(base_dir)
+    kept = []
+    removed = 0
+    for entry in entries:
+        hash_id = entry.get("hash")
+        meta_path = Path(base_dir) / "by-hash" / hash_id / "meta.json"
+        if meta_path.exists():
+            kept.append(entry)
+        else:
+            removed += 1
+
+    if removed:
+        with index_path.open("w") as f:
+            for e in kept:
+                f.write(json.dumps(e) + "\n")
+    return removed
+
+
+def prune_older_than(days: int, base_dir: Path | str = "results") -> int:
+    """
+    Prune entries older than N days (index + meta directories).
+
+    Returns number of entries removed.
+    """
+    from datetime import datetime, timezone, timedelta
+
+    index_path = Path(base_dir) / "index.jsonl"
+    if not index_path.exists():
+        return 0
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    entries = _load_index(base_dir)
+    kept = []
+    removed = 0
+    for entry in entries:
+        created_at = entry.get("created_at")
+        try:
+            created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        except Exception:
+            kept.append(entry)
+            continue
+        if created_dt < cutoff:
+            hash_id = entry.get("hash")
+            meta_dir = Path(base_dir) / "by-hash" / hash_id
+            if meta_dir.exists():
+                try:
+                    import shutil
+
+                    shutil.rmtree(meta_dir)
+                except Exception:
+                    pass
+            removed += 1
+        else:
+            kept.append(entry)
+
+    if removed:
+        with index_path.open("w") as f:
+            for e in kept:
+                f.write(json.dumps(e) + "\n")
+    return removed

@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.metadata.load import lookup
-from tree_seg.metadata.query import query as query_index
+from tree_seg.metadata.query import query as query_index, compact as compact_index, prune_older_than
 from tree_seg.visualization.plotting import generate_visualizations
 from tree_seg.core.types import Config, OutputPaths, SegmentationResults
 import numpy as np
@@ -179,6 +179,16 @@ def results_command(
         "--results-dir",
         help="Base directory for metadata storage",
     ),
+    compact: bool = typer.Option(
+        False,
+        "--compact",
+        help="Remove index entries whose meta.json is missing",
+    ),
+    prune_days: Optional[int] = typer.Option(
+        None,
+        "--prune-older-than",
+        help="Prune entries older than N days (removes meta dirs and rewrites index)",
+    ),
 ):
     """
     Query stored experiment metadata or show details for a specific run.
@@ -186,8 +196,22 @@ def results_command(
     Examples:
         tree-seg results --dataset fortress --tags kmeans,slic --sort mIoU --top 5
         tree-seg results --hash abc123def0 --show-config
+        tree-seg results --compact
+        tree-seg results --prune-older-than 30
     """
     tag_list = _parse_tags(tags)
+
+    if compact:
+        removed = compact_index(base_dir=base_dir)
+        console.print(f"[green]🧹 Compacted index, removed {removed} stale entr{'y' if removed==1 else 'ies'}[/green]")
+        if not hash_id and prune_days is None:
+            return
+
+    if prune_days is not None:
+        removed = prune_older_than(prune_days, base_dir=base_dir)
+        console.print(f"[green]🗑️  Pruned {removed} entr{'y' if removed==1 else 'ies'} older than {prune_days}d[/green]")
+        if not hash_id:
+            return
 
     if hash_id:
         meta = lookup(hash_id, base_dir=base_dir)
