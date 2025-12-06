@@ -20,5 +20,5 @@
   - [x] Break plotting into focused modules (`tree_seg/visualization/plotting.py`) for composites, metrics charts, and panel layouts. (Edge/side-by-side in `visualization/overlay.py`; eval panels in `visualization/eval_panels.py`; exported via `visualization/__init__.py`.)
   - [x] Continue slimming DINO adapter: move registry/config to `registry.py` and forward/reshape helpers to `features.py`.
   - [x] Extract k-selection/PCA/metrics assembly from `core/segmentation.py` into dedicated helpers.
-  - [x] Move to latest supported Python runtime when feasible. (pyproject now targets >=3.12.)
+  - [x] Move to latest supported Python runtime when feasible. (pyproject now targets >=3.13.)
 - [ ] Docs: update stale site content to reflect current CLI, metadata/results features, and removed version split.
