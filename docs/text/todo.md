@@ -10,6 +10,9 @@
 - Add cache reuse for eval/segment: check metadata hash before running, return existing results/viz if found; support `--force/--no-cache`; skip cached configs in sweeps; handle partial artifacts (regen viz from labels).
 - Future (optional): meta-learning on metadata bank
   - Add dataset feature descriptors (resolution stats, tile counts, class counts, color/entropy/exg)
-  - Train a simple ranker/nearest-neighbor recommender for configs per dataset
-  - (Optional) BO/surrogate to propose next configs under runtime constraints
+  - Add a simple recommender:
+    - Best historical configs for the dataset
+    - Nearest dataset fallback if few runs
+    - Optional LightGBM/RandomForest ranker to score configs; output top-K
+  - (Optional later) BO/surrogate to propose next configs under runtime constraints
   - Expose via `tree-seg results --recommend --dataset <name>`
