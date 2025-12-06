@@ -15,6 +15,13 @@ from sklearn.mixture import GaussianMixture
 from sklearn.neighbors import NearestNeighbors
 import hdbscan
 
+from .clustering import (
+    run_kmeans,
+    run_dpmeans,
+    run_spherical_kmeans,
+    run_potts_kmeans,
+)
+
 from ..analysis.elbow_method import find_optimal_k_elbow, plot_elbow_analysis
 
 try:
@@ -609,79 +616,13 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                         _, indices = nn.kneighbors(features_flat[labels == -1])
                         labels[labels == -1] = labels[labels >= 0][indices.flatten()]
         elif clustering_method == "dpmeans":
-            if verbose:
-                print(f"🎯 Clustering with DP-means (auto K via lambda; k={n_clusters} init)...")
-            # Compute lambda as median pairwise distance squared times 0.7
-            sample_size = min(5000, features_flat.shape[0])
-            idx = np.random.choice(features_flat.shape[0], sample_size, replace=False)
-            sample = features_flat[idx]
-            # Pairwise distances
-            pdists = np.sum((sample[:, None, :] - sample[None, :, :]) ** 2, axis=-1)
-            median_dist = np.median(pdists)
-            lam = 0.7 * median_dist
-
-            # Simple DP-means implementation
-            centers = [features_flat[np.random.choice(features_flat.shape[0])]]
-            assignments = np.zeros(features_flat.shape[0], dtype=int)
-            for _ in range(10):  # fixed iterations
-                # Assign to nearest center
-                dists = np.stack([np.sum((features_flat - c) ** 2, axis=1) for c in centers], axis=1)
-                min_dists = dists.min(axis=1)
-                assignments = dists.argmin(axis=1)
-                # Create new centers where distance > lam
-                new_centers = features_flat[min_dists > lam]
-                if len(new_centers):
-                    for c in new_centers:
-                        centers.append(c)
-                # Update centers
-                for k in range(len(centers)):
-                    mask = assignments == k
-                    if mask.any():
-                        centers[k] = features_flat[mask].mean(axis=0)
-            labels = assignments
+            labels = run_dpmeans(features_flat, n_clusters, verbose=verbose)
         elif clustering_method == "spherical":
-            if verbose:
-                print(f"🎯 Clustering with spherical k-means (cosine) (k={n_clusters})...")
-            # L2-normalize features to unit sphere
-            norms = np.linalg.norm(features_flat, axis=1, keepdims=True) + 1e-8
-            features_norm = features_flat / norms
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-            labels = kmeans.fit_predict(features_norm)
+            labels = run_spherical_kmeans(features_flat, n_clusters, verbose=verbose)
         elif clustering_method == "potts":
-            if verbose:
-                print(f"🎯 Clustering with regularized k-means (Potts on SLIC graph, k={n_clusters})...")
-            # Step 1: vanilla k-means on features
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-            labels = kmeans.fit_predict(features_flat)
-            labels = labels.reshape(H, W)
-            # Step 2: build simple 4-neighbor graph and run one alpha-expansion-like smoothing
-            beta = 0.5  # regularization weight
-            smoothed = labels.copy()
-            # Simple iterated conditional modes (ICM) as a cheap approximation
-            for _ in range(2):
-                for y in range(H):
-                    for x in range(W):
-                        neighbors = []
-                        if y > 0:
-                            neighbors.append(smoothed[y - 1, x])
-                        if y < H - 1:
-                            neighbors.append(smoothed[y + 1, x])
-                        if x > 0:
-                            neighbors.append(smoothed[y, x - 1])
-                        if x < W - 1:
-                            neighbors.append(smoothed[y, x + 1])
-                        neighbor_votes = np.bincount(neighbors, minlength=n_clusters)
-                        data_cost = np.sum((features_flat[y * W + x] - kmeans.cluster_centers_) ** 2, axis=1)
-                        smooth_cost = beta * (len(neighbors) - neighbor_votes)
-                        total_cost = data_cost + smooth_cost
-                        smoothed[y, x] = int(np.argmin(total_cost))
-            labels = smoothed
-            labels = labels.reshape(-1)
+            labels = run_potts_kmeans(features_flat, n_clusters, H, W, verbose=verbose)
         else:  # default to kmeans
-            if verbose:
-                print(f"🎯 Clustering with K-means (k={n_clusters})...")
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-            labels = kmeans.fit_predict(features_flat)
+            labels = run_kmeans(features_flat, n_clusters, verbose=verbose)
 
         # V2: Optional soft EM refinement in feature space
         if use_soft_refine:
