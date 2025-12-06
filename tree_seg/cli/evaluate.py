@@ -9,7 +9,10 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
-from tree_seg.evaluation.formatters import format_comparison_table, save_comparison_summary
+from tree_seg.evaluation.formatters import (
+    format_comparison_table,
+    save_comparison_summary,
+)
 from tree_seg.evaluation.grids import get_grid
 from tree_seg.evaluation.runner import (
     create_config,
@@ -102,8 +105,12 @@ def _run_single_benchmark(
     ):
         return None
 
-    console.print(f"\n[bold cyan]🚀 Running benchmark on {dataset_type.upper()} dataset[/bold cyan]")
-    console.print(f"[dim]Config: {config.version} | {config.model_display_name} | stride={config.stride}[/dim]\n")
+    console.print(
+        f"\n[bold cyan]🚀 Running benchmark on {dataset_type.upper()} dataset[/bold cyan]"
+    )
+    console.print(
+        f"[dim]Config: {config.version} | {config.model_display_name} | stride={config.stride}[/dim]\n"
+    )
 
     results = run_single_benchmark(
         dataset_path=dataset_path,
@@ -191,13 +198,17 @@ def evaluate_command(
         file_okay=False,
         dir_okay=True,
     ),
-    clustering: Literal["kmeans", "gmm", "spectral", "hdbscan", "spherical", "dpmeans", "potts"] = typer.Option(
+    clustering: Literal[
+        "kmeans", "gmm", "spectral", "hdbscan", "spherical", "dpmeans", "potts"
+    ] = typer.Option(
         "kmeans",
         "--clustering",
         "-c",
         help="Clustering algorithm: kmeans (default), gmm, spectral, hdbscan, spherical (cosine k-means), dpmeans (auto-K), potts (regularized k-means)",
     ),
-    refine: Optional[Literal["none", "slic", "soft-em", "bilateral", "soft-em+slic"]] = typer.Option(
+    refine: Optional[
+        Literal["none", "slic", "soft-em", "bilateral", "soft-em+slic"]
+    ] = typer.Option(
         "slic",
         "--refine",
         "-r",
@@ -206,7 +217,7 @@ def evaluate_command(
     supervised: bool = typer.Option(
         False,
         "--supervised",
-        help="Use supervised Mask2Former model (V4) instead of unsupervised clustering",
+        help="Use supervised sklearn baseline (LogisticRegression on DINOv3 features)",
     ),
     model: Literal["small", "base", "large", "mega"] = typer.Option(
         "base",
@@ -326,7 +337,18 @@ def evaluate_command(
         "--smart-grid",
         help="Use smart grid search (8 configs)",
     ),
-    grid: Optional[Literal["ofat", "smart", "full", "tiling", "tiling_refine", "clustering", "slic_params", "tile_overlap"]] = typer.Option(
+    grid: Optional[
+        Literal[
+            "ofat",
+            "smart",
+            "full",
+            "tiling",
+            "tiling_refine",
+            "clustering",
+            "slic_params",
+            "tile_overlap",
+        ]
+    ] = typer.Option(
         None,
         "--grid",
         "-g",
@@ -378,7 +400,7 @@ def evaluate_command(
         # No refinement: just clustering
         tree-seg eval data/fortress --refine none
 
-        # V4: Supervised Mask2Former
+        # Supervised sklearn baseline
         tree-seg eval data/fortress --supervised
 
         # Run comparison across multiple configs
@@ -387,6 +409,43 @@ def evaluate_command(
     if not dataset_type:
         dataset_type = detect_dataset_type(dataset)
         console.print(f"[dim]Auto-detected dataset type: {dataset_type}[/dim]")
+
+    # Handle supervised baseline
+    if supervised:
+        from tree_seg.supervised.sklearn_baseline import evaluate_sklearn_baseline
+
+        console.print(
+            "\n[bold cyan]🎓 Running supervised sklearn baseline[/bold cyan]\n"
+        )
+
+        results = evaluate_sklearn_baseline(
+            dataset_path=dataset,
+            model_name=model,
+            stride=stride,
+            verbose=not quiet,
+        )
+
+        # Print summary
+        table = Table(
+            title="Supervised Baseline Results",
+            show_header=True,
+            header_style="bold cyan",
+        )
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", justify="right", style="green")
+
+        table.add_row("Dataset", results.dataset_name)
+        table.add_row("Method", results.method_name)
+        table.add_row("Mean mIoU", f"{results.mean_miou:.4f}")
+        table.add_row("Mean Pixel Accuracy", f"{results.mean_pixel_accuracy:.4f}")
+        table.add_row("Mean Runtime", f"{results.mean_runtime:.2f}s")
+        table.add_row("Total Samples", str(results.total_samples))
+
+        console.print()
+        console.print(table)
+        console.print("\n[green]✅ Supervised baseline evaluation complete[/green]\n")
+
+        return
 
     # Create config
     config = _create_config(
