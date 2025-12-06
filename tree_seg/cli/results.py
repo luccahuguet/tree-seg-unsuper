@@ -10,6 +10,10 @@ from rich.table import Table
 
 from tree_seg.metadata.load import lookup
 from tree_seg.metadata.query import query as query_index
+from tree_seg.visualization.plotting import generate_visualizations
+from tree_seg.core.types import Config, OutputPaths, SegmentationResults
+import numpy as np
+from PIL import Image
 
 console = Console()
 
@@ -48,6 +52,86 @@ def _print_detail(meta: dict, show_config: bool) -> None:
         console.print_json(data=meta.get("config", {}))
         console.print("\n[bold]Config (full)[/bold]")
         console.print_json(data=meta.get("config_full", {}))
+
+
+def _find_image_path(dataset_root: Path, image_id: str) -> Optional[Path]:
+    """Best-effort find image file for given image_id under dataset root."""
+    candidates = []
+    # Common structure: dataset_root/images/<id>.<ext>
+    images_dir = dataset_root / "images"
+    if images_dir.exists():
+        candidates.extend(images_dir.glob(f"{image_id}.*"))
+    # Fallback to root
+    candidates.extend(dataset_root.glob(f"{image_id}.*"))
+    exts = {".tif", ".tiff", ".png", ".jpg", ".jpeg"}
+    for path in candidates:
+        if path.suffix.lower() in exts:
+            return path
+    return None
+
+
+def _render_visualizations(meta: dict, base_dir: Path) -> None:
+    """Regenerate visualizations from stored labels."""
+    hash_id = meta.get("hash")
+    artifacts = meta.get("artifacts", {})
+    labels_dir = artifacts.get("labels_dir")
+    dataset_root = meta.get("dataset_root")
+    config_full = meta.get("config_full") or meta.get("config")
+
+    if not labels_dir or not dataset_root or not config_full:
+        console.print("[yellow]⚠️  Missing labels, dataset root, or config; cannot render.[/yellow]")
+        return
+
+    labels_dir = Path(labels_dir)
+    dataset_root = Path(dataset_root)
+    if not labels_dir.exists():
+        console.print(f"[yellow]⚠️  Labels directory not found: {labels_dir}[/yellow]")
+        return
+
+    run_dir = base_dir / "by-hash" / hash_id
+    viz_dir = Path(artifacts.get("visualizations_dir") or run_dir / "visualizations")
+    viz_dir.mkdir(parents=True, exist_ok=True)
+
+    cfg = Config(**config_full)
+    cfg.output_dir = str(run_dir)
+
+    npz_files = sorted(labels_dir.glob("*.npz"))
+    if not npz_files:
+        console.print(f"[yellow]⚠️  No label files found in {labels_dir}[/yellow]")
+        return
+
+    regenerated = 0
+    for npz_path in npz_files:
+        image_id = npz_path.stem
+        data = np.load(npz_path)
+        if "labels" not in data:
+            continue
+        labels = data["labels"]
+        img_path = _find_image_path(dataset_root, image_id)
+        if img_path is None:
+            console.print(f"[yellow]⚠️  Could not find image for {image_id} under {dataset_root}[/yellow]")
+            continue
+        image_np = np.array(Image.open(img_path).convert("RGB"))
+        n_clusters = int(labels.max()) + 1
+        seg_result = SegmentationResults(
+            image_np=image_np,
+            labels_resized=labels,
+            n_clusters_used=n_clusters,
+            image_path=str(img_path),
+            processing_stats={},
+            n_clusters_requested=None,
+        )
+        prefix = f"{image_id}_regen"
+        output_paths = OutputPaths(
+            segmentation_legend=str(viz_dir / f"{prefix}_segmentation_legend.png"),
+            edge_overlay=str(viz_dir / f"{prefix}_edge_overlay.png"),
+            side_by_side=str(viz_dir / f"{prefix}_side_by_side.png"),
+            elbow_analysis=None,
+        )
+        generate_visualizations(seg_result, cfg, output_paths)
+        regenerated += 1
+
+    console.print(f"[green]✅ Regenerated visualizations for {regenerated}/{len(npz_files)} sample(s)[/green]")
 
 
 def results_command(
@@ -112,15 +196,7 @@ def results_command(
             raise typer.Exit(code=1)
         _print_detail(meta, show_config=show_config)
         if render:
-            artifacts = meta.get("artifacts", {})
-            viz_dir = artifacts.get("visualizations_dir")
-            labels_dir = artifacts.get("labels_dir")
-            if viz_dir:
-                console.print(f"[green]✔ Visualizations already exist at {viz_dir}[/green]")
-            elif labels_dir:
-                console.print("[yellow]⚠️ Labels present but visualization regeneration is not implemented yet.[/yellow]")
-            else:
-                console.print("[yellow]⚠️ No labels or visualizations found; nothing to render.[/yellow]")
+            _render_visualizations(meta, base_dir=base_dir)
         return
 
     entries = query_index(
