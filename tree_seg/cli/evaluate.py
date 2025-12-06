@@ -21,21 +21,7 @@ load_dotenv()
 
 console = Console()
 
-# Method name to internal version mapping
-METHOD_TO_VERSION = {
-    "baseline": "v1.5",      # DINOv3 + K-means + SLIC
-    "refined": "v2",         # + soft/EM refinement
-    "supervised": "v4",      # Mask2Former (comparison)
-}
-
-
-def _resolve_method(method: str) -> str:
-    """Resolve method name to internal version string."""
-    resolved = METHOD_TO_VERSION.get(method.lower())
-    if resolved is None:
-        valid = ", ".join(sorted(METHOD_TO_VERSION.keys()))
-        raise ValueError(f"Unknown method '{method}'. Valid options: {valid}")
-    return resolved
+# Removed METHOD_TO_VERSION - using explicit clustering/refine flags instead
 
 
 def _detect_dataset_type(dataset_path: Path) -> str:
@@ -52,9 +38,9 @@ def _detect_dataset_type(dataset_path: Path) -> str:
 
 
 def _create_config(
-    method: str,
+    clustering: str,
+    refine: Optional[str],
     model: str,
-    clustering: Optional[str],
     stride: int,
     image_size: int,
     elbow_threshold: float,
@@ -67,14 +53,22 @@ def _create_config(
     use_pyramid: bool,
     pyramid_scales: str,
     pyramid_aggregation: str,
+    use_supervised: bool,
     quiet: bool,
 ) -> Config:
     """Create Config object from parameters."""
-    # Resolve method name to internal version
-    version = _resolve_method(method)
+    # Determine version based on configuration
+    if use_supervised:
+        version = "v4"
+    elif refine == "soft-em" or refine == "soft-em+slic":
+        version = "v2"
+    elif apply_vegetation_filter:
+        version = "v3"
+    else:
+        version = "v1.5"
 
-    # Handle V4 special case
-    if version == "v4":
+    # Handle V4 special case (supervised)
+    if use_supervised:
         if model != "mega":
             console.print("[yellow]⚠️  Mask2Former head only supports the ViT-7B backbone; overriding model to 'mega'.[/yellow]")
             model = "mega"
@@ -91,32 +85,32 @@ def _create_config(
             verbose=not quiet,
         )
 
-    # Map clustering to refine and clustering_method
-    clustering = clustering or "slic"
-    clustering_method = "kmeans"
-    refine = None
+    # Map clustering algorithm
+    clustering_method = clustering  # kmeans, gmm, spectral, hdbscan
 
-    if clustering in ["slic", "bilateral"]:
-        refine = clustering
-    elif clustering == "slic-skimage":
-        refine = "slic_skimage"
-    elif clustering == "gmm":
-        clustering_method = "gmm"
-    elif clustering == "spectral":
-        clustering_method = "spectral"
-    elif clustering == "hdbscan":
-        clustering_method = "hdbscan"
+    # Map refinement methods
+    refine_method = None
+    use_soft_refine = False
+
+    if refine and refine != "none":
+        if refine == "soft-em":
+            use_soft_refine = True
+            refine_method = None  # Soft EM is separate from image-space refinement
+        elif refine == "slic":
+            refine_method = "slic"
+        elif refine == "bilateral":
+            refine_method = "bilateral"
+        elif refine == "soft-em+slic":
+            use_soft_refine = True
+            refine_method = "slic"
 
     # Parse pyramid scales
     scales = tuple(float(s.strip()) for s in pyramid_scales.split(",")) if pyramid_scales else (0.5, 1.0, 2.0)
 
-    # V2: Enable soft EM refinement
-    use_soft_refine = (version == "v2")
-
     return Config(
         version=version,
         clustering_method=clustering_method,
-        refine=refine,
+        refine=refine_method,
         model_name=model,
         stride=stride,
         elbow_threshold=elbow_threshold,
@@ -324,10 +318,22 @@ def evaluate_command(
         file_okay=False,
         dir_okay=True,
     ),
-    method: Literal["baseline", "refined", "supervised"] = typer.Option(
-        "baseline",
-        "--method",
-        help="Segmentation method: baseline (DINOv3+K-means), refined (+soft/EM refinement), supervised (Mask2Former)",
+    clustering: Literal["kmeans", "gmm", "spectral", "hdbscan"] = typer.Option(
+        "kmeans",
+        "--clustering",
+        "-c",
+        help="Clustering algorithm: kmeans (default), gmm, spectral, hdbscan",
+    ),
+    refine: Optional[Literal["none", "slic", "soft-em", "bilateral", "soft-em+slic"]] = typer.Option(
+        "slic",
+        "--refine",
+        "-r",
+        help="Refinement method: none, slic (default), soft-em (V2), bilateral, soft-em+slic (combine both)",
+    ),
+    supervised: bool = typer.Option(
+        False,
+        "--supervised",
+        help="Use supervised Mask2Former model (V4) instead of unsupervised clustering",
     ),
     model: Literal["small", "base", "large", "mega"] = typer.Option(
         "base",
@@ -340,12 +346,6 @@ def evaluate_command(
         "--dataset-type",
         "-t",
         help="Dataset type (auto-detected if not specified)",
-    ),
-    clustering: Optional[Literal["kmeans", "slic", "bilateral", "slic-skimage", "gmm", "spectral", "hdbscan"]] = typer.Option(
-        None,
-        "--clustering",
-        "-c",
-        help="Clustering method (default: slic for baseline/refined)",
     ),
     stride: int = typer.Option(
         4,
@@ -463,17 +463,29 @@ def evaluate_command(
 
     Examples:
 
-        # Evaluate baseline on FORTRESS
-        tree-seg eval data/fortress --method baseline
+        # V1.5 baseline: K-means + SLIC
+        tree-seg eval data/fortress
 
-        # Evaluate refined method (V2) with soft EM
-        tree-seg eval data/fortress --method refined --model large
+        # V2: K-means + soft EM refinement
+        tree-seg eval data/fortress --refine soft-em
 
-        # Species-level segmentation (V3 task) with vegetation filter
-        tree-seg eval data/fortress --method baseline --vegetation-filter
+        # V2 + SLIC: K-means + soft EM + SLIC (combine both refinements)
+        tree-seg eval data/fortress --refine soft-em+slic
 
-        # Combine V2 method with V3 task
-        tree-seg eval data/fortress --method refined --vegetation-filter
+        # V3 task: Species segmentation with vegetation filter
+        tree-seg eval data/fortress --vegetation-filter
+
+        # V2 + V3: Soft EM + vegetation filter
+        tree-seg eval data/fortress --refine soft-em --vegetation-filter
+
+        # Experiment: GMM clustering + soft EM
+        tree-seg eval data/fortress --clustering gmm --refine soft-em
+
+        # No refinement: just clustering
+        tree-seg eval data/fortress --refine none
+
+        # V4: Supervised Mask2Former
+        tree-seg eval data/fortress --supervised
 
         # Run comparison across multiple configs
         tree-seg eval data/fortress --compare-configs --grid tiling
@@ -485,9 +497,9 @@ def evaluate_command(
 
     # Create config
     config = _create_config(
-        method=method,
-        model=model,
         clustering=clustering,
+        refine=refine,
+        model=model,
         stride=stride,
         image_size=image_size,
         elbow_threshold=elbow_threshold,
@@ -500,6 +512,7 @@ def evaluate_command(
         use_pyramid=use_pyramid,
         pyramid_scales=pyramid_scales,
         pyramid_aggregation=pyramid_aggregation,
+        use_supervised=supervised,
         quiet=quiet,
     )
 
