@@ -9,7 +9,12 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.metadata.load import lookup, lookup_nearest
-from tree_seg.metadata.query import query as query_index, compact as compact_index, prune_older_than
+from tree_seg.metadata.query import (
+    query as query_index,
+    compact as compact_index,
+    prune_older_than,
+    export_to_csv,
+)
 from tree_seg.visualization.plotting import generate_visualizations
 from tree_seg.core.types import Config, OutputPaths, SegmentationResults
 import numpy as np
@@ -194,6 +199,11 @@ def results_command(
         "--nearest",
         help="JSON string of config fields to estimate ETA/runtime (uses nearest match)",
     ),
+    export_csv: Optional[Path] = typer.Option(
+        None,
+        "--export-csv",
+        help="Path to write queried results as CSV",
+    ),
 ):
     """
     Query stored experiment metadata or show details for a specific run.
@@ -274,3 +284,6 @@ def results_command(
             entry.get("created_at", ""),
         )
     console.print(table)
+    if export_csv:
+        rows = export_to_csv(entries, export_csv)
+        console.print(f"[green]💾 Exported {rows} row(s) to {export_csv}[/green]")

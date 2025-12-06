@@ -1,5 +1,6 @@
 """Query helpers for metadata bank."""
 
+import csv
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -128,3 +129,37 @@ def prune_older_than(days: int, base_dir: Path | str = "results") -> int:
             for e in kept:
                 f.write(json.dumps(e) + "\n")
     return removed
+
+
+def export_to_csv(entries: List[Dict], csv_path: Path | str) -> int:
+    """Export query results to a CSV file. Returns number of rows written."""
+    fieldnames = [
+        "hash",
+        "dataset",
+        "created_at",
+        "mIoU",
+        "pixel_accuracy",
+        "total_s",
+        "tags",
+        "type",
+    ]
+    csv_path = Path(csv_path)
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with csv_path.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for entry in entries:
+            writer.writerow(
+                {
+                    "hash": entry.get("hash", ""),
+                    "dataset": entry.get("dataset", ""),
+                    "created_at": entry.get("created_at", ""),
+                    "mIoU": entry.get("mIoU", ""),
+                    "pixel_accuracy": entry.get("pixel_accuracy", ""),
+                    "total_s": entry.get("total_s", ""),
+                    "tags": ",".join(entry.get("tags", []) or []),
+                    "type": entry.get("type", "benchmark"),
+                }
+            )
+    return len(entries)
