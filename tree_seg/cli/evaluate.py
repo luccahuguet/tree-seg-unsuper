@@ -21,6 +21,23 @@ load_dotenv()
 
 console = Console()
 
+# Method name to internal version mapping
+METHOD_TO_VERSION = {
+    "baseline": "v1.5",      # DINOv3 + K-means + SLIC
+    "refined": "v2",         # + soft/EM refinement
+    "species": "v3",         # + vegetation filtering
+    "supervised": "v4",      # Mask2Former (comparison)
+}
+
+
+def _resolve_method(method: str) -> str:
+    """Resolve method name to internal version string."""
+    resolved = METHOD_TO_VERSION.get(method.lower())
+    if resolved is None:
+        valid = ", ".join(sorted(METHOD_TO_VERSION.keys()))
+        raise ValueError(f"Unknown method '{method}'. Valid options: {valid}")
+    return resolved
+
 
 def _detect_dataset_type(dataset_path: Path) -> str:
     """Auto-detect dataset type from directory structure."""
@@ -54,9 +71,8 @@ def _create_config(
     quiet: bool,
 ) -> Config:
     """Create Config object from parameters."""
-    # Map method version
-    version_map = {"v1": "v1", "v1.5": "v1.5", "v2": "v2", "v3": "v3", "v4": "v4"}
-    version = version_map.get(method, "v1.5")
+    # Resolve method name to internal version
+    version = _resolve_method(method)
 
     # Handle V4 special case
     if version == "v4":
@@ -302,11 +318,10 @@ def evaluate_command(
         file_okay=False,
         dir_okay=True,
     ),
-    method: Literal["v1", "v1.5", "v2", "v3", "v4"] = typer.Option(
-        "v1.5",
+    method: Literal["baseline", "refined", "species", "supervised"] = typer.Option(
+        "baseline",
         "--method",
-        "-v",
-        help="Segmentation method version",
+        help="Segmentation method: baseline (DINOv3+K-means), refined (+soft/EM refinement), species (+vegetation filtering), supervised (Mask2Former)",
     ),
     model: Literal["small", "base", "large", "mega"] = typer.Option(
         "base",
@@ -324,7 +339,7 @@ def evaluate_command(
         None,
         "--clustering",
         "-c",
-        help="Clustering method (default: slic for v1.x, kmeans for v3+)",
+        help="Clustering method (default: slic for baseline/refined, kmeans for species)",
     ),
     stride: int = typer.Option(
         4,
@@ -442,11 +457,11 @@ def evaluate_command(
 
     Examples:
 
-        # Evaluate V1.5 baseline on FORTRESS
-        tree-seg eval data/fortress --method v1.5
+        # Evaluate baseline on FORTRESS
+        tree-seg eval data/fortress --method baseline
 
-        # Evaluate V3 species clustering with custom settings
-        tree-seg eval data/fortress --method v3 --model large --elbow-threshold 10.0
+        # Evaluate species clustering with custom settings
+        tree-seg eval data/fortress --method species --model large --elbow-threshold 10.0
 
         # Run comparison across multiple configs
         tree-seg eval data/fortress --compare-configs --grid tiling
@@ -498,7 +513,7 @@ def evaluate_command(
             "elbow_threshold": elbow_threshold,
             "auto_k": (fixed_k is None),
             "n_clusters": fixed_k if fixed_k else 6,
-            "apply_vegetation_filter": apply_vegetation_filter or (method == "v3"),
+            "apply_vegetation_filter": apply_vegetation_filter or (method == "species"),
             "exg_threshold": exg_threshold,
             "use_tiling": not no_tiling,
             "viz_two_panel": viz_two_panel,
