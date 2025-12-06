@@ -7,10 +7,15 @@ from sklearn.neighbors import NearestNeighbors
 import hdbscan
 
 
+def _make_kmeans(n_clusters: int) -> KMeans:
+    """Factory to enforce consistent KMeans defaults across variants."""
+    return KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+
+
 def run_kmeans(features_flat: np.ndarray, n_clusters: int, verbose: bool = False) -> np.ndarray:
     if verbose:
         print(f"🎯 Clustering with K-means (k={n_clusters})...")
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+    kmeans = _make_kmeans(n_clusters)
     return kmeans.fit_predict(features_flat)
 
 
@@ -19,7 +24,7 @@ def run_spherical_kmeans(features_flat: np.ndarray, n_clusters: int, verbose: bo
         print(f"🎯 Clustering with spherical k-means (cosine) (k={n_clusters})...")
     norms = np.linalg.norm(features_flat, axis=1, keepdims=True) + 1e-8
     features_norm = features_flat / norms
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+    kmeans = _make_kmeans(n_clusters)
     return kmeans.fit_predict(features_norm)
 
 
@@ -52,7 +57,7 @@ def run_dpmeans(features_flat: np.ndarray, n_clusters: int, max_iter: int = 10, 
 def run_potts_kmeans(features_flat: np.ndarray, n_clusters: int, H: int, W: int, beta: float = 0.5, iters: int = 2, verbose: bool = False) -> np.ndarray:
     if verbose:
         print(f"🎯 Clustering with regularized k-means (Potts, k={n_clusters})...")
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+    kmeans = _make_kmeans(n_clusters)
     labels = kmeans.fit_predict(features_flat).reshape(H, W)
     smoothed = labels.copy()
     for _ in range(iters):
