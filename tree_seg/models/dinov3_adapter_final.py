@@ -14,6 +14,7 @@ import torch
 import torch.nn as nn
 
 from .dinov3_loader import HuggingFaceWeightLoader, WeightLoadingError
+from .dinov3_features import extract_backbone_features
 from .dinov3_registry import (
     AttentionOptions,
     LoadingStrategy,
@@ -225,126 +226,19 @@ class DINOv3Adapter(nn.Module):
             layer_indices: Which layers to extract from (1-indexed)
             feature_aggregation: How to combine features ("concat", "average", "weighted")
         """
-        x.requires_grad = self.track_grad
-        
-        if self.dtype != torch.float32:
-            x = x.to(self.dtype)
-        
-        # Ensure batch dimension
-        if x.dim() == 3:
-            x = x.unsqueeze(0)
-        
-        original_shape = x.shape[-2:]
-        
-        # Extract features using DINOv3
-        with torch.no_grad():
-            if use_multi_layer and hasattr(self.backbone, 'get_intermediate_layers'):
-                # Multi-layer extraction
-                layers_to_extract = [idx - 1 for idx in layer_indices]
-                
-                # Get intermediate outputs WITH class token so we can handle it consistently
-                intermediate_outputs = self.backbone.get_intermediate_layers(
-                    x,
-                    n=layers_to_extract,
-                    reshape=False,
-                    return_class_token=False,  # We'll handle tokens ourselves
-                    norm=True
-                )
-                
-                # Process each layer's features
-                layer_features_list = []
-                for layer_output in intermediate_outputs:
-                    # layer_output shape: (B, N_tokens, D) where N_tokens includes special tokens
-                    # DINOv3 typically has: 1 CLS token + some register tokens + patch tokens
-                    # When return_class_token=False, we get only patch tokens (no CLS, no registers)
-                    # So this should already be just patch tokens
-                    patch_features = layer_output  # Already patch-only with return_class_token=False
-                    layer_features_list.append(patch_features)
-                
-                # Verify all layers have the same number of patches
-                patch_counts = [f.shape[1] for f in layer_features_list]
-                if len(set(patch_counts)) > 1:
-                    raise ValueError(
-                        f"Inconsistent patch counts across layers: {patch_counts}. "
-                        f"Expected all layers to have the same number of patch tokens."
-                    )
-                
-                # Combine features based on aggregation strategy
-                if feature_aggregation == "concat":
-                    combined_features = torch.cat(layer_features_list, dim=-1)
-                elif feature_aggregation == "average":
-                    stacked = torch.stack(layer_features_list, dim=0)
-                    combined_features = stacked.mean(dim=0)
-                elif feature_aggregation == "weighted":
-                    weights = torch.linspace(0.5, 1.0, len(layer_features_list), device=x.device)
-                    weights = weights / weights.sum()
-                    weighted_features = []
-                    for i, layer_feat in enumerate(layer_features_list):
-                        weighted_features.append(layer_feat * weights[i])
-                    combined_features = torch.stack(weighted_features, dim=0).sum(dim=0)
-                else:
-                    raise ValueError(f"Unknown aggregation: {feature_aggregation}")
-                
-                patch_features = combined_features
-            else:
-                # Single-layer extraction (original behavior)
-                features = self.backbone.forward_features(x)
-                patch_features = self._extract_patch_features(features)
-            
-            # Reshape to spatial format
-            patch_features = self._reshape_to_spatial(patch_features, original_shape)
-        
-        return {
-            "x_norm_patchtokens": patch_features,
-            "x_patchattn": patch_features if attn_choice != "none" else None
-        }
-    
-    def _extract_patch_features(self, features: Union[torch.Tensor, Dict]) -> torch.Tensor:
-        """Extract patch tokens from backbone output."""
-        if isinstance(features, dict):
-            # Dictionary output - look for patch tokens
-            if 'x_norm_patchtokens' in features:
-                return features['x_norm_patchtokens']
-            elif 'x_prenorm' in features:
-                # Remove CLS token (first token)
-                return features['x_prenorm'][:, 1:, :] 
-            else:
-                # Fallback to first tensor value
-                tensor_features = list(features.values())[0]
-                if tensor_features.dim() == 3 and tensor_features.shape[1] > 1:
-                    return tensor_features[:, 1:, :]  # Remove CLS
-                return tensor_features
-        else:
-            # Tensor output - remove CLS token
-            return features[:, 1:, :] if features.shape[1] > 1 else features
-    
-    def _reshape_to_spatial(self, patch_features: torch.Tensor, original_shape: Tuple[int, int]) -> torch.Tensor:
-        """Reshape linear patch features to spatial grid."""
-        img_h, img_w = original_shape
-        h_patches = img_h // self.patch_size
-        w_patches = img_w // self.patch_size
-        
-        # Reshape from (B, N, D) to (H, W, D)
-        batch_size = patch_features.shape[0]
-        num_patches = patch_features.shape[1]
-        feat_dim = patch_features.shape[-1]
-        
-        # Verify patch count matches expected
-        expected_patches = h_patches * w_patches
-        if num_patches != expected_patches:
-            # Try to infer correct patch grid from actual number of patches
-            import math
-            side = int(math.sqrt(num_patches))
-            if side * side == num_patches:
-                h_patches = w_patches = side
-            else:
-                raise ValueError(
-                    f"Patch count mismatch: got {num_patches} patches, "
-                    f"expected {expected_patches} ({h_patches}x{w_patches})"
-                )
-        
-        spatial_features = patch_features.view(batch_size, h_patches, w_patches, feat_dim)
-        return spatial_features.squeeze(0)  # Remove batch dimension
+        patch_features, outputs = extract_backbone_features(
+            backbone=self.backbone,
+            x=x,
+            track_grad=self.track_grad,
+            dtype=self.dtype,
+            use_multi_layer=use_multi_layer,
+            layer_indices=layer_indices,
+            feature_aggregation=feature_aggregation,
+            patch_size=self.patch_size,
+        )
+
+        outputs["x_patchattn"] = patch_features if attn_choice != "none" else None
+        return outputs
     
     def get_n_patches(self, img_h: int, img_w: int) -> Tuple[int, int]:
         """Calculate number of patches for given image dimensions."""
