@@ -367,3 +367,12 @@ Official DINOv3 repository includes linear segmentation head. Multiple approache
 **Note:** Options 1 & 3 are supervised methods. Option 2 could improve unsupervised baseline.
 
 **All unsupervised clustering experiments completed. K-means + SLIC remains the best unsupervised approach.**
+
+---
+
+## 🧭 Possible Next: K-means Successors (Not Tried)
+
+Shortlist from `docs/text/kmeans_successors.md` that could be drop-in tests if we revisit unsupervised clustering:
+- **Spherical + soft k-means**: swap to cosine distance with temperature-sharpened soft assignments; trivial change, expected cleaner clusters on DINO features.
+- **DP-means**: k-means variant with a λ penalty that auto-selects K; good when K varies across tiles; medium effort.
+- **Regularized k-means (Potts on SLIC graph)**: add spatial smoothness via α-expansion on the SLIC adjacency; should reduce speckle/edge noise.
