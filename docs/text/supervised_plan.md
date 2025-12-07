@@ -3,7 +3,7 @@
 ## Implemented Heads
 - **sklearn LogisticRegression** (`--head sklearn`): mIoU ≈ 0.082, PA ≈ 0.536 on `fortress_processed` (stride=4, 47 tiles, 100k sample cap, max_iter=3000).
 - **Torch Linear MLP** (`--head linear`): 2-layer MLP (1024 hidden, dropout 0.1), max_patches=1M, early stopping. Best observed so far: mIoU ≈ 0.074, PA ≈ 0.236 (stride=2, 2M patches, lr=5e-4, patience 20, val_split 0.1).
-- **sklearn MLPClassifier** (`--head mlp`): nonlinear head with early stopping (current defaults hidden (2048,1024,512), max_iter=400). Best observed: mIoU ≈ 0.427, PA ≈ 0.953 on `fortress_processed` with stride=2, 2M patches, lr=5e-4, patience=0, val_split=0.0, `--mlp-use-xy` (training ~14m on GPU). Early-stopping attempts underperform: patience=5/val_split=0.02 → mIoU ≈ 0.278/PA ≈ 0.833; patience=3/val_split=0.01 → mIoU ≈ 0.111/PA ≈ 0.608.
+- **sklearn MLPClassifier** (`--head mlp`): nonlinear head with early stopping (current defaults hidden (2048,1024,512), max_iter=400). Best observed: mIoU ≈ 0.427, PA ≈ 0.953 on `fortress_processed` with stride=2, 2M patches, lr=5e-4, patience=0, val_split=0.0, `--mlp-use-xy` (training ~14m on GPU). Early-stopping “non-overfitting peak”: patience=5/val_split=0.02 → mIoU ≈ 0.278/PA ≈ 0.833. Stricter patience/val splits dropped to ~0.111 mIoU / 0.608 PA.
 
 ## CLI
 - Supervised mode: `tree-seg eval ... --supervised --supervised-head {sklearn,linear,mlp}`
