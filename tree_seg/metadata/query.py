@@ -134,7 +134,14 @@ def prune_older_than(days: int, base_dir: Path | str = "results") -> int:
 
 
 def export_to_csv(entries: List[Dict], csv_path: Path | str) -> int:
-    """Export query results to a CSV file. Returns number of rows written."""
+    """
+    Export query results to a CSV file with upsert behavior.
+
+    If the CSV exists, existing rows are updated by hash and new rows are appended.
+    This allows building a comprehensive metadata bank over time.
+
+    Returns number of total rows in the CSV after export.
+    """
     fieldnames = [
         "hash",
         "dataset",
@@ -148,20 +155,36 @@ def export_to_csv(entries: List[Dict], csv_path: Path | str) -> int:
     csv_path = Path(csv_path)
     csv_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Read existing rows if CSV exists (for upsert)
+    existing_rows = {}
+    if csv_path.exists():
+        with csv_path.open("r", newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                hash_id = row.get("hash")
+                if hash_id:
+                    existing_rows[hash_id] = row
+
+    # Update existing rows and add new ones
+    for entry in entries:
+        hash_id = entry.get("hash", "")
+        if hash_id:
+            existing_rows[hash_id] = {
+                "hash": hash_id,
+                "dataset": entry.get("dataset", ""),
+                "created_at": entry.get("created_at", ""),
+                "mIoU": entry.get("mIoU", ""),
+                "pixel_accuracy": entry.get("pixel_accuracy", ""),
+                "total_s": entry.get("total_s", ""),
+                "tags": ",".join(entry.get("tags", []) or []),
+                "type": entry.get("type", "benchmark"),
+            }
+
+    # Write all rows back
     with csv_path.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
-        for entry in entries:
-            writer.writerow(
-                {
-                    "hash": entry.get("hash", ""),
-                    "dataset": entry.get("dataset", ""),
-                    "created_at": entry.get("created_at", ""),
-                    "mIoU": entry.get("mIoU", ""),
-                    "pixel_accuracy": entry.get("pixel_accuracy", ""),
-                    "total_s": entry.get("total_s", ""),
-                    "tags": ",".join(entry.get("tags", []) or []),
-                    "type": entry.get("type", "benchmark"),
-                }
-            )
-    return len(entries)
+        for row in existing_rows.values():
+            writer.writerow(row)
+
+    return len(existing_rows)
