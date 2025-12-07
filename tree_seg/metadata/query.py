@@ -133,51 +133,92 @@ def prune_older_than(days: int, base_dir: Path | str = "results") -> int:
     return removed
 
 
-def export_to_csv(entries: List[Dict], csv_path: Path | str) -> int:
+def export_to_csv(
+    entries: List[Dict], csv_path: Path | str, base_dir: Path | str = "results"
+) -> int:
     """
-    Export query results to a CSV file with upsert behavior.
+    Export query results to a CSV file with per-image granularity and upsert behavior.
 
-    If the CSV exists, existing rows are updated by hash and new rows are appended.
-    This allows building a comprehensive metadata bank over time.
+    Loads full metadata for each entry to extract per-sample statistics.
+    Creates one row per (config, image) combination.
+    If the CSV exists, existing rows are updated by (hash, image_id) and new rows are appended.
 
     Returns number of total rows in the CSV after export.
     """
     fieldnames = [
         "hash",
         "dataset",
-        "created_at",
+        "image_id",
         "mIoU",
         "pixel_accuracy",
-        "total_s",
+        "num_clusters",
+        "runtime_s",
         "tags",
         "type",
+        "created_at",
     ]
     csv_path = Path(csv_path)
     csv_path.parent.mkdir(parents=True, exist_ok=True)
+    base_dir = Path(base_dir)
 
     # Read existing rows if CSV exists (for upsert)
+    # Key by (hash, image_id) tuple to prevent duplicates
     existing_rows = {}
     if csv_path.exists():
         with csv_path.open("r", newline="") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 hash_id = row.get("hash")
-                if hash_id:
-                    existing_rows[hash_id] = row
+                image_id = row.get("image_id")
+                if hash_id and image_id:
+                    existing_rows[(hash_id, image_id)] = row
 
-    # Update existing rows and add new ones
+    # Load full metadata and extract per-sample stats
     for entry in entries:
         hash_id = entry.get("hash", "")
-        if hash_id:
-            existing_rows[hash_id] = {
+        if not hash_id:
+            continue
+
+        # Load full meta.json to get per_sample_stats
+        meta_path = base_dir / "by-hash" / hash_id / "meta.json"
+        if not meta_path.exists():
+            continue
+
+        try:
+            with meta_path.open() as f:
+                meta = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+        dataset = meta.get("dataset", "")
+        created_at = meta.get("created_at", "")
+        tags_list = (meta.get("tags", {}).get("auto") or []) + (
+            meta.get("tags", {}).get("user") or []
+        )
+        tags_str = ",".join(tags_list)
+        entry_type = entry.get("type", "benchmark")
+
+        # Extract per-sample stats
+        samples = meta.get("samples", {})
+        per_sample_stats = samples.get("per_sample_stats", [])
+
+        for sample in per_sample_stats:
+            image_id = sample.get("image_id", "")
+            if not image_id:
+                continue
+
+            key = (hash_id, image_id)
+            existing_rows[key] = {
                 "hash": hash_id,
-                "dataset": entry.get("dataset", ""),
-                "created_at": entry.get("created_at", ""),
-                "mIoU": entry.get("mIoU", ""),
-                "pixel_accuracy": entry.get("pixel_accuracy", ""),
-                "total_s": entry.get("total_s", ""),
-                "tags": ",".join(entry.get("tags", []) or []),
-                "type": entry.get("type", "benchmark"),
+                "dataset": dataset,
+                "image_id": image_id,
+                "mIoU": sample.get("miou", ""),
+                "pixel_accuracy": sample.get("pixel_accuracy", ""),
+                "num_clusters": sample.get("num_clusters", ""),
+                "runtime_s": sample.get("runtime_seconds", ""),
+                "tags": tags_str,
+                "type": entry_type,
+                "created_at": created_at,
             }
 
     # Write all rows back

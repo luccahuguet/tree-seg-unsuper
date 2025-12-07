@@ -319,5 +319,5 @@ def results_command(
             export_dir.mkdir(parents=True, exist_ok=True)
             csv_path = export_dir / f"{dataset_name}_{timestamp}.csv"
 
-        rows = export_to_csv(entries, csv_path)
+        rows = export_to_csv(entries, csv_path, base_dir=base_dir)
         console.print(f"[green]💾 Exported {rows} row(s) to {csv_path}[/green]")
