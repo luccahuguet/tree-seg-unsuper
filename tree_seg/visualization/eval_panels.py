@@ -227,7 +227,7 @@ def plot_evaluation_comparison(
     metric_lines = [
         f"mIoU: {eval_results.miou:.2%}",
         f"Pixel Acc: {eval_results.pixel_accuracy:.2%}",
-        f"Clusters: {eval_results.num_predicted_clusters} | Classes: {eval_results.num_classes}",
+        f"Clusters: {eval_results.num_predicted_clusters} | Classes: {eval_results.num_ground_truth_classes}",
     ]
     metrics_text = "Evaluation Metrics\n" + "\n".join(metric_lines)
     ax_left.text(

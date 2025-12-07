@@ -191,10 +191,34 @@ def process_image(
 
         # Optional upsampling of the feature grid for smoother segmentation
         if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
+            if verbose:
+                print(
+                    f"Upsampling features {H}x{W} -> {H * feature_upsample_factor}x{W * feature_upsample_factor}"
+                )
             up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
-            features_np = cv2.resize(
-                features_np, (up_w, up_h), interpolation=cv2.INTER_LINEAR
-            )
+
+            # For high-dimensional features, use torch interpolate instead of cv2.resize
+            # cv2.resize struggles with >512 channels
+            if features_np.shape[-1] > 512:
+                # Convert to torch tensor: (H, W, C) -> (1, C, H, W)
+                features_torch = (
+                    torch.from_numpy(features_np).permute(2, 0, 1).unsqueeze(0).float()
+                )
+                # Interpolate
+                features_torch = torch.nn.functional.interpolate(
+                    features_torch,
+                    size=(up_h, up_w),
+                    mode="bilinear",
+                    align_corners=False,
+                )
+                # Convert back: (1, C, H, W) -> (H, W, C)
+                features_np = features_torch.squeeze(0).permute(1, 2, 0).cpu().numpy()
+            else:
+                # Use cv2 for low-dimensional features
+                features_np = cv2.resize(
+                    features_np, (up_w, up_h), interpolation=cv2.INTER_LINEAR
+                )
+
             H, W = up_h, up_w
             if verbose:
                 print(f"Upsampled features to: {H}x{W}")
@@ -371,7 +395,9 @@ def process_image(
         path_for_error = (
             image_path_str if "image_path_str" in locals() else str(image_path)
         )
-        if verbose:
-            print(f"Error processing {path_for_error}: {e}")
-            traceback.print_exc()
+        # Always print errors to stderr, even when verbose=False
+        import sys
+
+        print(f"Error processing {path_for_error}: {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         return None, None

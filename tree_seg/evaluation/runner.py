@@ -13,7 +13,6 @@ from rich.table import Table
 from tree_seg.core.types import Config
 from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.datasets import FortressDataset, ISPRSPotsdamDataset
-from tree_seg.evaluation.formatters import config_to_dict, save_comparison_summary
 from tree_seg.metadata.store import (
     _config_to_hash_config,
     config_hash,
@@ -171,42 +170,49 @@ def try_cached_results(
     normalized = normalize_config(hash_config)
     hash_id = config_hash(normalized)
     meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
-    results_json = Path("results") / "by-hash" / hash_id / "results.json"
     if not meta_path.exists():
         return False
 
     try:
         with meta_path.open() as f:
             meta = json.load(f)
-        artifacts = meta.get("artifacts", {})
-        rjson = artifacts.get("results_json")
-        rpath = Path(rjson) if rjson else results_json
-        if not rpath.exists():
-            return False
+
         console.print(
             f"[green]♻️  Cache hit for {hash_id}; reusing existing results.[/green]"
         )
-        with rpath.open() as f:
-            cached = json.load(f)
+
         table = Table(
             title="Cached Benchmark Results", show_header=True, header_style="bold cyan"
         )
         table.add_column("Metric", style="cyan")
         table.add_column("Value", justify="right", style="green")
-        metrics = cached.get("metrics", {})
-        table.add_row("Dataset", cached.get("dataset", ""))
-        table.add_row("Method", cached.get("method", ""))
+
+        # Extract from meta.json structure
+        metrics = meta.get("metrics", {})
+        timing = meta.get("timing", {})
+        samples = meta.get("samples", {})
+        config_full = meta.get("config_full", {})
+
+        # Build method name
+        method = config_full.get("clustering", "unknown")
+        refine = config_full.get("refine")
+        if refine:
+            method = f"{method}_{refine}"
+
+        table.add_row("Dataset", meta.get("dataset", ""))
+        table.add_row("Method", method)
         table.add_row("Mean mIoU", f"{metrics.get('mean_miou', 0):.4f}")
         table.add_row(
             "Mean Pixel Accuracy", f"{metrics.get('mean_pixel_accuracy', 0):.4f}"
         )
-        table.add_row("Mean Runtime", f"{metrics.get('mean_runtime', 0):.2f}s")
-        table.add_row("Total Samples", str(cached.get("total_samples", 0)))
+        table.add_row("Mean Runtime", f"{timing.get('mean_runtime_s', 0):.2f}s")
+        table.add_row("Total Samples", str(samples.get("num_samples", 0)))
         console.print()
         console.print(table)
-        console.print(f"[dim]Source: {rpath}[/dim]")
+        console.print(f"[dim]Source: {meta_path}[/dim]")
         return True
-    except Exception:
+    except Exception as e:
+        console.print(f"[yellow]⚠️  Cache lookup failed: {e}[/yellow]")
         return False
 
 
@@ -239,13 +245,17 @@ def run_single_benchmark(
         use_smart_k=smart_k,
     )
 
-    summary_info = save_comparison_summary(
-        [config_to_dict(config)], results, output_dir, smart_k=smart_k
-    )
+    # Store results in metadata bank
     try:
-        store_run(summary_info)
-    except Exception:
-        pass
+        hash_id = store_run(
+            results=results,
+            config=config,
+            dataset_path=dataset_path,
+            smart_k=smart_k,
+        )
+        print(f"\n📦 Metadata stored: results/by-hash/{hash_id}/")
+    except Exception as e:
+        print(f"⚠️  Warning: Failed to store metadata: {e}")
 
     return results
 

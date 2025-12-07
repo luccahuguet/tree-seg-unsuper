@@ -2,7 +2,7 @@
 
 import os
 import time
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import redirect_stdout
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Union
@@ -114,11 +114,8 @@ class BenchmarkRunner:
 
     def _create_segmenter(self, config: Config) -> "TreeSegmentation":
         if self.suppress_logs:
-            with (
-                open(os.devnull, "w") as devnull,
-                redirect_stdout(devnull),
-                redirect_stderr(devnull),
-            ):
+            # Suppress stdout for clean output, but keep stderr for errors
+            with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
                 from tree_seg.api import TreeSegmentation
 
                 return TreeSegmentation(config)
@@ -137,11 +134,8 @@ class BenchmarkRunner:
             return
 
         if self.suppress_logs:
-            with (
-                open(os.devnull, "w") as devnull,
-                redirect_stdout(devnull),
-                redirect_stderr(devnull),
-            ):
+            # Suppress stdout for clean output, but keep stderr for errors
+            with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
                 segmenter.initialize_model()
         else:
             segmenter.initialize_model()
@@ -211,11 +205,8 @@ class BenchmarkRunner:
         # Run segmentation with timing
         start_time = time.time()
         if suppress_output:
-            with (
-                open(os.devnull, "w") as devnull,
-                redirect_stdout(devnull),
-                redirect_stderr(devnull),
-            ):
+            # Suppress stdout for clean progress bars, but keep stderr for errors
+            with open(os.devnull, "w") as devnull, redirect_stdout(devnull):
                 results = segmenter.segment_image(image)
         else:
             results = segmenter.segment_image(image)
@@ -223,6 +214,13 @@ class BenchmarkRunner:
 
         # Get segmentation labels
         pred_labels = results.labels_resized
+
+        # Check for segmentation failure
+        if pred_labels is None:
+            raise RuntimeError(
+                f"Segmentation failed for {image_id}. "
+                f"Check stderr for error details from process_image()."
+            )
 
         # Resize prediction to match ground truth if needed
         if pred_labels.shape != gt_labels.shape:
@@ -349,28 +347,30 @@ class BenchmarkRunner:
         sample_results = []
 
         # Progress bar using rich (handles ETAs cleanly)
+        # Skip progress bar for small runs to show verbose logs
         progress = None
         task_id = None
-        try:
-            from rich.progress import (
-                Progress,
-                BarColumn,
-                TimeRemainingColumn,
-                TimeElapsedColumn,
-                TextColumn,
-            )
+        if total_samples > 2:
+            try:
+                from rich.progress import (
+                    Progress,
+                    BarColumn,
+                    TimeRemainingColumn,
+                    TimeElapsedColumn,
+                    TextColumn,
+                )
 
-            progress = Progress(
-                TextColumn("[bold cyan]Benchmark"),
-                BarColumn(),
-                TextColumn("{task.completed}/{task.total}"),
-                TimeElapsedColumn(),
-                TimeRemainingColumn(),
-            )
-            task_id = progress.add_task("benchmark", total=total_samples)
-            progress.start()
-        except Exception:
-            progress = None
+                progress = Progress(
+                    TextColumn("[bold cyan]Benchmark"),
+                    BarColumn(),
+                    TextColumn("{task.completed}/{task.total}"),
+                    TimeElapsedColumn(),
+                    TimeRemainingColumn(),
+                )
+                task_id = progress.add_task("benchmark", total=total_samples)
+                progress.start()
+            except Exception:
+                progress = None
 
         total_runtime_accum = 0.0
 
