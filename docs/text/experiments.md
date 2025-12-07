@@ -195,37 +195,28 @@ For each experiment:
 
 **Running Sweeps:**
 ```bash
-# Test clustering methods (GMM, spectral, etc.)
-uv run tree-seg eval data/fortress_processed \
-  --num-samples 1 --save-viz \
-  --compare-configs --grid clustering --smart-k
+# Test clustering methods with new sweep command
+uv run tree-seg sweep data/fortress_processed -c all -r slic,none --num-samples 1 --save-viz --smart-k
 
-# Test tiling configurations
-uv run tree-seg eval data/fortress_processed \
-  --num-samples 1 --save-viz \
-  --compare-configs --grid tiling_refine --smart-k
+# Test specific clustering vs refinement combinations
+uv run tree-seg sweep data/fortress_processed -c kmeans,gmm -r slic,soft-em,none --num-samples 1 --save-viz
 
 # Test V2 soft EM refinement
-uv run tree-seg eval data/fortress_processed \
-  --refine soft-em --num-samples 1 --save-viz
+uv run tree-seg eval data/fortress_processed --refine soft-em --num-samples 1 --save-viz
 
 # Test refinement combinations
-uv run tree-seg eval data/fortress_processed \
-  --refine soft-em+slic --num-samples 1 --save-viz
+uv run tree-seg eval data/fortress_processed --refine soft-em+slic --num-samples 1 --save-viz
 
 # Experiment: GMM with soft EM
-uv run tree-seg eval data/fortress_processed \
-  --clustering gmm --refine soft-em --num-samples 1 --save-viz
+uv run tree-seg eval data/fortress_processed --clustering gmm --refine soft-em --num-samples 1 --save-viz
 
-# Tile overlap sweep
-uv run tree-seg eval data/fortress_processed \
-  --num-samples 3 --save-viz \
-  --compare-configs --grid tile_overlap --smart-k
+# Use preset for comprehensive testing
+uv run tree-seg sweep data/fortress_processed --preset paper --num-samples 3 --save-viz --smart-k
 ```
 
 Metadata tips:
 - `--save-labels/--no-save-labels` controls NPZ dumps under `labels/` (on by default).
-- Runs auto-log into the metadata bank (best-effort) under `results/`. Query with `uv run tree-seg results ...` (e.g., `--tags kmeans,slic --sort mIoU --top 5` or `--hash <id> --render` to regenerate viz).
+- Runs auto-log into the metadata bank (best-effort) under `results/`. Query with `uv run tree-seg results --tags kmeans,slic --sort mIoU --top 5` or use `--hash <id> --render` to regenerate viz.
 
 ---
 

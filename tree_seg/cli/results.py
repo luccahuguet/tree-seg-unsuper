@@ -1,5 +1,6 @@
 """Results/metadata command for tree-seg CLI."""
 
+import datetime
 import json
 from pathlib import Path
 from typing import Optional
@@ -207,10 +208,15 @@ def results_command(
         "--nearest",
         help="JSON string of config fields to estimate ETA/runtime (uses nearest match)",
     ),
-    export_csv: Optional[Path] = typer.Option(
-        None,
+    export_csv: bool = typer.Option(
+        False,
         "--export-csv",
-        help="Path to write queried results as CSV",
+        help="Export results to CSV at results/exports/{dataset}_{timestamp}.csv",
+    ),
+    export_path: Optional[Path] = typer.Option(
+        None,
+        "--export-path",
+        help="Custom path for CSV export (overrides --export-csv default location)",
     ),
 ):
     """
@@ -218,6 +224,8 @@ def results_command(
 
     Examples:
         tree-seg results --dataset fortress --tags kmeans,slic --sort mIoU --top 5
+        tree-seg results --dataset fortress_processed --export-csv
+        tree-seg results --dataset fortress --export-path custom_results.csv
         tree-seg results --hash abc123def0 --show-config
         tree-seg results --compact
         tree-seg results --prune-older-than 30
@@ -296,6 +304,20 @@ def results_command(
             entry.get("created_at", ""),
         )
     console.print(table)
-    if export_csv:
-        rows = export_to_csv(entries, export_csv)
-        console.print(f"[green]💾 Exported {rows} row(s) to {export_csv}[/green]")
+
+    # Handle CSV export
+    if export_csv or export_path:
+        if export_path:
+            # Use custom path
+            csv_path = export_path
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            # Generate default path
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            dataset_name = dataset or "all"
+            export_dir = Path("results/exports")
+            export_dir.mkdir(parents=True, exist_ok=True)
+            csv_path = export_dir / f"{dataset_name}_{timestamp}.csv"
+
+        rows = export_to_csv(entries, csv_path)
+        console.print(f"[green]💾 Exported {rows} row(s) to {csv_path}[/green]")
