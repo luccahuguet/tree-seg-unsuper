@@ -1,5 +1,6 @@
 """Metadata storage for benchmark runs."""
 
+import csv
 import json
 import os
 import platform
@@ -162,6 +163,77 @@ def hashlib_sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def _append_to_metrics_csv(
+    base_dir: Path,
+    hash_id: str,
+    timestamp: str,
+    dataset: str,
+    config: Dict[str, object],
+    metrics: Dict[str, float],
+    timing: Dict[str, float],
+    hardware: Dict[str, object],
+    num_samples: int,
+    smart_k: bool,
+    grid_label: Optional[str],
+) -> None:
+    """Append a row to the git-tracked metrics CSV."""
+    csv_path = base_dir / "metrics.csv"
+
+    # Check if file exists to determine if we need to write header
+    file_exists = csv_path.exists()
+
+    # Prepare row data
+    row = {
+        "timestamp": timestamp,
+        "hash": hash_id,
+        "dataset": dataset,
+        "model": config.get("model", ""),
+        "clustering": config.get("clustering", ""),
+        "refine": config.get("refine", "none"),
+        "stride": config.get("stride", ""),
+        "tiling": config.get("tiling", False),
+        "image_size": config.get("image_size", ""),
+        "smart_k": smart_k,
+        "grid_label": grid_label or "",
+        "n_samples": num_samples,
+        "mean_miou": f"{metrics.get('mean_miou', 0):.6f}",
+        "mean_pixel_acc": f"{metrics.get('mean_pixel_accuracy', 0):.6f}",
+        "mean_runtime_s": f"{timing.get('mean_runtime_s', 0):.2f}",
+        "total_runtime_s": f"{timing.get('total_runtime_s', 0):.2f}",
+        "gpu": hardware.get("gpu", "CPU"),
+        "gpu_tier": hardware.get("gpu_tier", "low"),
+    }
+
+    # Column order
+    fieldnames = [
+        "timestamp",
+        "hash",
+        "dataset",
+        "model",
+        "clustering",
+        "refine",
+        "stride",
+        "tiling",
+        "image_size",
+        "smart_k",
+        "grid_label",
+        "n_samples",
+        "mean_miou",
+        "mean_pixel_acc",
+        "mean_runtime_s",
+        "total_runtime_s",
+        "gpu",
+        "gpu_tier",
+    ]
+
+    # Append to CSV
+    with csv_path.open("a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+
 def _config_to_hash_config(
     config: Config,
     dataset_id: str,
@@ -301,6 +373,21 @@ def store_run(
     }
     with index_path.open("a") as f:
         f.write(json.dumps(index_entry) + "\n")
+
+    # Append to git-tracked CSV for easy performance tracking
+    _append_to_metrics_csv(
+        base_dir=base_dir,
+        hash_id=hash_id,
+        timestamp=created_at,
+        dataset=dataset_id,
+        config=normalized,
+        metrics=meta["metrics"],
+        timing=meta["timing"],
+        hardware=hardware,
+        num_samples=results.total_samples,
+        smart_k=smart_k,
+        grid_label=grid_label,
+    )
 
     return hash_id
 
