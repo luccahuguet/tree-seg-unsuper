@@ -98,7 +98,6 @@ def _run_single_benchmark(
     if use_cache and try_cached_results(
         config=config,
         dataset_path=dataset_path,
-        dataset_type=dataset_type,
         smart_k=smart_k,
         console=console,
         force=force,
@@ -109,7 +108,7 @@ def _run_single_benchmark(
         f"\n[bold cyan]🚀 Running benchmark on {dataset_type.upper()} dataset[/bold cyan]"
     )
     console.print(
-        f"[dim]Config: {config.version} | {config.model_display_name} | stride={config.stride}[/dim]\n"
+        f"[dim]Config: {config.clustering_method}/{config.refine} | {config.model_display_name} | stride={config.stride}[/dim]\n"
     )
 
     results = run_single_benchmark(
@@ -481,9 +480,7 @@ def evaluate_command(
             evaluate_sklearn_baseline,
         )
 
-        console.print(
-            "\n[bold cyan]🎓 Running supervised baseline[/bold cyan]\n"
-        )
+        console.print("\n[bold cyan]🎓 Running supervised baseline[/bold cyan]\n")
 
         if supervised_head == "sklearn":
             results = evaluate_sklearn_baseline(
@@ -589,7 +586,6 @@ def evaluate_command(
 
         # Create base config params
         base_config_params = {
-            "version": config.version,
             "refine": config.refine,
             "clustering_method": config.clustering_method,
             "model_name": config.model_name,

@@ -191,7 +191,9 @@ def segment_command(
 
     # Sweep mode
     if sweep:
-        console.print(f"[bold cyan]🔄 Running parameter sweep from {sweep}[/bold cyan]\n")
+        console.print(
+            f"[bold cyan]🔄 Running parameter sweep from {sweep}[/bold cyan]\n"
+        )
 
         # Load sweep config
         cfg_list = None
@@ -201,6 +203,7 @@ def segment_command(
                     cfg_list = json.load(f)
             else:
                 import yaml
+
                 with open(sweep) as f:
                     cfg_list = yaml.safe_load(f)
         except Exception as e:
@@ -208,12 +211,16 @@ def segment_command(
             raise typer.Exit(code=1)
 
         if not isinstance(cfg_list, list):
-            console.print("[red]❌ Sweep file must contain a list of configurations[/red]")
+            console.print(
+                "[red]❌ Sweep file must contain a list of configurations[/red]"
+            )
             raise typer.Exit(code=1)
 
         for idx, item in enumerate(cfg_list):
             if not isinstance(item, dict):
-                console.print(f"[yellow]⚠️  Skipping non-dict sweep item at idx {idx}[/yellow]")
+                console.print(
+                    f"[yellow]⚠️  Skipping non-dict sweep item at idx {idx}[/yellow]"
+                )
                 continue
 
             name = item.get("name") or f"cfg{idx:02d}"
@@ -222,7 +229,9 @@ def segment_command(
 
             console.print(f"\n[bold]=== Sweep '{name}' (model={mdl}) ===[/bold]")
 
-            overrides = {k: v for k, v in item.items() if k not in {"name", "model", "profile"}}
+            overrides = {
+                k: v for k, v in item.items() if k not in {"name", "model", "profile"}
+            }
             prof = item.get("profile")
             if prof and prof in PROFILE_DEFAULTS:
                 for key, value in PROFILE_DEFAULTS[prof].items():
@@ -249,10 +258,16 @@ def segment_command(
 
     # Single run mode
     if clean_output and output_dir.exists():
-        existing_files = list(output_dir.rglob("*.png")) + list(output_dir.rglob("*.jpg"))
+        existing_files = list(output_dir.rglob("*.png")) + list(
+            output_dir.rglob("*.jpg")
+        )
         if existing_files:
-            console.print(f"[yellow]🗂️  Found {len(existing_files)} existing output file(s)[/yellow]")
-            console.print(f"[yellow]🧹 Clearing output directory: {output_dir}[/yellow]")
+            console.print(
+                f"[yellow]🗂️  Found {len(existing_files)} existing output file(s)[/yellow]"
+            )
+            console.print(
+                f"[yellow]🧹 Clearing output directory: {output_dir}[/yellow]"
+            )
         shutil.rmtree(output_dir)
 
     output_dir.mkdir(parents=True, exist_ok=True)

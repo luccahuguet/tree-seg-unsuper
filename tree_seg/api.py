@@ -28,36 +28,38 @@ class TreeSegmentation:
     """
     Modern tree segmentation API with clean interface.
     """
-    
+
     def __init__(self, config: Optional[Config] = None):
         """
         Initialize tree segmentation with configuration.
-        
+
         Args:
             config: Configuration object. If None, uses defaults.
         """
         self.config = config or Config()
         self.config.validate()
-        
+
         self.output_manager = create_output_manager(self.config)
         force_gpu = os.environ.get("FORCE_GPU", "").lower() in ("1", "true", "yes")
         self.device = select_device(force_gpu)
         self.model = None
         self.preprocess = None
         self.mask2former_segmentor = None
-        
+
         print("🌳 TreeSegmentation initialized")
         print(f"📱 Selected device: {self.device}")
         print(f"🔧 Model: {self.config.model_display_name}")
         print(f"📁 Output: {self.config.output_dir}")
-    
+
     def initialize_model(self) -> None:
         """Initialize the model and preprocessing pipeline."""
         if self.model is None:
             print("🔄 Initializing model...")
-            self.model, self.preprocess = init_model_and_preprocess(self.config, self.device)
+            self.model, self.preprocess = init_model_and_preprocess(
+                self.config, self.device
+            )
             print("✅ Model initialized")
-    
+
     def segment_image(self, image: "np.ndarray") -> SegmentationResults:
         """
         Segment an image from a numpy array (for benchmarking).
@@ -68,7 +70,7 @@ class TreeSegmentation:
         Returns:
             SegmentationResults with labels and metadata
         """
-        if self.config.version == "v4":
+        if self.config.supervised:
             self._ensure_mask2former()
             return run_mask2former_numpy(
                 image_np=image,
@@ -89,22 +91,22 @@ class TreeSegmentation:
     def process_single_image(self, image_path: str) -> SegmentationResults:
         """
         Process a single image for tree segmentation.
-        
+
         Args:
             image_path: Path to the image file
-            
+
         Returns:
             SegmentationResults with processed data
         """
-        if self.config.version == "v4":
+        if self.config.supervised:
             return self._process_with_mask2former(image_path)
 
         self.initialize_model()
-        
+
         # Defer verbose printing when tqdm progress is used
         if self.config.verbose:
             print(f"🖼️ Processing: {os.path.basename(image_path)}")
-        
+
         # Process with the updated signature
         result = process_image(
             image_path=image_path,
@@ -112,7 +114,6 @@ class TreeSegmentation:
             preprocess=self.preprocess,
             n_clusters=self.config.n_clusters,
             stride=self.config.stride,
-            version=self.config.version,
             use_attention_features=self.config.use_attention_features,
             device=self.device,
             auto_k=self.config.auto_k,
@@ -128,7 +129,6 @@ class TreeSegmentation:
             model_name=self.config.model_display_name,
             output_dir=self.config.output_dir,
             verbose=self.config.verbose,
-            pipeline=self.config.pipeline,
             apply_vegetation_filter=self.config.apply_vegetation_filter,
             exg_threshold=self.config.exg_threshold,
             use_tiling=self.config.use_tiling,
@@ -148,7 +148,7 @@ class TreeSegmentation:
             soft_refine_iterations=self.config.soft_refine_iterations,
             soft_refine_spatial_alpha=self.config.soft_refine_spatial_alpha,
         )
-        
+
         # Support info tuple
         image_np = result[0] if isinstance(result, tuple) else result
         labels_resized = result[1] if isinstance(result, tuple) else None
@@ -158,24 +158,26 @@ class TreeSegmentation:
         if labels_resized is None and isinstance(result, tuple) and len(result) >= 2:
             labels_resized = result[1]
         n_clusters_used = len(torch.unique(torch.from_numpy(labels_resized)))
-        
+
         # Build processing stats
         stats = {
-            'original_size': image_np.shape[:2],
-            'labels_shape': labels_resized.shape,
-            'auto_k_used': self.config.auto_k,
-            'elbow_threshold': self.config.elbow_threshold if self.config.auto_k else None,
-            'model': self.config.model_display_name,
-            'image_size': self.config.image_size,
-            'feature_upsample_factor': self.config.feature_upsample_factor,
-            'pca_dim': self.config.pca_dim,
-            'refine': self.config.refine,
+            "original_size": image_np.shape[:2],
+            "labels_shape": labels_resized.shape,
+            "auto_k_used": self.config.auto_k,
+            "elbow_threshold": self.config.elbow_threshold
+            if self.config.auto_k
+            else None,
+            "model": self.config.model_display_name,
+            "image_size": self.config.image_size,
+            "feature_upsample_factor": self.config.feature_upsample_factor,
+            "pca_dim": self.config.pca_dim,
+            "refine": self.config.refine,
         }
 
         info = result[2] if isinstance(result, tuple) and len(result) > 2 else None
         if isinstance(info, dict):
             stats.update(info)
-        k_requested = stats.get('k_requested') if isinstance(info, dict) else None
+        k_requested = stats.get("k_requested") if isinstance(info, dict) else None
 
         return SegmentationResults(
             image_np=image_np,
@@ -183,16 +185,20 @@ class TreeSegmentation:
             n_clusters_used=n_clusters_used,
             n_clusters_requested=k_requested,
             image_path=image_path,
-            processing_stats=stats
+            processing_stats=stats,
         )
-    
+
     def _ensure_mask2former(self) -> None:
         """Lazy-load the pretrained Mask2Former segmentor."""
         if self.mask2former_segmentor is None:
             weights = os.environ.get("DINOV3_MASK2FORMER_WEIGHTS")
             backbone_weights = os.environ.get("DINOV3_BACKBONE_WEIGHTS")
             check_hash_env = os.environ.get("DINOV3_CHECK_HASH")
-            check_hash = True if check_hash_env is None else check_hash_env.strip().lower() not in {"0", "false", "no"}
+            check_hash = (
+                True
+                if check_hash_env is None
+                else check_hash_env.strip().lower() not in {"0", "false", "no"}
+            )
             cfg = Mask2FormerConfig(
                 image_size=self.config.image_size or 896,
                 weights=weights,
@@ -243,14 +249,14 @@ class TreeSegmentation:
             processing_stats=stats,
             n_clusters_requested=None,
         )
-    
+
     def generate_visualizations(self, results: SegmentationResults) -> OutputPaths:
         """
         Generate visualization outputs for segmentation results.
-        
+
         Args:
             results: SegmentationResults from processing
-            
+
         Returns:
             OutputPaths with generated file paths
         """
@@ -260,69 +266,71 @@ class TreeSegmentation:
             requested_k=results.n_clusters_requested,
             include_elbow=self.config.auto_k,
         )
-        
+
         # Generate visualizations using OutputManager paths
         generate_visualizations(
-            results=results,
-            config=self.config,
-            output_paths=output_paths
+            results=results, config=self.config, output_paths=output_paths
         )
-        
+
         # Auto-optimize for web if enabled (now enabled by default)
         if self.config.web_optimize:
             output_paths = self.output_manager.optimize_all_outputs(output_paths)
-        
+
         return output_paths
-    
-    def process_and_visualize(self, image_path: str) -> tuple[SegmentationResults, OutputPaths]:
+
+    def process_and_visualize(
+        self, image_path: str
+    ) -> tuple[SegmentationResults, OutputPaths]:
         """
         Complete pipeline: process image and generate visualizations.
-        
+
         Args:
             image_path: Path to the image file
-            
+
         Returns:
             Tuple of (SegmentationResults, OutputPaths)
         """
         results = self.process_single_image(image_path)
         output_paths = self.generate_visualizations(results)
-        
+
         print(f"✅ Completed: {os.path.basename(image_path)}")
-        if self.config.version == "v4":
+        if self.config.supervised:
             print(f"🎯 Segments detected: {results.n_clusters_used}")
         else:
             print(f"🎯 Used K = {results.n_clusters_used}")
-        
-        if self.config.auto_k and self.config.version != "v4":
+
+        if self.config.auto_k and not self.config.supervised:
             print(f"📊 Method: elbow (threshold: {self.config.elbow_threshold})")
-        
+
         return results, output_paths
-    
-    def process_directory(self, directory_path: Optional[str] = None) -> List[tuple[SegmentationResults, OutputPaths]]:
+
+    def process_directory(
+        self, directory_path: Optional[str] = None
+    ) -> List[tuple[SegmentationResults, OutputPaths]]:
         """
         Process all images in a directory.
-        
+
         Args:
             directory_path: Directory path. If None, uses config.input_dir
-            
+
         Returns:
             List of (SegmentationResults, OutputPaths) tuples
         """
         input_dir = directory_path or self.config.input_dir
-        
+
         # Supported image extensions
         extensions = set(SUPPORTED_IMAGE_EXTS)
-        
+
         image_files = []
         for ext in extensions:
             image_files.extend(Path(input_dir).glob(f"*{ext}"))
             image_files.extend(Path(input_dir).glob(f"*{ext.upper()}"))
-        
+
         if not image_files:
             raise ValueError(f"No supported images found in {input_dir}")
-        
+
         print(f"📁 Found {len(image_files)} images to process")
-        
+
         results = []
         for image_path in image_files:
             try:
@@ -331,14 +339,14 @@ class TreeSegmentation:
             except Exception as e:
                 print(f"❌ Failed to process {image_path.name}: {e}")
                 continue
-        
+
         print(f"🎉 Completed processing {len(results)}/{len(image_files)} images")
         return results
-    
+
     def find_latest_outputs(self) -> Optional[OutputPaths]:
         """Find the most recently generated output files."""
         return self.output_manager.find_latest_outputs()
-    
+
     def cleanup_old_outputs(self, keep_latest: int = 5) -> None:
         """Clean up old output files."""
         self.output_manager.cleanup_old_outputs(keep_latest)
@@ -351,11 +359,11 @@ def segment_trees(
     model: str = "base",
     auto_k: bool = True,
     web_optimize: bool = False,
-    **kwargs
+    **kwargs,
 ) -> List[tuple[SegmentationResults, OutputPaths]]:
     """
     Convenience function for quick tree segmentation.
-    
+
     Args:
         input_path: Path to image file or directory
         output_dir: Output directory path
@@ -363,7 +371,7 @@ def segment_trees(
         auto_k: Whether to use automatic K selection
         web_optimize: Whether to auto-optimize images for web display
         **kwargs: Additional config parameters
-        
+
     Returns:
         List of (SegmentationResults, OutputPaths) tuples
     """
@@ -372,11 +380,11 @@ def segment_trees(
         model_name=model,
         auto_k=auto_k,
         web_optimize=web_optimize,
-        **kwargs
+        **kwargs,
     )
-    
+
     segmenter = TreeSegmentation(config)
-    
+
     if os.path.isfile(input_path):
         # Single file
         config.filename = os.path.basename(input_path)

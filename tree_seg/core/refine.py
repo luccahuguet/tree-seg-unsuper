@@ -70,6 +70,7 @@ def apply_vegetation_filter(
     """Run ExG vegetation filtering (delegates to vegetation_filter module)."""
     try:
         from ..vegetation_filter import apply_vegetation_filter as _apply
+
         filtered_labels, filter_info = _apply(
             image_np=image_np,
             cluster_labels=cluster_labels,
@@ -77,12 +78,18 @@ def apply_vegetation_filter(
             verbose=verbose,
         )
         if verbose:
-            print(f"  ✓ Filtered to {filter_info['n_vegetation_clusters']} vegetation clusters")
-            print(f"  ✓ Vegetation coverage: {filter_info['vegetation_percentage']:.1f}%")
+            print(
+                f"  ✓ Filtered to {filter_info['n_vegetation_clusters']} vegetation clusters"
+            )
+            print(
+                f"  ✓ Vegetation coverage: {filter_info['vegetation_percentage']:.1f}%"
+            )
         return filtered_labels
     except Exception as exc:
         if verbose:
-            print(f"  ⚠️  Vegetation filtering failed: {exc}, returning original clusters")
+            print(
+                f"  ⚠️  Vegetation filtering failed: {exc}, returning original clusters"
+            )
         return cluster_labels
 
 
@@ -97,12 +104,18 @@ def _refine_with_slic(
     """Refine cluster labels using SLIC superpixels with majority voting."""
     if not force_skimage and hasattr(cv2, "ximgproc"):
         return _refine_with_opencv_slic(
-            image_np, labels_resized, compactness=compactness, region_size=48, verbose=verbose
+            image_np,
+            labels_resized,
+            compactness=compactness,
+            region_size=48,
+            verbose=verbose,
         )
 
     if skimage_slic is None:
         if verbose:
-            print("⚠️  scikit-image SLIC unavailable; skipping refinement (install scikit-image)")
+            print(
+                "⚠️  scikit-image SLIC unavailable; skipping refinement (install scikit-image)"
+            )
         return labels_resized
 
     h, w = labels_resized.shape[:2]
@@ -149,7 +162,9 @@ def _refine_with_opencv_slic(
     """Refine cluster labels using OpenCV's fast SLIC implementation."""
     if not hasattr(cv2, "ximgproc"):
         if verbose:
-            print("⚠️  OpenCV ximgproc unavailable; skipping refinement (install opencv-contrib-python)")
+            print(
+                "⚠️  OpenCV ximgproc unavailable; skipping refinement (install opencv-contrib-python)"
+            )
         return labels_resized
 
     max_segments = 2000
@@ -199,12 +214,15 @@ def _refine_with_bilateral(
 
     for label_id in range(n_labels):
         mask = (labels_resized == label_id).astype(np.float32)
-        smoothed_mask = cv2.bilateralFilter(
-            (mask * 255).astype(np.uint8),
-            d,
-            sigma_color,
-            sigma_space,
-        ).astype(np.float32) / 255.0
+        smoothed_mask = (
+            cv2.bilateralFilter(
+                (mask * 255).astype(np.uint8),
+                d,
+                sigma_color,
+                sigma_space,
+            ).astype(np.float32)
+            / 255.0
+        )
         label_smoothed[smoothed_mask > 0.5] = label_id
 
     if verbose:

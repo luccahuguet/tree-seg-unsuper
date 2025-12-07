@@ -31,23 +31,19 @@ __author__ = "Tree Segmentation Team"
 
 __all__ = [
     # Main API
-    'TreeSegmentation',
-    'segment_trees',
-
+    "TreeSegmentation",
+    "segment_trees",
     # Configuration and results
-    'Config',
-    'SegmentationResults',
-    'ElbowAnalysisResults',
-    'OutputPaths',
-    'OutputManager',
-
+    "Config",
+    "SegmentationResults",
+    "ElbowAnalysisResults",
+    "OutputPaths",
+    "OutputManager",
     # Presets
-    'PRESETS',
-    'get_preset',
-
+    "PRESETS",
+    "get_preset",
     # Utilities
-    'print_gpu_info',
-
+    "print_gpu_info",
     # Version
-    '__version__',
+    "__version__",
 ]

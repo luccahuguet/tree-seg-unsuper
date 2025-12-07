@@ -37,8 +37,12 @@ def plot_evaluation_comparison(
     └──────────────┴──────────────┘
     + Config card and class legend below
     """
-    two_panel = two_panel or (config is not None and getattr(config, "viz_two_panel", False))
-    two_panel_opaque = two_panel_opaque or (config is not None and getattr(config, "viz_two_panel_opaque", False))
+    two_panel = two_panel or (
+        config is not None and getattr(config, "viz_two_panel", False)
+    )
+    two_panel_opaque = two_panel_opaque or (
+        config is not None and getattr(config, "viz_two_panel_opaque", False)
+    )
 
     if two_panel or two_panel_opaque:
         fig = plt.figure(figsize=(18, 9), constrained_layout=True)
@@ -50,7 +54,14 @@ def plot_evaluation_comparison(
         ax_pred = None
     else:
         fig = plt.figure(figsize=(17, 10), constrained_layout=True)
-        gs = fig.add_gridspec(2, 3, width_ratios=[0.45, 1.1, 1.1], height_ratios=[1, 1], wspace=0.06, hspace=0.1)
+        gs = fig.add_gridspec(
+            2,
+            3,
+            width_ratios=[0.45, 1.1, 1.1],
+            height_ratios=[1, 1],
+            wspace=0.06,
+            hspace=0.1,
+        )
         ax_left = fig.add_subplot(gs[:, 0])
         ax_original = fig.add_subplot(gs[0, 1])
         ax_gt = fig.add_subplot(gs[0, 2])
@@ -70,8 +81,14 @@ def plot_evaluation_comparison(
         scale = max_vis_dim / max_side
         new_size = (int(image.shape[1] * scale), int(image.shape[0] * scale))
         image_vis = np.array(Image.fromarray(image).resize(new_size, Image.BILINEAR))
-        mapped_pred_vis = np.array(Image.fromarray(mapped_pred.astype(np.uint8)).resize(new_size, Image.NEAREST))
-        gt_labels_vis = np.array(Image.fromarray(gt_labels.astype(np.uint8)).resize(new_size, Image.NEAREST))
+        mapped_pred_vis = np.array(
+            Image.fromarray(mapped_pred.astype(np.uint8)).resize(
+                new_size, Image.NEAREST
+            )
+        )
+        gt_labels_vis = np.array(
+            Image.fromarray(gt_labels.astype(np.uint8)).resize(new_size, Image.NEAREST)
+        )
     else:
         image_vis = image
         mapped_pred_vis = mapped_pred
@@ -96,9 +113,14 @@ def plot_evaluation_comparison(
         ax_original.axis("off")
 
     if config:
+        method = (
+            "Supervised"
+            if config.supervised
+            else f"{config.clustering_method}/{config.refine or 'none'}"
+        )
         meta_lines = [
             f"Model: {config.model_display_name}",
-            f"Method: {config.version}",
+            f"Method: {method}",
             f"Stride: {config.stride}",
             f"Tiling: {'Yes' if config.use_tiling else 'No'}",
         ]
@@ -123,8 +145,14 @@ def plot_evaluation_comparison(
         meta_text = ""
 
     if ax_pred is not None:
-        ax_pred.imshow(mapped_pred_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
-        ax_pred.set_title(f"Prediction (K={eval_results.num_predicted_clusters})", fontsize=12, fontweight="bold")
+        ax_pred.imshow(
+            mapped_pred_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax
+        )
+        ax_pred.set_title(
+            f"Prediction (K={eval_results.num_predicted_clusters})",
+            fontsize=12,
+            fontweight="bold",
+        )
         ax_pred.axis("off")
 
     ax_gt.imshow(gt_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
@@ -132,7 +160,9 @@ def plot_evaluation_comparison(
     ax_gt.axis("off")
 
     if two_panel_opaque:
-        ax_overlay.imshow(mapped_pred_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax)
+        ax_overlay.imshow(
+            mapped_pred_vis, cmap=cmap, interpolation="nearest", vmin=vmin, vmax=vmax
+        )
     else:
         ax_overlay.imshow(image_vis)
 
@@ -183,7 +213,11 @@ def plot_evaluation_comparison(
         boundary_img[boundary_mask] = (1.0, 1.0, 1.0, 0.8)
         ax_overlay.imshow(boundary_img)
 
-    ax_overlay.set_title("Prediction Overlay" if not two_panel_opaque else "Prediction", fontsize=12, fontweight="bold")
+    ax_overlay.set_title(
+        "Prediction Overlay" if not two_panel_opaque else "Prediction",
+        fontsize=12,
+        fontweight="bold",
+    )
     ax_overlay.axis("off")
 
     ax_left.axis("off")
@@ -204,7 +238,9 @@ def plot_evaluation_comparison(
         va="top",
         fontsize=12,
         fontweight="bold",
-        bbox=dict(facecolor="white", alpha=0.9, edgecolor="black", boxstyle="round,pad=0.6"),
+        bbox=dict(
+            facecolor="white", alpha=0.9, edgecolor="black", boxstyle="round,pad=0.6"
+        ),
         transform=ax_left.transAxes,
     )
     cursor_y -= 0.25
@@ -236,7 +272,10 @@ def plot_evaluation_comparison(
         for class_id in unique_classes:
             class_name = dataset_class_names.get(class_id, f"Class {class_id}")
             color = class_color(class_id)
-            if hasattr(eval_results, "per_class_pixel_accuracy") and class_id in eval_results.per_class_pixel_accuracy:
+            if (
+                hasattr(eval_results, "per_class_pixel_accuracy")
+                and class_id in eval_results.per_class_pixel_accuracy
+            ):
                 accuracy = eval_results.per_class_pixel_accuracy[class_id]
                 label = f"{class_id}: {class_name} ({accuracy:.1%})"
             else:
@@ -259,7 +298,13 @@ def plot_evaluation_comparison(
         legend.get_frame().set_alpha(0.9)
 
     if output_path:
-        plt.savefig(output_path, bbox_inches="tight", pad_inches=0.05, dpi=150, facecolor="white")
+        plt.savefig(
+            output_path,
+            bbox_inches="tight",
+            pad_inches=0.05,
+            dpi=150,
+            facecolor="white",
+        )
         plt.close()
     else:
         plt.show()

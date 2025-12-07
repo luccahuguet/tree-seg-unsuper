@@ -59,7 +59,7 @@ def soft_em_refine(
     soft_assignments = None
     for iteration in range(iterations):
         # E-step: Compute soft assignments with temperature scaling
-        distances = cdist(features, centers, metric='euclidean')  # (N, K)
+        distances = cdist(features, centers, metric="euclidean")  # (N, K)
 
         # Apply temperature-scaled softmax (lower temp = softer)
         # Note: We use negative distances because softmax gives higher prob to larger values
@@ -68,15 +68,12 @@ def soft_em_refine(
         # Optional: Spatial blending
         if spatial_blend_alpha > 0:
             soft_assignments = _spatial_blend(
-                soft_assignments,
-                alpha=spatial_blend_alpha,
-                height=height,
-                width=width
+                soft_assignments, alpha=spatial_blend_alpha, height=height, width=width
             )
 
         # M-step: Update cluster centers using soft weights
         for k in range(n_clusters):
-            weights = soft_assignments[:, k:k+1]  # (N, 1)
+            weights = soft_assignments[:, k : k + 1]  # (N, 1)
             weight_sum = weights.sum()
 
             if weight_sum > 1e-8:  # Avoid division by zero
@@ -90,10 +87,7 @@ def soft_em_refine(
 
 
 def _spatial_blend(
-    soft_assignments: np.ndarray,
-    alpha: float,
-    height: int,
-    width: int
+    soft_assignments: np.ndarray, alpha: float, height: int, width: int
 ) -> np.ndarray:
     """
     Blend soft assignments with spatial neighbors for smoother boundaries.
@@ -122,18 +116,20 @@ def _spatial_blend(
 
             # Collect valid neighbors
             if i > 0:
-                neighbors.append(assignments_2d[i-1, j])
+                neighbors.append(assignments_2d[i - 1, j])
             if i < height - 1:
-                neighbors.append(assignments_2d[i+1, j])
+                neighbors.append(assignments_2d[i + 1, j])
             if j > 0:
-                neighbors.append(assignments_2d[i, j-1])
+                neighbors.append(assignments_2d[i, j - 1])
             if j < width - 1:
-                neighbors.append(assignments_2d[i, j+1])
+                neighbors.append(assignments_2d[i, j + 1])
 
             if neighbors:
                 neighbor_avg = np.mean(neighbors, axis=0)
                 # Blend current assignment with neighbor average
-                blended[i, j] = (1 - alpha) * assignments_2d[i, j] + alpha * neighbor_avg
+                blended[i, j] = (1 - alpha) * assignments_2d[
+                    i, j
+                ] + alpha * neighbor_avg
 
     # Renormalize to ensure probabilities sum to 1
     blended = blended / blended.sum(axis=2, keepdims=True)
@@ -143,10 +139,7 @@ def _spatial_blend(
 
 
 def _spatial_blend_fast(
-    soft_assignments: np.ndarray,
-    alpha: float,
-    height: int,
-    width: int
+    soft_assignments: np.ndarray, alpha: float, height: int, width: int
 ) -> np.ndarray:
     """
     Fast vectorized spatial blending using convolution.
@@ -166,9 +159,7 @@ def _spatial_blend_fast(
     for k in range(n_clusters):
         # Uniform filter averages with 3x3 neighborhood
         smoothed[:, :, k] = uniform_filter(
-            assignments_2d[:, :, k],
-            size=3,
-            mode='reflect'
+            assignments_2d[:, :, k], size=3, mode="reflect"
         )
 
     # Blend original with smoothed

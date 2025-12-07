@@ -1,4 +1,5 @@
 """Feature extraction utilities (tiling, pyramid, attention)."""
+
 import cv2
 import numpy as np
 import torch
@@ -30,11 +31,15 @@ def extract_features(
 
         for scale_idx, scale in enumerate(pyramid_scales):
             if verbose:
-                print(f"   Processing scale {scale}× ({scale_idx+1}/{len(pyramid_scales)})...")
+                print(
+                    f"   Processing scale {scale}× ({scale_idx + 1}/{len(pyramid_scales)})..."
+                )
 
             scaled_h = int(h * scale)
             scaled_w = int(w * scale)
-            scaled_image_np = cv2.resize(image_np, (scaled_w, scaled_h), interpolation=cv2.INTER_LINEAR)
+            scaled_image_np = cv2.resize(
+                image_np, (scaled_w, scaled_h), interpolation=cv2.INTER_LINEAR
+            )
 
             image = Image.fromarray(scaled_image_np)
             image_tensor = preprocess(image).to(device)
@@ -54,7 +59,11 @@ def extract_features(
 
                 if isinstance(features_out, dict):
                     patch_features = features_out["x_norm_patchtokens"]
-                    attn_features = features_out.get("x_patchattn", None) if use_attention_features else None
+                    attn_features = (
+                        features_out.get("x_patchattn", None)
+                        if use_attention_features
+                        else None
+                    )
                 else:
                     if hasattr(features_out, "dim") and features_out.dim() == 4:
                         features = features_out.mean(dim=0)
@@ -63,7 +72,10 @@ def extract_features(
                     H_scale = W_scale = 518 // stride
                     features = features.unsqueeze(0)
                     features = torch.nn.functional.interpolate(
-                        features, size=(H_scale, W_scale), mode="bilinear", align_corners=False
+                        features,
+                        size=(H_scale, W_scale),
+                        mode="bilinear",
+                        align_corners=False,
                     ).squeeze(0)
                     features = features.permute(1, 2, 0)
                     patch_features = features
@@ -77,7 +89,9 @@ def extract_features(
                         attn_features = attn_features.view(H_scale, W_scale, -1)
 
                 if attn_features is not None and use_attention_features:
-                    combined_features = torch.cat([patch_features, attn_features], dim=-1)
+                    combined_features = torch.cat(
+                        [patch_features, attn_features], dim=-1
+                    )
                 else:
                     combined_features = patch_features
 
@@ -86,7 +100,11 @@ def extract_features(
                 if verbose:
                     print(f"   Scale {scale}× features: {combined_features.shape}")
 
-        reference_idx = pyramid_scales.index(1.0) if 1.0 in pyramid_scales else len(pyramid_scales) // 2
+        reference_idx = (
+            pyramid_scales.index(1.0)
+            if 1.0 in pyramid_scales
+            else len(pyramid_scales) // 2
+        )
         ref_shape = pyramid_feature_maps[reference_idx].shape[:2]
 
         if verbose:
@@ -95,7 +113,11 @@ def extract_features(
         resized_features = []
         for feat_map in pyramid_feature_maps:
             if feat_map.shape[:2] != ref_shape:
-                feat_resized = cv2.resize(feat_map, (ref_shape[1], ref_shape[0]), interpolation=cv2.INTER_LINEAR)
+                feat_resized = cv2.resize(
+                    feat_map,
+                    (ref_shape[1], ref_shape[0]),
+                    interpolation=cv2.INTER_LINEAR,
+                )
                 resized_features.append(feat_resized)
             else:
                 resized_features.append(feat_map)
@@ -129,14 +151,20 @@ def extract_features(
 
             if isinstance(features_out, dict):
                 patch_features = features_out["x_norm_patchtokens"]
-                attn_features = features_out.get("x_patchattn", None) if use_attention_features else None
+                attn_features = (
+                    features_out.get("x_patchattn", None)
+                    if use_attention_features
+                    else None
+                )
                 if verbose:
                     print(f"patch_features shape: {patch_features.shape}")
                     if attn_features is not None:
                         print(f"attn_features shape: {attn_features.shape}")
             else:
                 if verbose:
-                    print(f"features_out shape: {getattr(features_out, 'shape', 'N/A')}")
+                    print(
+                        f"features_out shape: {getattr(features_out, 'shape', 'N/A')}"
+                    )
                 if hasattr(features_out, "dim") and features_out.dim() == 4:
                     features = features_out.mean(dim=0)
                 else:
@@ -160,7 +188,9 @@ def extract_features(
             H, W = patch_features.shape[:2]
 
         if attn_features is not None and use_attention_features:
-            features_np = np.concatenate([patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1)
+            features_np = np.concatenate(
+                [patch_features.cpu().numpy(), attn_features.cpu().numpy()], axis=-1
+            )
             if verbose:
                 print(f"Combined features shape: {features_np.shape}")
         else:
@@ -207,7 +237,7 @@ def extract_tiled_features(
 
     for i, tile_info in enumerate(tiles):
         if verbose and (i % 10 == 0 or i == len(tiles) - 1):
-            print(f"   Processing tile {i+1}/{len(tiles)}...")
+            print(f"   Processing tile {i + 1}/{len(tiles)}...")
 
         tile_pil = Image.fromarray(tile_info.tile_array)
         tile_tensor = preprocess(tile_pil).to(device)
@@ -222,7 +252,11 @@ def extract_tiled_features(
                 feature_aggregation=feature_aggregation,
             )
             tile_patch_features = features_out["x_norm_patchtokens"]
-            tile_attn_features = features_out.get("x_patchattn", None) if use_attention_features else None
+            tile_attn_features = (
+                features_out.get("x_patchattn", None)
+                if use_attention_features
+                else None
+            )
 
         if tile_patch_features.dim() == 2:
             n_patches = tile_patch_features.shape[0]
@@ -240,7 +274,9 @@ def extract_tiled_features(
             tile_features_combined = tile_patch_features.cpu().numpy()
 
         tile_features_list.append(tile_features_combined)
-        tile_coords_list.append((tile_info.x_start, tile_info.y_start, tile_info.x_end, tile_info.y_end))
+        tile_coords_list.append(
+            (tile_info.x_start, tile_info.y_start, tile_info.x_end, tile_info.y_end)
+        )
 
     # Stitch features with weighted blending
     if verbose:

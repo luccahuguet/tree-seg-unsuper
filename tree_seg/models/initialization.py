@@ -46,19 +46,16 @@ def initialize_model(stride, model_name, device):
     """Initialize and configure the DINOv3 model with improved error handling."""
     try:
         logger.info(f"Initializing DINOv3 model: {model_name}")
-        
+
         # Use float32 for stability (from our debugging)
         model = create_dinov3_model(
-            model_name=model_name,
-            stride=stride,
-            device=device,
-            dtype=torch.float32
+            model_name=model_name, stride=stride, device=device, dtype=torch.float32
         )
         model.eval()
-        
+
         logger.info("✅ Model initialization successful")
         return model
-        
+
     except Exception as e:
         logger.error(f"Model initialization failed: {e}")
         raise
@@ -72,7 +69,7 @@ def list_models():
         # Fallback list for original adapter
         return {
             "dinov3_vits16": "Small model (21M params)",
-            "dinov3_vitb16": "Base model (86M params)", 
+            "dinov3_vitb16": "Base model (86M params)",
             "dinov3_vitl16": "Large model (304M params)",
             "dinov3_vith16plus": "Huge+ model (1.1B params)",
         }

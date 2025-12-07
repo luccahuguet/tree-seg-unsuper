@@ -81,7 +81,9 @@ def load_and_extract_features(
             dataset_path, detect_dataset_type(dataset_path)
         )
         dataset_name = (
-            dataset.dataset_path.name if hasattr(dataset, "dataset_path") else dataset_name
+            dataset.dataset_path.name
+            if hasattr(dataset, "dataset_path")
+            else dataset_name
         )
         ignore_idx = getattr(dataset, "IGNORE_INDEX", ignore_idx)
     except Exception as exc:
@@ -110,7 +112,9 @@ def load_and_extract_features(
             print(f"Loaded {sample_total} image/mask pairs")
         pairs = list(zip(images, masks))
 
-    progress, feat_task = _make_bar_progress("Extracting features", sample_total, verbose)
+    progress, feat_task = _make_bar_progress(
+        "Extracting features", sample_total, verbose
+    )
     all_features = []
     all_masks = []
 
@@ -136,7 +140,7 @@ def load_and_extract_features(
                 feat_task,
                 advance=1,
                 description=(
-                    f"[bold cyan]Extracting features[/bold cyan] ({idx+1}/{sample_total})"
+                    f"[bold cyan]Extracting features[/bold cyan] ({idx + 1}/{sample_total})"
                 ),
             )
 
@@ -388,7 +392,7 @@ def train_linear_head(
                     advance=1,
                     description=(
                         f"[bold magenta]Training LinearHead[/bold magenta] "
-                        f"(epoch {epoch+1}/{epochs})"
+                        f"(epoch {epoch + 1}/{epochs})"
                     ),
                 )
 
@@ -483,8 +487,7 @@ def _evaluate_predictions(
                 task,
                 advance=1,
                 description=(
-                    f"[bold green]Evaluating[/bold green] "
-                    f"({idx+1}/{len(features)})"
+                    f"[bold green]Evaluating[/bold green] ({idx + 1}/{len(features)})"
                 ),
             )
 

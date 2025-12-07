@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from datasets import load_dataset
 
+
 def download_oam_tcd(output_dir: str = "data/oam_tcd", subset_size: int = None):
     """
     Download OAM-TCD dataset from HuggingFace.
@@ -82,6 +83,7 @@ def download_oam_tcd(output_dir: str = "data/oam_tcd", subset_size: int = None):
 
     return dataset
 
+
 if __name__ == "__main__":
     import argparse
 
@@ -90,13 +92,13 @@ if __name__ == "__main__":
         "--output-dir",
         type=str,
         default="data/oam_tcd",
-        help="Output directory for dataset"
+        help="Output directory for dataset",
     )
     parser.add_argument(
         "--subset",
         type=int,
         default=None,
-        help="Download only N samples per split (for testing)"
+        help="Download only N samples per split (for testing)",
     )
 
     args = parser.parse_args()

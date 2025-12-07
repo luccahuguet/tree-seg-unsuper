@@ -14,7 +14,7 @@ DINOV3_PATH = Path(__file__).parent.parent.parent / "dinov3"
 if str(DINOV3_PATH) not in sys.path:
     sys.path.insert(0, str(DINOV3_PATH))
 
-import dinov3.hub.backbones as dinov3_backbones
+import dinov3.hub.backbones as dinov3_backbones  # noqa: E402
 
 AttentionOptions = Literal["q", "k", "v", "o", "none"]
 

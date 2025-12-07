@@ -10,9 +10,7 @@ from PIL import Image
 
 
 def extract_images(
-    split: str = "test",
-    output_dir: str = "data/oam_tcd_images",
-    max_images: int = None
+    split: str = "test", output_dir: str = "data/oam_tcd_images", max_images: int = None
 ):
     """
     Extract OAM-TCD images to individual files.
@@ -37,8 +35,8 @@ def extract_images(
 
     for i in range(n_images):
         sample = data[i]
-        image_id = sample['image_id']
-        image = sample['image']
+        image_id = sample["image_id"]
+        image = sample["image"]
 
         # Convert to PIL if needed
         if not isinstance(image, Image.Image):
@@ -49,7 +47,7 @@ def extract_images(
         image.save(output_file, quality=95)
 
         if (i + 1) % 50 == 0 or i + 1 == n_images:
-            print(f"  Extracted {i+1}/{n_images} images...")
+            print(f"  Extracted {i + 1}/{n_images} images...")
 
     print()
     print(f"✓ Extracted {n_images} images to {output_path}")
@@ -60,18 +58,20 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Extract OAM-TCD images")
-    parser.add_argument("--split", type=str, default="test",
-                       choices=["test", "train"],
-                       help="Dataset split to extract")
-    parser.add_argument("--output", type=str, default="data/oam_tcd_images",
-                       help="Output directory")
-    parser.add_argument("--max", type=int, default=None,
-                       help="Maximum number of images (default: all)")
+    parser.add_argument(
+        "--split",
+        type=str,
+        default="test",
+        choices=["test", "train"],
+        help="Dataset split to extract",
+    )
+    parser.add_argument(
+        "--output", type=str, default="data/oam_tcd_images", help="Output directory"
+    )
+    parser.add_argument(
+        "--max", type=int, default=None, help="Maximum number of images (default: all)"
+    )
 
     args = parser.parse_args()
 
-    extract_images(
-        split=args.split,
-        output_dir=args.output,
-        max_images=args.max
-    )
+    extract_images(split=args.split, output_dir=args.output, max_images=args.max)

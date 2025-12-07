@@ -114,7 +114,11 @@ class BenchmarkRunner:
 
     def _create_segmenter(self, config: Config) -> "TreeSegmentation":
         if self.suppress_logs:
-            with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
+            with (
+                open(os.devnull, "w") as devnull,
+                redirect_stdout(devnull),
+                redirect_stderr(devnull),
+            ):
                 from tree_seg.api import TreeSegmentation
 
                 return TreeSegmentation(config)
@@ -123,7 +127,9 @@ class BenchmarkRunner:
 
         return TreeSegmentation(config)
 
-    def _load_or_init_segmenter(self, segmenter: "TreeSegmentation", model_key: tuple) -> None:
+    def _load_or_init_segmenter(
+        self, segmenter: "TreeSegmentation", model_key: tuple
+    ) -> None:
         if model_key in self.model_cache:
             cached_model, cached_preprocess = self.model_cache[model_key]
             segmenter.model = cached_model
@@ -131,7 +137,11 @@ class BenchmarkRunner:
             return
 
         if self.suppress_logs:
-            with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
+            with (
+                open(os.devnull, "w") as devnull,
+                redirect_stdout(devnull),
+                redirect_stderr(devnull),
+            ):
                 segmenter.initialize_model()
         else:
             segmenter.initialize_model()
@@ -161,11 +171,14 @@ class BenchmarkRunner:
             # Count unique classes in ground truth (excluding ignore index)
             unique_classes = np.unique(gt_labels)
             if self.dataset.IGNORE_INDEX is not None:
-                unique_classes = unique_classes[unique_classes != self.dataset.IGNORE_INDEX]
+                unique_classes = unique_classes[
+                    unique_classes != self.dataset.IGNORE_INDEX
+                ]
             num_gt_classes = len(unique_classes)
 
             # Create modified config with smart K
             from dataclasses import replace
+
             smart_config = replace(
                 self.config,
                 n_clusters=num_gt_classes,
@@ -173,7 +186,9 @@ class BenchmarkRunner:
             )
 
             if verbose:
-                print(f"  Smart K mode: Using K={num_gt_classes} (matched to ground truth)")
+                print(
+                    f"  Smart K mode: Using K={num_gt_classes} (matched to ground truth)"
+                )
 
             # Create temporary segmenter with smart config
             segmenter = self._create_segmenter(smart_config)
@@ -196,7 +211,11 @@ class BenchmarkRunner:
         # Run segmentation with timing
         start_time = time.time()
         if suppress_output:
-            with open(os.devnull, "w") as devnull, redirect_stdout(devnull), redirect_stderr(devnull):
+            with (
+                open(os.devnull, "w") as devnull,
+                redirect_stdout(devnull),
+                redirect_stderr(devnull),
+            ):
                 results = segmenter.segment_image(image)
         else:
             results = segmenter.segment_image(image)
@@ -260,7 +279,9 @@ class BenchmarkRunner:
             labels_dir.mkdir(exist_ok=True)
             label_path = labels_dir / f"{image_id}.npz"
             try:
-                np.savez_compressed(label_path, labels=pred_labels_resized.astype(np.uint8))
+                np.savez_compressed(
+                    label_path, labels=pred_labels_resized.astype(np.uint8)
+                )
             except Exception as exc:
                 print(f"⚠️ Failed to save labels for {image_id}: {exc}")
 
@@ -290,12 +311,17 @@ class BenchmarkRunner:
         if verbose:
             print(f"\nRunning benchmark on {end_idx - start_idx} samples...")
             print(f"Dataset: {self.dataset.dataset_path.name}")
-            if self.config.version == "v4":
-                print("Method: v4 (Mask2Former decoder)")
+            if self.config.supervised:
+                print("Method: Mask2Former (supervised)")
             else:
-                print(f"Method: {self.config.version} (refine={self.config.refine})")
+                print(
+                    f"Method: {self.config.clustering_method} (refine={self.config.refine})"
+                )
             print(f"Model: {self.config.model_display_name}")
-            print(f"Config: stride={self.config.stride}, " f"elbow_threshold={self.config.elbow_threshold}\n")
+            print(
+                f"Config: stride={self.config.stride}, "
+                f"elbow_threshold={self.config.elbow_threshold}\n"
+            )
 
         dataset_name = getattr(self.dataset, "dataset_path", None)
         dataset_name = dataset_name.name if dataset_name else "unknown_dataset"
@@ -305,7 +331,9 @@ class BenchmarkRunner:
         # Load runtime estimate from cache
         est_key = self.runtime_cache.make_key(self.config)
         cached_mean = self.runtime_cache.get_mean_runtime(est_key)
-        run_key = self.runtime_cache.make_run_key(dataset_name, self.config, end_idx - start_idx)
+        run_key = self.runtime_cache.make_run_key(
+            dataset_name, self.config, end_idx - start_idx
+        )
         cached_total = self.runtime_cache.get_total_runtime(run_key)
         # Rough hardware scaling: adjust mean if tier differs
         hw_tier_cached = self.runtime_cache.hardware_tier_for(est_key)
@@ -313,14 +341,24 @@ class BenchmarkRunner:
             scaled_mean = self.runtime_cache.scale_mean(cached_mean, hw_tier_cached)
         else:
             scaled_mean = None
-        est_total = cached_total if cached_total else (scaled_mean * total_samples if scaled_mean else None)
+        est_total = (
+            cached_total
+            if cached_total
+            else (scaled_mean * total_samples if scaled_mean else None)
+        )
         sample_results = []
 
         # Progress bar using rich (handles ETAs cleanly)
         progress = None
         task_id = None
         try:
-            from rich.progress import Progress, BarColumn, TimeRemainingColumn, TimeElapsedColumn, TextColumn
+            from rich.progress import (
+                Progress,
+                BarColumn,
+                TimeRemainingColumn,
+                TimeElapsedColumn,
+                TextColumn,
+            )
 
             progress = Progress(
                 TextColumn("[bold cyan]Benchmark"),
@@ -378,10 +416,18 @@ class BenchmarkRunner:
             self.runtime_cache.update_total(run_key, total_runtime)
 
         # Create benchmark results
-        refine_str = "mask2former" if self.config.version == "v4" else (self.config.refine if self.config.refine else "kmeans")
+        refine_str = (
+            "mask2former"
+            if self.config.supervised
+            else (
+                self.config.refine
+                if self.config.refine
+                else self.config.clustering_method
+            )
+        )
         results = BenchmarkResults(
             dataset_name=self.dataset.dataset_path.name,
-            method_name=f"{self.config.version}_{refine_str}",
+            method_name=f"{self.config.clustering_method}_{refine_str}",
             config=self.config,
             samples=sample_results,
             mean_miou=mean_miou,
@@ -413,16 +459,16 @@ class BenchmarkRunner:
     ):
         """Save visualization comparing prediction and ground truth."""
         from ..visualization.eval_panels import plot_evaluation_comparison
-        
+
         # Include config label in filename if running in sweep mode
         if self.config_label:
             filename = f"{image_id}_{self.config_label}_comparison.png"
         else:
             filename = f"{image_id}_comparison.png"
-        
+
         output_path = self.output_dir / "visualizations" / filename
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         plot_evaluation_comparison(
             image=image,
             pred_labels=pred_labels,

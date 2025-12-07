@@ -16,7 +16,7 @@ def generate_semantic_samples(
     elbow_threshold: float = 5.0,
     exg_threshold: float = 0.10,
     output_dir: str = "data/output/v3_semantic",
-    seed: int = 42
+    seed: int = 42,
 ):
     """
     Generate semantic visualizations for multiple samples.
@@ -54,12 +54,14 @@ def generate_semantic_samples(
     # Process each sample
     for i, idx in enumerate(sample_indices):
         sample = test_data[int(idx)]
-        image_id = sample['image_id']
+        image_id = sample["image_id"]
 
-        print(f"[{i+1}/{n_samples}] Generating semantic visualization for image {image_id}...")
+        print(
+            f"[{i + 1}/{n_samples}] Generating semantic visualization for image {image_id}..."
+        )
 
         # Save temp image
-        image = sample['image']
+        image = sample["image"]
         temp_path = output_path / f"temp_{image_id}.jpg"
         if isinstance(image, Image.Image):
             image.save(temp_path)
@@ -72,7 +74,7 @@ def generate_semantic_samples(
                 image_path=str(temp_path),
                 elbow_threshold=elbow_threshold,
                 exg_threshold=exg_threshold,
-                output_dir=output_dir
+                output_dir=output_dir,
             )
 
             # Rename output to include image_id
@@ -101,11 +103,16 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Generate V3 semantic visualizations")
     parser.add_argument("--n", type=int, default=10, help="Number of samples")
-    parser.add_argument("--elbow-threshold", type=float, default=5.0,
-                       help="Elbow threshold for auto K selection (default: 5.0)")
+    parser.add_argument(
+        "--elbow-threshold",
+        type=float,
+        default=5.0,
+        help="Elbow threshold for auto K selection (default: 5.0)",
+    )
     parser.add_argument("--threshold", type=float, default=0.10, help="ExG threshold")
-    parser.add_argument("--output", type=str, default="data/output/v3_semantic",
-                       help="Output directory")
+    parser.add_argument(
+        "--output", type=str, default="data/output/v3_semantic", help="Output directory"
+    )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
 
     args = parser.parse_args()
@@ -115,5 +122,5 @@ if __name__ == "__main__":
         elbow_threshold=args.elbow_threshold,
         exg_threshold=args.threshold,
         output_dir=args.output,
-        seed=args.seed
+        seed=args.seed,
     )

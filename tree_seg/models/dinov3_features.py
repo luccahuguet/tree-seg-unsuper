@@ -46,7 +46,9 @@ def extract_backbone_features(
 
             patch_counts = [f.shape[1] for f in layer_features_list]
             if len(set(patch_counts)) > 1:
-                raise ValueError(f"Inconsistent patch counts across layers: {patch_counts}")
+                raise ValueError(
+                    f"Inconsistent patch counts across layers: {patch_counts}"
+                )
 
             if feature_aggregation == "concat":
                 patch_features = torch.cat(layer_features_list, dim=-1)
@@ -54,9 +56,13 @@ def extract_backbone_features(
                 stacked = torch.stack(layer_features_list, dim=0)
                 patch_features = stacked.mean(dim=0)
             elif feature_aggregation == "weighted":
-                weights = torch.linspace(0.5, 1.0, len(layer_features_list), device=x.device)
+                weights = torch.linspace(
+                    0.5, 1.0, len(layer_features_list), device=x.device
+                )
                 weights = weights / weights.sum()
-                weighted = torch.stack([f * weights[i] for i, f in enumerate(layer_features_list)], dim=0)
+                weighted = torch.stack(
+                    [f * weights[i] for i, f in enumerate(layer_features_list)], dim=0
+                )
                 patch_features = weighted.sum(dim=0)
             else:
                 raise ValueError(f"Unknown aggregation: {feature_aggregation}")

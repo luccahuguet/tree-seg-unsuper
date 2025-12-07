@@ -39,7 +39,9 @@ class Mask2FormerConfig:
 class Mask2FormerSegmentor:
     """Thin wrapper around the upstream Mask2Former head for zero-shot inference."""
 
-    def __init__(self, device: torch.device, cfg: Optional[Mask2FormerConfig] = None) -> None:
+    def __init__(
+        self, device: torch.device, cfg: Optional[Mask2FormerConfig] = None
+    ) -> None:
         self.device = device
         self.cfg = cfg or Mask2FormerConfig()
 
@@ -63,7 +65,10 @@ class Mask2FormerSegmentor:
 
         self.transform = T.Compose(
             [
-                T.Resize((self.cfg.image_size, self.cfg.image_size), interpolation=InterpolationMode.BILINEAR),
+                T.Resize(
+                    (self.cfg.image_size, self.cfg.image_size),
+                    interpolation=InterpolationMode.BILINEAR,
+                ),
                 T.ToTensor(),
                 T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             ]

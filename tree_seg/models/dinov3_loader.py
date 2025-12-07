@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class WeightLoadingError(Exception):
     """Exception for weight loading failures."""
+
     pass
 
 
@@ -89,18 +90,26 @@ class HuggingFaceWeightLoader:
 
                 elif isinstance(mapping_info, dict):
                     if mapping_info["type"] == "qkv_concat":
-                        if self._apply_qkv_concatenation(param, mapping_info, param_name):
+                        if self._apply_qkv_concatenation(
+                            param, mapping_info, param_name
+                        ):
                             applied_count += 1
 
         success_rate = applied_count / total_params
-        logger.info(f"Applied {applied_count}/{total_params} parameters ({success_rate:.1%})")
+        logger.info(
+            f"Applied {applied_count}/{total_params} parameters ({success_rate:.1%})"
+        )
 
         if success_rate < 0.5:
-            raise WeightLoadingError(f"Insufficient parameters loaded: {success_rate:.1%}")
+            raise WeightLoadingError(
+                f"Insufficient parameters loaded: {success_rate:.1%}"
+            )
 
         return applied_count, total_params
 
-    def _create_parameter_mapping(self, model: nn.Module) -> Dict[str, Union[str, Dict]]:
+    def _create_parameter_mapping(
+        self, model: nn.Module
+    ) -> Dict[str, Union[str, Dict]]:
         """Create comprehensive parameter mapping from DINOv3 to HuggingFace names."""
         dinov3_params = {name: param.shape for name, param in model.named_parameters()}
         mapping: Dict[str, Union[str, Dict]] = {}
@@ -125,10 +134,14 @@ class HuggingFaceWeightLoader:
                 if block_mapping:
                     mapping[param_name] = block_mapping
 
-        logger.debug(f"Created mapping for {len(mapping)}/{len(dinov3_params)} parameters")
+        logger.debug(
+            f"Created mapping for {len(mapping)}/{len(dinov3_params)} parameters"
+        )
         return mapping
 
-    def _map_transformer_block_param(self, param_name: str) -> Optional[Union[str, Dict]]:
+    def _map_transformer_block_param(
+        self, param_name: str
+    ) -> Optional[Union[str, Dict]]:
         """Map individual transformer block parameters."""
         parts = param_name.split(".")
         if len(parts) < 3:
@@ -137,7 +150,12 @@ class HuggingFaceWeightLoader:
         block_idx = parts[1]
         component_path = ".".join(parts[2:])
 
-        if component_path in ["norm1.weight", "norm1.bias", "norm2.weight", "norm2.bias"]:
+        if component_path in [
+            "norm1.weight",
+            "norm1.bias",
+            "norm2.weight",
+            "norm2.bias",
+        ]:
             return f"layer.{block_idx}.{component_path}"
 
         if component_path == "attn.proj.weight":
@@ -168,7 +186,9 @@ class HuggingFaceWeightLoader:
 
         return None
 
-    def _apply_direct_mapping(self, param: nn.Parameter, hf_name: str, dinov3_name: str) -> bool:
+    def _apply_direct_mapping(
+        self, param: nn.Parameter, hf_name: str, dinov3_name: str
+    ) -> bool:
         """Apply direct 1:1 parameter mapping with shape compatibility."""
         if hf_name not in self._weights_cache:
             logger.debug(f"HF parameter {hf_name} not found for {dinov3_name}")
@@ -177,17 +197,27 @@ class HuggingFaceWeightLoader:
         hf_tensor = self._weights_cache[hf_name]
 
         if param.shape != hf_tensor.shape:
-            if dinov3_name == "mask_token" and len(hf_tensor.shape) == 3 and len(param.shape) == 2:
+            if (
+                dinov3_name == "mask_token"
+                and len(hf_tensor.shape) == 3
+                and len(param.shape) == 2
+            ):
                 hf_tensor = hf_tensor.squeeze(1)
-                logger.debug(f"Reshaped {dinov3_name}: {self._weights_cache[hf_name].shape} -> {hf_tensor.shape}")
+                logger.debug(
+                    f"Reshaped {dinov3_name}: {self._weights_cache[hf_name].shape} -> {hf_tensor.shape}"
+                )
             else:
-                logger.warning(f"Shape mismatch {dinov3_name}: {param.shape} vs {hf_tensor.shape}")
+                logger.warning(
+                    f"Shape mismatch {dinov3_name}: {param.shape} vs {hf_tensor.shape}"
+                )
                 return False
 
         param.data.copy_(hf_tensor)
         return True
 
-    def _apply_qkv_concatenation(self, param: nn.Parameter, mapping_info: Dict, dinov3_name: str) -> bool:
+    def _apply_qkv_concatenation(
+        self, param: nn.Parameter, mapping_info: Dict, dinov3_name: str
+    ) -> bool:
         """Apply QKV concatenation with missing bias handling."""
         component_names = mapping_info["components"]
         tensors = []
@@ -214,12 +244,16 @@ class HuggingFaceWeightLoader:
         concatenated = torch.cat(tensors, dim=0)
 
         if param.shape != concatenated.shape:
-            logger.warning(f"QKV concat shape mismatch {dinov3_name}: {param.shape} vs {concatenated.shape}")
+            logger.warning(
+                f"QKV concat shape mismatch {dinov3_name}: {param.shape} vs {concatenated.shape}"
+            )
             return False
 
         param.data.copy_(concatenated)
 
         if missing_components:
-            logger.debug(f"QKV concatenation {dinov3_name} (missing: {[c.split('.')[-2] for c in missing_components]})")
+            logger.debug(
+                f"QKV concatenation {dinov3_name} (missing: {[c.split('.')[-2] for c in missing_components]})"
+            )
 
         return True

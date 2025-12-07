@@ -26,8 +26,12 @@ def main():
 
 # Register commands
 app.command(name="segment", help="Segment trees in aerial imagery")(segment_command)
-app.command(name="eval", help="Evaluate segmentation methods on labeled datasets")(evaluate_command)
-app.command(name="eval-super", help="Evaluate supervised baseline (shortcut)")(eval_super_command)
+app.command(name="eval", help="Evaluate segmentation methods on labeled datasets")(
+    evaluate_command
+)
+app.command(name="eval-super", help="Evaluate supervised baseline (shortcut)")(
+    eval_super_command
+)
 app.command(name="results", help="Query stored experiment metadata")(results_command)
 
 

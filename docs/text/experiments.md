@@ -329,16 +329,6 @@ Metadata tips:
   - Test: 128px, 384px, 512px
   - Expected: Reduce stitching artifacts, +0.5-1% mIoU
 
-- [ ] **Elbow threshold sweep**
-  - Current: 5.0
-  - Test: 0.1, 0.5, 1.0, 3.0, 10.0
-  - Expected: Better K selection, +1-3% mIoU
-
-- [ ] **Feature stride optimization**
-  - Current: stride=4
-  - Test: stride=2 (2× denser features, slower)
-  - Expected: +2-4% mIoU from finer spatial resolution
-
 **DINOv3 Linear Segmentation Head (Supervised/Transfer Learning):**
 
 Official DINOv3 repository includes linear segmentation head. Multiple approaches possible:

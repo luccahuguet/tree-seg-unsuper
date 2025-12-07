@@ -13,19 +13,19 @@ class Config:
     """
     Centralized configuration for tree segmentation.
     """
+
     # Input/Output
     input_dir: str = "data/input"
     output_dir: str = "data/output"
     filename: Optional[str] = None  # If None, process all images
-    
+
     # Model settings
     model_name: str = "base"  # small/base/large/giant/mega or full DINOv3 name
     stride: int = 4
     image_size: int = 1024  # Preprocess resize (square)
-    use_attention_features: bool = True  # Include attention tokens (disable for legacy v1)
-
-    # Pipeline settings
-    pipeline: str = "v1_5"  # Pipeline version: "v1_5" (baseline) or "v3" (species clustering)
+    use_attention_features: bool = (
+        True  # Include attention tokens (disable for legacy v1)
+    )
 
     # Clustering settings
     clustering_method: str = "kmeans"  # "kmeans", "gmm", or "spectral"
@@ -36,15 +36,24 @@ class Config:
     use_pca: bool = False
     pca_dim: Optional[int] = None  # If set, apply PCA to this dimension
     feature_upsample_factor: int = 2  # Upsample HxW feature grid before clustering
-    
+
     # Multi-layer feature extraction
     use_multi_layer: bool = False  # Extract features from multiple layers
-    layer_indices: Tuple[int, ...] = (3, 6, 9, 12)  # Layers to extract (base model has 12 layers)
+    layer_indices: Tuple[int, ...] = (
+        3,
+        6,
+        9,
+        12,
+    )  # Layers to extract (base model has 12 layers)
     feature_aggregation: str = "concat"  # "concat", "average", or "weighted"
 
     # Multi-scale pyramid feature extraction
     use_pyramid: bool = False  # Extract features at multiple image scales
-    pyramid_scales: Tuple[float, ...] = (0.5, 1.0, 2.0)  # Scales to process (relative to image_size)
+    pyramid_scales: Tuple[float, ...] = (
+        0.5,
+        1.0,
+        2.0,
+    )  # Scales to process (relative to image_size)
     pyramid_aggregation: str = "concat"  # "concat" or "average"
 
     # Refinement settings
@@ -60,7 +69,9 @@ class Config:
 
     # Vegetation filtering (works with any method: V1.5, V2, V3)
     apply_vegetation_filter: bool = False  # Enable ExG-based vegetation filtering
-    exg_threshold: float = 0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
+    exg_threshold: float = (
+        0.10  # ExG threshold for vegetation classification (0.10 = validated optimal)
+    )
 
     # V3-specific: backward compatibility alias
     @property
@@ -69,47 +80,58 @@ class Config:
         return self.exg_threshold
 
     # Tiling configuration (for large images)
-    use_tiling: bool = True  # Auto-enable for large images (automatic above tile_threshold)
-    tile_size: int = 2048    # Tile dimension in pixels (square tiles)
+    use_tiling: bool = (
+        True  # Auto-enable for large images (automatic above tile_threshold)
+    )
+    tile_size: int = 2048  # Tile dimension in pixels (square tiles)
     tile_overlap: int = 256  # Overlap between adjacent tiles in pixels
     tile_threshold: int = 2048  # Auto-tile if image dimension exceeds this (px)
 
     # Downsampling (opt-in for speed)
-    downsample_before_tiling: bool = False  # 2× downsample before tiling for faster processing
+    downsample_before_tiling: bool = (
+        False  # 2× downsample before tiling for faster processing
+    )
 
     # Metrics & benchmarking
     metrics: bool = False  # Collect and expose timing/VRAM info in results
-    verbose: bool = False  # Print detailed processing information (default: quiet for benchmarking)
-    
+    verbose: bool = (
+        False  # Print detailed processing information (default: quiet for benchmarking)
+    )
+
+    # Supervised mode (Mask2Former)
+    supervised: bool = (
+        False  # Use supervised Mask2Former decoder instead of unsupervised clustering
+    )
+
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent
     edge_width: int = 2
     use_hatching: bool = True
     viz_two_panel: bool = False  # If True, use compact 2-panel GT+overlay viz
     viz_two_panel_opaque: bool = False  # If True, two-panel GT + prediction (opaque)
-    
+
     # Web optimization settings
     web_optimize: bool = True  # Auto-optimize images for GitHub Pages (default enabled)
     web_quality: int = 85  # JPEG quality for web
     web_max_width: int = 1200  # Max width for web images
-    
+
     @property
     def model_display_name(self) -> str:
         """Get the DINOv3 model name for loading."""
         model_map = {
-            "small": "dinov3_vits16",      # ViT-S/16 (21M params)
-            "base": "dinov3_vitb16",       # ViT-B/16 (86M params) - recommended
-            "large": "dinov3_vitl16",      # ViT-L/16 (300M params)
+            "small": "dinov3_vits16",  # ViT-S/16 (21M params)
+            "base": "dinov3_vitb16",  # ViT-B/16 (86M params) - recommended
+            "large": "dinov3_vitl16",  # ViT-L/16 (300M params)
             "giant": "dinov3_vith16plus",  # ViT-H+/16 (840M params)
-            "mega": "dinov3_vit7b16",      # ViT-7B/16 (6.7B params) - satellite optimized
+            "mega": "dinov3_vit7b16",  # ViT-7B/16 (6.7B params) - satellite optimized
         }
         return model_map.get(self.model_name, self.model_name)
-    
+
     @property
     def elbow_threshold_decimal(self) -> float:
         """Get elbow_threshold as decimal (percentage / 100)."""
         return self.elbow_threshold / 100.0
-    
+
     def validate(self) -> None:
         """Validate configuration parameters."""
         if not (1 <= self.overlay_ratio <= 10):
@@ -129,9 +151,9 @@ class Config:
         if self.pca_dim is not None and (self.pca_dim <= 0 or self.pca_dim > 1024):
             raise ValueError("pca_dim must be between 1 and 1024 when set")
         if self.refine not in [None, "slic", "slic_skimage", "bilateral"]:
-            raise ValueError("refine must be None, 'slic', 'slic_skimage', or 'bilateral'")
-        if self.pipeline not in ("v1_5", "v3"):
-            raise ValueError("pipeline must be 'v1_5' or 'v3'")
+            raise ValueError(
+                "refine must be None, 'slic', 'slic_skimage', or 'bilateral'"
+            )
 
         # Tiling validation
         if self.tile_size < 512 or self.tile_size > 4096:
@@ -140,15 +162,19 @@ class Config:
             raise ValueError("tile_overlap must be between 0 and tile_size/2")
         if self.tile_threshold < self.tile_size:
             raise ValueError("tile_threshold must be >= tile_size")
-        
+
         # Multi-layer validation
         if self.use_multi_layer:
             if not self.layer_indices or len(self.layer_indices) == 0:
-                raise ValueError("layer_indices cannot be empty when use_multi_layer is True")
+                raise ValueError(
+                    "layer_indices cannot be empty when use_multi_layer is True"
+                )
             if any(idx < 1 or idx > 40 for idx in self.layer_indices):
                 raise ValueError("layer_indices must be between 1 and 40")
             if self.feature_aggregation not in ("concat", "average", "weighted"):
-                raise ValueError("feature_aggregation must be 'concat', 'average', or 'weighted'")
+                raise ValueError(
+                    "feature_aggregation must be 'concat', 'average', or 'weighted'"
+                )
 
         # V2 soft refinement validation
         if self.use_soft_refine:
@@ -165,13 +191,14 @@ class SegmentationResults:
     """
     Results from image segmentation processing.
     """
+
     image_np: np.ndarray
     labels_resized: np.ndarray
     n_clusters_used: int
     image_path: str
     processing_stats: Dict[str, Any]
     n_clusters_requested: Optional[int] = None
-    
+
     @property
     def success(self) -> bool:
         """Check if segmentation was successful."""
@@ -183,36 +210,38 @@ class ElbowAnalysisResults:
     """
     Results from elbow method K-selection.
     """
+
     optimal_k: int
     k_values: list
     wcss_values: list
     elbow_idx: int
     pct_decrease: list
     method: str = "elbow"
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for plotting functions."""
         return {
-            'optimal_k': self.optimal_k,
-            'k_values': self.k_values,
-            'wcss': self.wcss_values,
-            'elbow_idx': self.elbow_idx,
-            'pct_decrease': self.pct_decrease,
-            'method': self.method
+            "optimal_k": self.optimal_k,
+            "k_values": self.k_values,
+            "wcss": self.wcss_values,
+            "elbow_idx": self.elbow_idx,
+            "pct_decrease": self.pct_decrease,
+            "method": self.method,
         }
 
 
-@dataclass 
+@dataclass
 class OutputPaths:
     """
     Generated output file paths.
     """
+
     segmentation_legend: str
     edge_overlay: str
     side_by_side: str
     overlay_path: Optional[str] = None
     elbow_analysis: Optional[str] = None
-    
+
     def all_paths(self) -> list:
         """Get all non-None paths."""
         paths = [self.segmentation_legend, self.edge_overlay, self.side_by_side]

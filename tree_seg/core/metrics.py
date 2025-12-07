@@ -32,7 +32,9 @@ def compile_metrics(
         "time_preprocess_s": round(t_pre_end - t_pre_start, 3),
         "time_features_s": round(t_features - t_pre_end, 3),
         "time_kselect_s": round(t_kselect - t_features, 3) if auto_k else 0.0,
-        "time_kmeans_s": round((t_refine_start if refine_time > 0 else t_end) - t_kselect, 3),
+        "time_kmeans_s": round(
+            (t_refine_start if refine_time > 0 else t_end) - t_kselect, 3
+        ),
         "time_refine_s": round(refine_time, 3) if refine_time > 0 else 0.0,
         "grid_H": int(H),
         "grid_W": int(W),

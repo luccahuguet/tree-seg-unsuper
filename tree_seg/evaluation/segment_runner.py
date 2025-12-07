@@ -36,7 +36,9 @@ def clean_output_dir(out_dir: Path, console: Console) -> None:
     if out_dir.exists():
         existing_files = list(out_dir.rglob("*.png")) + list(out_dir.rglob("*.jpg"))
         if existing_files:
-            console.print(f"[yellow]🗂️  Found {len(existing_files)} existing output file(s) in {out_dir}[/yellow]")
+            console.print(
+                f"[yellow]🗂️  Found {len(existing_files)} existing output file(s) in {out_dir}[/yellow]"
+            )
             console.print(f"[yellow]🧹 Clearing output directory: {out_dir}[/yellow]")
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -69,15 +71,23 @@ def run_single_segment(
     meta_config = build_config_from_kwargs(mdl, out_dir, cfg)
 
     if use_cache:
-        from tree_seg.metadata.store import _config_to_hash_config, normalize_config, config_hash
+        from tree_seg.metadata.store import (
+            _config_to_hash_config,
+            normalize_config,
+            config_hash,
+        )
 
         dataset_id = img_path.name if img_path.is_dir() else img_path.parent.name
-        hash_config = _config_to_hash_config(meta_config, dataset_id, smart_k=False, grid_label=None)
+        hash_config = _config_to_hash_config(
+            meta_config, dataset_id, smart_k=False, grid_label=None
+        )
         normalized = normalize_config(hash_config)
         hash_id = config_hash(normalized)
         meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
         if meta_path.exists() and not force:
-            console.print(f"[green]♻️  Cache hit for {dataset_id} ({hash_id}); reusing outputs.[/green]")
+            console.print(
+                f"[green]♻️  Cache hit for {dataset_id} ({hash_id}); reusing outputs.[/green]"
+            )
             _reuse_segment_outputs(meta_path, out_dir, console)
             return
 
@@ -93,7 +103,13 @@ def run_single_segment(
             console.print(f"[red]❌ No image files found in {img_path}[/red]")
             return
 
-        from rich.progress import Progress, BarColumn, TimeElapsedColumn, TimeRemainingColumn, TextColumn
+        from rich.progress import (
+            Progress,
+            BarColumn,
+            TimeElapsedColumn,
+            TimeRemainingColumn,
+            TextColumn,
+        )
 
         try:
             progress = Progress(
@@ -111,7 +127,9 @@ def run_single_segment(
 
         for p in image_files:
             if progress:
-                progress.console.print(f"\n[bold]🚀 Processing: {p.name}[/bold]", highlight=False)
+                progress.console.print(
+                    f"\n[bold]🚀 Processing: {p.name}[/bold]", highlight=False
+                )
             else:
                 console.print(f"\n[bold]🚀 Processing: {p.name}[/bold]")
             try:
@@ -135,17 +153,23 @@ def run_single_segment(
                         f"refine={stats.get('time_refine_s')}s, "
                         f"peak_vram={stats.get('peak_vram_mb')}MB[/dim]"
                     )
-                    (progress.console if progress else console).print(line, highlight=False)
+                    (progress.console if progress else console).print(
+                        line, highlight=False
+                    )
                 if save_labels and isinstance(results, list):
                     for res, _paths in results:
                         _save_labels_npz(out_dir, res)
                 if progress:
-                    progress.console.print(f"[green]✅ Completed: {p.name}[/green]", highlight=False)
+                    progress.console.print(
+                        f"[green]✅ Completed: {p.name}[/green]", highlight=False
+                    )
                 else:
                     console.print(f"[green]✅ Completed: {p.name}[/green]")
             except Exception as exc:
                 if progress:
-                    progress.console.print(f"[red]❌ Failed: {p.name} - {exc}[/red]", highlight=False)
+                    progress.console.print(
+                        f"[red]❌ Failed: {p.name} - {exc}[/red]", highlight=False
+                    )
                 else:
                     console.print(f"[red]❌ Failed: {p.name} - {exc}")
             finally:
@@ -174,7 +198,9 @@ def run_single_segment(
             labeled_paths = []
             for _res, paths in collected_outputs:
                 labeled_paths.extend(paths)
-            hash_id = store_segment_run(meta_config, out_dir, labeled_paths, sweep_label=sweep_label)
+            hash_id = store_segment_run(
+                meta_config, out_dir, labeled_paths, sweep_label=sweep_label
+            )
             console.print(f"[dim]📝 Metadata stored at results/by-hash/{hash_id}[/dim]")
         except Exception:
             pass
@@ -193,6 +219,7 @@ def _reuse_segment_outputs(meta_path: Path, out_dir: Path, console: Console) -> 
     """Copy cached outputs referenced by meta.json into the requested output dir."""
     try:
         import json
+
         with meta_path.open() as f:
             meta = json.load(f)
         samples = meta.get("samples", {}).get("per_sample_stats", [])
@@ -209,8 +236,12 @@ def _reuse_segment_outputs(meta_path: Path, out_dir: Path, console: Console) -> 
                     dest.write_bytes(src.read_bytes())
                     copied += 1
         if copied:
-            console.print(f"[dim]↩️  Restored {copied} cached artifact(s) into {out_dir}[/dim]")
+            console.print(
+                f"[dim]↩️  Restored {copied} cached artifact(s) into {out_dir}[/dim]"
+            )
         else:
             console.print("[yellow]⚠️  Cache hit but no artifacts to restore.[/yellow]")
     except Exception as exc:
-        console.print(f"[yellow]⚠️  Cache hit but failed to reuse outputs: {exc}[/yellow]")
+        console.print(
+            f"[yellow]⚠️  Cache hit but failed to reuse outputs: {exc}[/yellow]"
+        )

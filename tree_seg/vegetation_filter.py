@@ -32,9 +32,7 @@ def excess_green_index(image: np.ndarray) -> np.ndarray:
 
 
 def compute_cluster_vegetation_scores(
-    image: np.ndarray,
-    cluster_labels: np.ndarray,
-    verbose: bool = False
+    image: np.ndarray, cluster_labels: np.ndarray, verbose: bool = False
 ) -> Dict[int, float]:
     """
     Compute mean ExG vegetation score for each cluster.
@@ -66,8 +64,10 @@ def compute_cluster_vegetation_scores(
         if verbose:
             size = cluster_mask.sum()
             size_pct = 100.0 * size / cluster_labels.size
-            print(f"  Cluster {label:2d}: ExG={mean_exg:6.3f} | "
-                  f"Size={size:7d} px ({size_pct:4.1f}%)")
+            print(
+                f"  Cluster {label:2d}: ExG={mean_exg:6.3f} | "
+                f"Size={size:7d} px ({size_pct:4.1f}%)"
+            )
 
     if verbose:
         print()
@@ -79,7 +79,7 @@ def filter_vegetation_clusters(
     cluster_labels: np.ndarray,
     cluster_scores: Dict[int, float],
     exg_threshold: float = 0.10,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> Tuple[np.ndarray, List[int], List[int]]:
     """
     Filter clusters to keep only vegetation based on ExG scores.
@@ -122,10 +122,7 @@ def filter_vegetation_clusters(
     return filtered_labels, vegetation_clusters, removed_clusters
 
 
-def _relabel_sequential(
-    labels: np.ndarray,
-    keep_labels: List[int]
-) -> np.ndarray:
+def _relabel_sequential(labels: np.ndarray, keep_labels: List[int]) -> np.ndarray:
     """
     Relabel array to be sequential (0, 1, 2, ...) keeping only specified labels.
 
@@ -152,7 +149,7 @@ def apply_vegetation_filter(
     image: np.ndarray,
     cluster_labels: np.ndarray,
     exg_threshold: float = 0.10,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> Tuple[np.ndarray, Dict]:
     """
     Complete vegetation filtering pipeline.
@@ -199,24 +196,30 @@ def apply_vegetation_filter(
         print(f"  Removed clusters: {n_removed_clusters}")
         print()
         print(f"  Original pixels: {original_pixels:,} (100.0%)")
-        print(f"  Vegetation pixels: {filtered_pixels:,} "
-              f"({100.0*filtered_pixels/original_pixels:.1f}%)")
-        print(f"  Removed pixels: {removed_pixels:,} "
-              f"({100.0*removed_pixels/original_pixels:.1f}%)")
+        print(
+            f"  Vegetation pixels: {filtered_pixels:,} "
+            f"({100.0 * filtered_pixels / original_pixels:.1f}%)"
+        )
+        print(
+            f"  Removed pixels: {removed_pixels:,} "
+            f"({100.0 * removed_pixels / original_pixels:.1f}%)"
+        )
         print()
 
     # Build info dictionary
     filter_info = {
-        'n_original_clusters': n_original_clusters,
-        'n_vegetation_clusters': n_veg_clusters,
-        'n_removed_clusters': n_removed_clusters,
-        'exg_threshold': exg_threshold,
-        'cluster_scores': cluster_scores,
-        'vegetation_cluster_ids': veg_clusters,
-        'removed_cluster_ids': removed_clusters,
-        'vegetation_pixels': int(filtered_pixels),
-        'removed_pixels': int(removed_pixels),
-        'vegetation_percentage': float(100.0 * filtered_pixels / original_pixels) if original_pixels > 0 else 0.0,
+        "n_original_clusters": n_original_clusters,
+        "n_vegetation_clusters": n_veg_clusters,
+        "n_removed_clusters": n_removed_clusters,
+        "exg_threshold": exg_threshold,
+        "cluster_scores": cluster_scores,
+        "vegetation_cluster_ids": veg_clusters,
+        "removed_cluster_ids": removed_clusters,
+        "vegetation_pixels": int(filtered_pixels),
+        "removed_pixels": int(removed_pixels),
+        "vegetation_percentage": float(100.0 * filtered_pixels / original_pixels)
+        if original_pixels > 0
+        else 0.0,
     }
 
     return filtered_labels, filter_info

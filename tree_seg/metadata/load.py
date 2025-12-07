@@ -34,7 +34,9 @@ def _load_index(base_dir: Path | str = "results") -> list[Dict]:
     return entries
 
 
-def lookup_nearest(config: Dict[str, object], base_dir: Path | str = "results") -> Optional[Dict]:
+def lookup_nearest(
+    config: Dict[str, object], base_dir: Path | str = "results"
+) -> Optional[Dict]:
     """
     Find the closest matching config in the index using weighted matches.
 

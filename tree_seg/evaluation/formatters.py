@@ -19,7 +19,9 @@ def format_comparison_table(results: List[Dict[str, Any]]) -> str:
     lines.append("=" * 60)
     lines.append("COMPARISON RESULTS")
     lines.append("=" * 60)
-    lines.append(f"{'Configuration':<20} {'mIoU':>8} {'Px Acc':>8} {'Per Img':>10} {'Total':>10}")
+    lines.append(
+        f"{'Configuration':<20} {'mIoU':>8} {'Px Acc':>8} {'Per Img':>10} {'Total':>10}"
+    )
     lines.append("-" * 60)
 
     for item in results:
@@ -73,11 +75,12 @@ def config_to_dict(config) -> Dict[str, Any]:
         Dict with relevant config fields
     """
     return {
-        "version": config.version,
+        "clustering": config.clustering_method,
         "refine": config.refine,
         "model": config.model_display_name,
         "stride": config.stride,
         "elbow_threshold": config.elbow_threshold,
         "auto_k": config.auto_k,
         "fixed_k": config.n_clusters if not config.auto_k else None,
+        "supervised": config.supervised,
     }

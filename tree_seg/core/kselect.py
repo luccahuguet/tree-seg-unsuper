@@ -19,7 +19,9 @@ def maybe_run_pca(features_flat, use_pca: bool, pca_dim: int | None, verbose: bo
         features_flat_tensor = torch.tensor(features_flat, dtype=torch.float32)
         mean = features_flat_tensor.mean(dim=0)
         features_flat_centered = features_flat_tensor - mean
-        _U, _S, V = torch.pca_lowrank(features_flat_centered, q=effective_pca_dim, center=False)
+        _U, _S, V = torch.pca_lowrank(
+            features_flat_centered, q=effective_pca_dim, center=False
+        )
         features_flat = (features_flat_centered @ V[:, :effective_pca_dim]).numpy()
         if verbose:
             print(f"PCA-reduced features shape: {features_flat.shape}")

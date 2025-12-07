@@ -4,13 +4,15 @@ import argparse
 from pathlib import Path
 
 
-def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+def add_common_eval_arguments(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     """
     Add common evaluation arguments to an ArgumentParser.
-    
+
     Args:
         parser: ArgumentParser to add arguments to
-        
+
     Returns:
         Modified parser with common arguments added
     """
@@ -35,7 +37,15 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         "--clustering",
         type=str,
         default="slic",
-        choices=["kmeans", "slic", "slic-skimage", "bilateral", "gmm", "spectral", "hdbscan"],
+        choices=[
+            "kmeans",
+            "slic",
+            "slic-skimage",
+            "bilateral",
+            "gmm",
+            "spectral",
+            "hdbscan",
+        ],
         help="Clustering/refinement method (default: slic; use slic-skimage to force skimage SLIC)",
     )
 
@@ -74,7 +84,7 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         default=None,
         help="Fixed number of clusters (overrides auto K selection)",
     )
-    
+
     # V3-specific arguments
     parser.add_argument(
         "--apply-vegetation-filter",
@@ -87,7 +97,7 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
         type=float,
         default=0.10,
         help="ExG threshold for vegetation filtering (default: 0.10)",
-   )
+    )
 
     # Pyramid multi-scale feature extraction
     parser.add_argument(
@@ -164,13 +174,15 @@ def add_common_eval_arguments(parser: argparse.ArgumentParser) -> argparse.Argum
     return parser
 
 
-def add_comparison_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+def add_comparison_arguments(
+    parser: argparse.ArgumentParser,
+) -> argparse.ArgumentParser:
     """
     Add comparison/sweep mode arguments to an ArgumentParser.
-    
+
     Args:
         parser: ArgumentParser to add arguments to
-        
+
     Returns:
         Modified parser with comparison arguments added
     """

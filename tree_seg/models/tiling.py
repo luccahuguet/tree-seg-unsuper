@@ -14,10 +14,10 @@ import numpy as np
 class TileConfig:
     """Configuration for tile-based processing."""
 
-    tile_size: int = 2048            # Tile dimension (square)
-    overlap: int = 256               # Overlap between adjacent tiles
+    tile_size: int = 2048  # Tile dimension (square)
+    overlap: int = 256  # Overlap between adjacent tiles
     auto_tile_threshold: int = 2048  # Auto-enable tiling if image > this size
-    blend_mode: str = "linear"       # Blending mode: "linear" or "none"
+    blend_mode: str = "linear"  # Blending mode: "linear" or "none"
 
 
 @dataclass
@@ -25,10 +25,10 @@ class TileInfo:
     """Information about a single extracted tile."""
 
     tile_array: np.ndarray  # (H, W, 3) RGB tile
-    x_start: int            # Start x coordinate in full image
-    y_start: int            # Start y coordinate in full image
-    x_end: int              # End x coordinate in full image
-    y_end: int              # End y coordinate in full image
+    x_start: int  # Start x coordinate in full image
+    y_start: int  # Start y coordinate in full image
+    x_end: int  # End x coordinate in full image
+    y_end: int  # End y coordinate in full image
 
     @property
     def shape(self) -> Tuple[int, int]:
@@ -73,7 +73,9 @@ class TileManager:
         Returns:
             True if tiling is needed, False otherwise
         """
-        return h > self.config.auto_tile_threshold or w > self.config.auto_tile_threshold
+        return (
+            h > self.config.auto_tile_threshold or w > self.config.auto_tile_threshold
+        )
 
     def extract_tiles(self, image_np: np.ndarray) -> List[TileInfo]:
         """
@@ -104,16 +106,21 @@ class TileManager:
                 tile_array = image_np[y_start:y_end, x_start:x_end]
 
                 # Pad if tile is smaller than tile_size (edge case)
-                if tile_array.shape[0] < self.tile_size or tile_array.shape[1] < self.tile_size:
+                if (
+                    tile_array.shape[0] < self.tile_size
+                    or tile_array.shape[1] < self.tile_size
+                ):
                     tile_array = self._pad_tile(tile_array, self.tile_size)
 
-                tiles.append(TileInfo(
-                    tile_array=tile_array,
-                    x_start=x_start,
-                    y_start=y_start,
-                    x_end=x_end,
-                    y_end=y_end
-                ))
+                tiles.append(
+                    TileInfo(
+                        tile_array=tile_array,
+                        x_start=x_start,
+                        y_start=y_start,
+                        x_end=x_end,
+                        y_end=y_end,
+                    )
+                )
 
         return tiles
 
@@ -168,11 +175,7 @@ class TileManager:
         pad_w = target_size - w
 
         # Pad with edge values (reflection)
-        padded = np.pad(
-            tile,
-            ((0, pad_h), (0, pad_w), (0, 0)),
-            mode='edge'
-        )
+        padded = np.pad(tile, ((0, pad_h), (0, pad_w), (0, 0)), mode="edge")
 
         return padded
 
@@ -180,7 +183,7 @@ class TileManager:
         self,
         tile_features: List[np.ndarray],
         tile_coords: List[Tuple[int, int, int, int]],
-        output_shape: Tuple[int, int]
+        output_shape: Tuple[int, int],
     ) -> np.ndarray:
         """
         Stitch tile features with weighted blending in overlap regions.
@@ -233,7 +236,7 @@ class TileManager:
             # Compute 2D blend weights for this tile
             blend_weights = self._compute_2d_weights(
                 (actual_feat_h, actual_feat_w),
-                int(self.overlap / feat_scale_h)  # Overlap in feature space
+                int(self.overlap / feat_scale_h),  # Overlap in feature space
             )
 
             # Accumulate weighted features
@@ -247,7 +250,9 @@ class TileManager:
 
         return full_features
 
-    def _compute_2d_weights(self, tile_shape: Tuple[int, int], overlap: int) -> np.ndarray:
+    def _compute_2d_weights(
+        self, tile_shape: Tuple[int, int], overlap: int
+    ) -> np.ndarray:
         """
         Compute 2D weight map for a tile with linear tapering at edges.
 
@@ -298,10 +303,10 @@ class TileManager:
         x_positions = self._calculate_tile_positions(w)
 
         return {
-            'n_tiles': len(y_positions) * len(x_positions),
-            'n_tiles_y': len(y_positions),
-            'n_tiles_x': len(x_positions),
-            'tile_size': self.tile_size,
-            'overlap': self.overlap,
-            'stride': self.stride,
+            "n_tiles": len(y_positions) * len(x_positions),
+            "n_tiles_y": len(y_positions),
+            "n_tiles_x": len(x_positions),
+            "tile_size": self.tile_size,
+            "overlap": self.overlap,
+            "stride": self.stride,
         }

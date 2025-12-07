@@ -46,7 +46,9 @@ def _print_detail(meta: dict, show_config: bool) -> None:
     table.add_row("Mean Runtime (s)", f"{timing.get('mean_runtime_s', 0):.2f}")
     table.add_row("Total Runtime (s)", f"{timing.get('total_runtime_s', 0):.2f}")
     table.add_row("Samples", str(samples.get("num_samples", 0)))
-    table.add_row("Tags", ", ".join((tags.get("auto") or []) + (tags.get("user") or [])))
+    table.add_row(
+        "Tags", ", ".join((tags.get("auto") or []) + (tags.get("user") or []))
+    )
     if artifacts:
         art_lines = [f"{k}: {v}" for k, v in artifacts.items()]
         table.add_row("Artifacts", "\n".join(art_lines))
@@ -84,7 +86,9 @@ def _render_visualizations(meta: dict, base_dir: Path) -> None:
     config_full = meta.get("config_full") or meta.get("config")
 
     if not labels_dir or not dataset_root or not config_full:
-        console.print("[yellow]⚠️  Missing labels, dataset root, or config; cannot render.[/yellow]")
+        console.print(
+            "[yellow]⚠️  Missing labels, dataset root, or config; cannot render.[/yellow]"
+        )
         return
 
     labels_dir = Path(labels_dir)
@@ -114,7 +118,9 @@ def _render_visualizations(meta: dict, base_dir: Path) -> None:
         labels = data["labels"]
         img_path = _find_image_path(dataset_root, image_id)
         if img_path is None:
-            console.print(f"[yellow]⚠️  Could not find image for {image_id} under {dataset_root}[/yellow]")
+            console.print(
+                f"[yellow]⚠️  Could not find image for {image_id} under {dataset_root}[/yellow]"
+            )
             continue
         image_np = np.array(Image.open(img_path).convert("RGB"))
         n_clusters = int(labels.max()) + 1
@@ -136,7 +142,9 @@ def _render_visualizations(meta: dict, base_dir: Path) -> None:
         generate_visualizations(seg_result, cfg, output_paths)
         regenerated += 1
 
-    console.print(f"[green]✅ Regenerated visualizations for {regenerated}/{len(npz_files)} sample(s)[/green]")
+    console.print(
+        f"[green]✅ Regenerated visualizations for {regenerated}/{len(npz_files)} sample(s)[/green]"
+    )
 
 
 def results_command(
@@ -218,13 +226,17 @@ def results_command(
 
     if compact:
         removed = compact_index(base_dir=base_dir)
-        console.print(f"[green]🧹 Compacted index, removed {removed} stale entr{'y' if removed==1 else 'ies'}[/green]")
+        console.print(
+            f"[green]🧹 Compacted index, removed {removed} stale entr{'y' if removed == 1 else 'ies'}[/green]"
+        )
         if not hash_id and prune_days is None:
             return
 
     if prune_days is not None:
         removed = prune_older_than(prune_days, base_dir=base_dir)
-        console.print(f"[green]🗑️  Pruned {removed} entr{'y' if removed==1 else 'ies'} older than {prune_days}d[/green]")
+        console.print(
+            f"[green]🗑️  Pruned {removed} entr{'y' if removed == 1 else 'ies'} older than {prune_days}d[/green]"
+        )
         if not hash_id:
             return
 

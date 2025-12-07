@@ -12,7 +12,9 @@ TIER_SCALE = {"extreme": 0.6, "high": 1.0, "mid": 1.5, "low": 3.0}
 
 
 class RuntimeCache:
-    def __init__(self, cache_path: Path | str = ".cache/runtime_estimates.json") -> None:
+    def __init__(
+        self, cache_path: Path | str = ".cache/runtime_estimates.json"
+    ) -> None:
         self.cache_path = Path(cache_path)
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
         self._data = self._load()
@@ -42,9 +44,10 @@ class RuntimeCache:
             pass
 
     def make_key(self, config: Config) -> str:
+        method = "supervised" if config.supervised else config.clustering_method
         return "/".join(
             [
-                config.version,
+                method,
                 config.model_display_name,
                 f"stride{config.stride}",
                 f"tiling{'on' if config.use_tiling else 'off'}",
@@ -90,7 +93,9 @@ class RuntimeCache:
         if mean_runtime is None:
             return mean_runtime
         current_hw = _hardware_info()
-        current_tier = current_hw.get("gpu_tier") or _detect_gpu_tier(current_hw.get("gpu") or "CPU")
+        current_tier = current_hw.get("gpu_tier") or _detect_gpu_tier(
+            current_hw.get("gpu") or "CPU"
+        )
         cached_tier = cached_tier or "high"
         num = TIER_SCALE.get(current_tier, 1.0)
         den = TIER_SCALE.get(cached_tier, 1.0)

@@ -12,11 +12,13 @@ def get_preprocess(image_size: int = 518):
         image_size: Square resize dimension (e.g., 518, 896, 1024)
     """
     # DINOv3 uses standard ImageNet normalization
-    return Compose([
-        Resize((image_size, image_size)),
-        ToTensor(),
-        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    return Compose(
+        [
+            Resize((image_size, image_size)),
+            ToTensor(),
+            Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
 
 def init_model_and_preprocess(model_name, stride, device, image_size: int = 518):
@@ -26,13 +28,10 @@ def init_model_and_preprocess(model_name, stride, device, image_size: int = 518)
     """
     from .dinov3_adapter_final import create_dinov3_model
     import torch
-    
+
     model = create_dinov3_model(
-        model_name=model_name,
-        stride=stride,
-        device=device,
-        dtype=torch.float16
+        model_name=model_name, stride=stride, device=device, dtype=torch.float16
     )
     model.eval()
     preprocess = get_preprocess(image_size=image_size)
-    return model, preprocess 
+    return model, preprocess

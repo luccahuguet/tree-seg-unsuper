@@ -52,7 +52,9 @@ def query(
     return results
 
 
-def latest_by_tag(tag: str, limit: int = 5, base_dir: Path | str = "results") -> List[Dict]:
+def latest_by_tag(
+    tag: str, limit: int = 5, base_dir: Path | str = "results"
+) -> List[Dict]:
     """Return most recent entries containing the tag."""
     entries = query(tags=[tag], base_dir=base_dir)
     entries.sort(key=lambda x: x.get("created_at", ""), reverse=True)

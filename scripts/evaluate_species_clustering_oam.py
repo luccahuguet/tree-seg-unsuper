@@ -8,7 +8,7 @@ NOTE: This script does NOT use the generic BenchmarkRunner because OAM-TCD
 evaluation is fundamentally different:
 
 **Why OAM-TCD is separate:**
-1. **Different task**: Instance detection (individual trees) vs semantic 
+1. **Different task**: Instance detection (individual trees) vs semantic
    segmentation (pixel-level classes)
 2. **Different metrics**: Precision/Recall/F1 on tree instances vs mIoU on pixels
 3. **Different format**: HuggingFace datasets format vs standard image/label pairs
@@ -34,7 +34,7 @@ def run_v3_on_oam_tcd(
     dataset_path: str = "data/oam_tcd",
     output_dir: str = "data/oam_tcd/v3_predictions",
     max_samples: int = None,
-    exg_threshold: float = 0.10
+    exg_threshold: float = 0.10,
 ):
     """
     Run V3 species clustering on OAM-TCD test set.
@@ -51,7 +51,9 @@ def run_v3_on_oam_tcd(
     test_data = load_from_disk(str(test_path))
 
     num_samples = min(len(test_data), max_samples) if max_samples else len(test_data)
-    print(f"Processing {num_samples} test samples with V3 (ExG threshold: {exg_threshold})")
+    print(
+        f"Processing {num_samples} test samples with V3 (ExG threshold: {exg_threshold})"
+    )
 
     # Create output directory
     output_path = Path(output_dir)
@@ -63,7 +65,7 @@ def run_v3_on_oam_tcd(
         auto_k=True,
         elbow_threshold=5.0,  # Default
         v3_exg_threshold=exg_threshold,
-        verbose=False  # Quiet for batch processing
+        verbose=False,  # Quiet for batch processing
     )
     segmenter = TreeSegmentation(config)
 
@@ -71,13 +73,13 @@ def run_v3_on_oam_tcd(
     print("\nProcessing samples...")
     for idx in range(num_samples):
         sample = test_data[idx]
-        image_id = sample['image_id']
+        image_id = sample["image_id"]
 
         if (idx + 1) % 10 == 0:
-            print(f"  [{idx+1}/{num_samples}] Processing image {image_id}...")
+            print(f"  [{idx + 1}/{num_samples}] Processing image {image_id}...")
 
         # Get image and save temporarily
-        image_np = np.array(sample['image'])
+        image_np = np.array(sample["image"])
 
         # Save temp image
         temp_path = output_path / f"temp_{image_id}.jpg"
@@ -109,7 +111,7 @@ def evaluate_v3_results(
     dataset_path: str = "data/oam_tcd",
     predictions_dir: str = "data/oam_tcd/v3_predictions",
     output_json: str = "results/v3_oam_tcd_evaluation.json",
-    max_samples: int = None
+    max_samples: int = None,
 ):
     """
     Evaluate V3 predictions against OAM-TCD ground truth.
@@ -127,9 +129,7 @@ def evaluate_v3_results(
     # Run evaluation
     evaluator = OAMTCDEvaluator(dataset_path)
     results = evaluator.evaluate(
-        Path(predictions_dir),
-        iou_threshold=0.5,
-        max_samples=max_samples
+        Path(predictions_dir), iou_threshold=0.5, max_samples=max_samples
     )
 
     # Print metrics
@@ -139,7 +139,7 @@ def evaluate_v3_results(
     output_path = Path(output_json)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
 
     print(f"✓ Results saved to {output_path}")
@@ -152,27 +152,24 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Evaluate V3 on OAM-TCD")
     parser.add_argument(
-        "--dataset",
-        type=str,
-        default="data/oam_tcd",
-        help="Path to OAM-TCD dataset"
+        "--dataset", type=str, default="data/oam_tcd", help="Path to OAM-TCD dataset"
     )
     parser.add_argument(
         "--max-samples",
         type=int,
         default=None,
-        help="Max samples to process (default: all)"
+        help="Max samples to process (default: all)",
     )
     parser.add_argument(
         "--exg-threshold",
         type=float,
         default=0.10,
-        help="ExG threshold for vegetation filtering (default: 0.10)"
+        help="ExG threshold for vegetation filtering (default: 0.10)",
     )
     parser.add_argument(
         "--skip-inference",
         action="store_true",
-        help="Skip inference, only evaluate existing predictions"
+        help="Skip inference, only evaluate existing predictions",
     )
 
     args = parser.parse_args()
@@ -185,7 +182,7 @@ if __name__ == "__main__":
             dataset_path=args.dataset,
             output_dir=predictions_dir,
             max_samples=args.max_samples,
-            exg_threshold=args.exg_threshold
+            exg_threshold=args.exg_threshold,
         )
 
     # Evaluate
@@ -193,5 +190,5 @@ if __name__ == "__main__":
         dataset_path=args.dataset,
         predictions_dir=predictions_dir,
         output_json=f"results/v3_exg{args.exg_threshold}_oam_tcd.json",
-        max_samples=args.max_samples
+        max_samples=args.max_samples,
     )

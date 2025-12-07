@@ -18,23 +18,46 @@ from .features import extract_tiled_features, extract_features
 from .kselect import maybe_run_pca, clean_features
 
 
-def process_image(image_path, model, preprocess, n_clusters, stride, device,
-                 auto_k=False, k_range=(3, 10), elbow_threshold=0.035, use_pca=False, pca_dim=None,
-                 feature_upsample_factor: int = 1, refine: str | None = None,
-                 refine_slic_compactness: float = 10.0, refine_slic_sigma: float = 1.0,
-                 collect_metrics: bool = False, model_name=None, output_dir="data/output",
-                 verbose: bool = True, pipeline: str = "v1_5",
-                 apply_vegetation_filter: bool = False, exg_threshold: float = 0.10,
-                 use_tiling: bool = True, tile_size: int = 2048, tile_overlap: int = 256,
-                 tile_threshold: int = 2048, downsample_before_tiling: bool = False,
-                 clustering_method: str = "kmeans",
-                 use_multi_layer: bool = False, layer_indices: tuple = (3, 6, 9, 12),
-                 feature_aggregation: str = "concat",
-                 use_pyramid: bool = False, pyramid_scales: tuple = (0.5, 1.0, 2.0),
-                 pyramid_aggregation: str = "concat",
-                 use_soft_refine: bool = False, soft_refine_temperature: float = 1.0,
-                 soft_refine_iterations: int = 5, soft_refine_spatial_alpha: float = 0.0,
-                 use_attention_features: bool = True):
+def process_image(
+    image_path,
+    model,
+    preprocess,
+    n_clusters,
+    stride,
+    device,
+    auto_k=False,
+    k_range=(3, 10),
+    elbow_threshold=0.035,
+    use_pca=False,
+    pca_dim=None,
+    feature_upsample_factor: int = 1,
+    refine: str | None = None,
+    refine_slic_compactness: float = 10.0,
+    refine_slic_sigma: float = 1.0,
+    collect_metrics: bool = False,
+    model_name=None,
+    output_dir="data/output",
+    verbose: bool = True,
+    apply_vegetation_filter: bool = False,
+    exg_threshold: float = 0.10,
+    use_tiling: bool = True,
+    tile_size: int = 2048,
+    tile_overlap: int = 256,
+    tile_threshold: int = 2048,
+    downsample_before_tiling: bool = False,
+    clustering_method: str = "kmeans",
+    use_multi_layer: bool = False,
+    layer_indices: tuple = (3, 6, 9, 12),
+    feature_aggregation: str = "concat",
+    use_pyramid: bool = False,
+    pyramid_scales: tuple = (0.5, 1.0, 2.0),
+    pyramid_aggregation: str = "concat",
+    use_soft_refine: bool = False,
+    soft_refine_temperature: float = 1.0,
+    soft_refine_iterations: int = 5,
+    soft_refine_spatial_alpha: float = 0.0,
+    use_attention_features: bool = True,
+):
     """
     Process a single image for tree segmentation.
 
@@ -82,7 +105,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
 
         # Optional downsampling before tiling
         if downsample_before_tiling and (h > tile_threshold or w > tile_threshold):
-            image_np = cv2.resize(image_np, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
+            image_np = cv2.resize(
+                image_np, (w // 2, h // 2), interpolation=cv2.INTER_AREA
+            )
             h, w = image_np.shape[:2]
             if verbose:
                 print(f"Downsampled to: {w}x{h}")
@@ -90,7 +115,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         # Pyramid features require tiling to be disabled
         if use_pyramid:
             if use_tiling and verbose:
-                print("⚠️  Pyramid mode: disabling tiling for multi-scale feature extraction")
+                print(
+                    "⚠️  Pyramid mode: disabling tiling for multi-scale feature extraction"
+                )
             use_tiling = False
 
         # Decide if tiling is needed
@@ -100,7 +127,7 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
             tile_size=tile_size,
             overlap=tile_overlap,
             auto_tile_threshold=tile_threshold,
-            blend_mode="linear"
+            blend_mode="linear",
         )
         tile_manager = TileManager(tile_config)
         needs_tiling = use_tiling and tile_manager.should_tile(h, w)
@@ -111,10 +138,14 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
             grid_info = tile_manager.get_grid_info(h, w)
             print("🔲 Using tile-based processing:")
             print(f"   Tile size: {tile_size}×{tile_size}, Overlap: {tile_overlap}px")
-            print(f"   Grid: {grid_info['n_tiles_y']}×{grid_info['n_tiles_x']} = {grid_info['n_tiles']} tiles")
+            print(
+                f"   Grid: {grid_info['n_tiles_y']}×{grid_info['n_tiles_x']} = {grid_info['n_tiles']} tiles"
+            )
         elif verbose:
             if use_pyramid:
-                print(f"🔺 Using pyramid processing at {len(pyramid_scales)} scales: {pyramid_scales}")
+                print(
+                    f"🔺 Using pyramid processing at {len(pyramid_scales)} scales: {pyramid_scales}"
+                )
             else:
                 print("Using full-image processing (no tiling)")
 
@@ -161,12 +192,18 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         # Optional upsampling of the feature grid for smoother segmentation
         if isinstance(feature_upsample_factor, int) and feature_upsample_factor > 1:
             up_h, up_w = H * feature_upsample_factor, W * feature_upsample_factor
-            features_np = cv2.resize(features_np, (up_w, up_h), interpolation=cv2.INTER_LINEAR)
+            features_np = cv2.resize(
+                features_np, (up_w, up_h), interpolation=cv2.INTER_LINEAR
+            )
             H, W = up_h, up_w
             if verbose:
                 print(f"Upsampled features to: {H}x{W}")
 
-        if use_pyramid and pyramid_aggregation == "concat" and features_np.shape[-1] > 1536:
+        if (
+            use_pyramid
+            and pyramid_aggregation == "concat"
+            and features_np.shape[-1] > 1536
+        ):
             H_pyr, W_pyr, D_pyr = features_np.shape
             features_flat_pca = features_np.reshape(-1, D_pyr)
             from sklearn.decomposition import PCA
@@ -176,7 +213,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
             features_np = features_reduced.reshape(H_pyr, W_pyr, 1536)
             if verbose:
                 explained_var = pca.explained_variance_ratio_.sum() * 100
-                print(f"   PCA reduced {D_pyr}D → 1536D ({explained_var:.1f}% variance)")
+                print(
+                    f"   PCA reduced {D_pyr}D → 1536D ({explained_var:.1f}% variance)"
+                )
 
         features_flat = features_np.reshape(-1, features_np.shape[-1])
         if verbose:
@@ -190,7 +229,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         if auto_k:
             if verbose:
                 print("\n--- Automatic K Selection using elbow method ---")
-            optimal_k, k_scores = find_optimal_k_elbow(features_flat, k_range, elbow_threshold * 100)
+            optimal_k, k_scores = find_optimal_k_elbow(
+                features_flat, k_range, elbow_threshold * 100
+            )
 
             if verbose:
                 print(f"Selected optimal K = {optimal_k}")
@@ -200,8 +241,18 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
             # Use png subdirectory to match OutputManager expectations
             png_output_dir = os.path.join(output_dir, "png")
             os.makedirs(png_output_dir, exist_ok=True)
-            plot_elbow_analysis(k_scores, png_output_dir, output_prefix, elbow_threshold * 100,
-                               model_name, "n/a", stride, optimal_k, auto_k, image_path_str)
+            plot_elbow_analysis(
+                k_scores,
+                png_output_dir,
+                output_prefix,
+                elbow_threshold * 100,
+                model_name,
+                "n/a",
+                stride,
+                optimal_k,
+                auto_k,
+                image_path_str,
+            )
 
             n_clusters = optimal_k
             k_requested = int(optimal_k)
@@ -226,7 +277,9 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         # V2: Optional soft EM refinement in feature space
         if use_soft_refine:
             if verbose:
-                print(f"🔬 Refining with soft EM (τ={soft_refine_temperature}, iter={soft_refine_iterations}, α={soft_refine_spatial_alpha})...")
+                print(
+                    f"🔬 Refining with soft EM (τ={soft_refine_temperature}, iter={soft_refine_iterations}, α={soft_refine_spatial_alpha})..."
+                )
             from tree_seg.clustering.head_refine import soft_em_refine
 
             labels = soft_em_refine(
@@ -264,28 +317,26 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
         )
         t_refine_end = t_refine_start + refine_time
 
-        # Vegetation filtering (if enabled - works with any pipeline)
-        # Automatically enabled for V3 pipeline for backward compatibility
-        should_apply_filter = apply_vegetation_filter or (pipeline == "v3")
-        
+        # Vegetation filtering (if enabled)
+        should_apply_filter = apply_vegetation_filter
+
         if should_apply_filter:
             if verbose:
-                print("🌳 Applying vegetation filtering (ExG-based cluster selection)...")
+                print(
+                    "🌳 Applying vegetation filtering (ExG-based cluster selection)..."
+                )
             labels_resized = apply_vegetation_filter_fn(
-                image_np,
-                labels_resized,
-                exg_threshold=exg_threshold,
-                verbose=verbose
+                image_np, labels_resized, exg_threshold=exg_threshold, verbose=verbose
             )
 
         # Info / Metrics
-        metrics = {'k_requested': k_requested}
+        metrics = {"k_requested": k_requested}
         if collect_metrics:
             t_end = time.perf_counter()
             peak_vram_mb = None
             if torch.cuda.is_available():
                 try:
-                    peak_vram_mb = torch.cuda.max_memory_allocated(device) / (1024 ** 2)
+                    peak_vram_mb = torch.cuda.max_memory_allocated(device) / (1024**2)
                 except Exception:
                     peak_vram_mb = None
             metrics.update(
@@ -309,11 +360,17 @@ def process_image(image_path, model, preprocess, n_clusters, stride, device,
                 )
             )
 
-        return (image_np, labels_resized, metrics) if collect_metrics else (image_np, labels_resized)
+        return (
+            (image_np, labels_resized, metrics)
+            if collect_metrics
+            else (image_np, labels_resized)
+        )
 
     except Exception as e:
         # Use image_path_str if available, otherwise fallback to image_path
-        path_for_error = image_path_str if 'image_path_str' in locals() else str(image_path)
+        path_for_error = (
+            image_path_str if "image_path_str" in locals() else str(image_path)
+        )
         if verbose:
             print(f"Error processing {path_for_error}: {e}")
             traceback.print_exc()

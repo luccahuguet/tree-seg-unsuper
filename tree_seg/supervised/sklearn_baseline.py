@@ -1,17 +1,19 @@
 """Supervised baselines on DINOv3 features (sklearn + PyTorch heads)."""
 
-import copy
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
-import torch
-from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
-from torch import nn
-from torch.utils.data import DataLoader, TensorDataset
 
 from tree_seg.evaluation.benchmark import BenchmarkResults
 from tree_seg.supervised.utils import (
@@ -94,7 +96,7 @@ def evaluate_sklearn_baseline(
         all_masks_resized,
         num_classes,
         dataset_name,
-    ignore_idx,
+        ignore_idx,
     ) = load_and_extract_features(
         dataset_path=dataset_path,
         model_name=model_name,

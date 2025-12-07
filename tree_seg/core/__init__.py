@@ -5,10 +5,10 @@ from .types import Config, SegmentationResults, ElbowAnalysisResults, OutputPath
 from .output_manager import OutputManager
 
 __all__ = [
-    'process_image',
-    'Config',
-    'SegmentationResults',
-    'ElbowAnalysisResults', 
-    'OutputPaths',
-    'OutputManager'
+    "process_image",
+    "Config",
+    "SegmentationResults",
+    "ElbowAnalysisResults",
+    "OutputPaths",
+    "OutputManager",
 ]

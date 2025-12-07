@@ -58,7 +58,6 @@ def run_segmentation_numpy(
         model_name=config.model_display_name,
         output_dir=config.output_dir,
         verbose=config.verbose,
-        pipeline=config.version,
         apply_vegetation_filter=config.apply_vegetation_filter,
         exg_threshold=config.exg_threshold,
         use_tiling=config.use_tiling,

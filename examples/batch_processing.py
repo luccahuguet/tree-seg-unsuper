@@ -15,7 +15,7 @@ config = Config(
     model_name="base",
     auto_k=True,
     elbow_threshold=5.0,
-    web_optimize=True  # Auto-optimize for web
+    web_optimize=True,  # Auto-optimize for web
 )
 
 segmenter = TreeSegmentation(config)
@@ -42,7 +42,7 @@ by_image = defaultdict(list)
 for file_path in all_outputs:
     filename = os.path.basename(file_path)
     # Extract hash (first part before underscore)
-    hash_part = filename.split('_')[0]
+    hash_part = filename.split("_")[0]
     by_image[hash_part].append(filename)
 
 print(f"📸 Processed {len(by_image)} unique images:")

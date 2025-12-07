@@ -185,7 +185,7 @@ def _config_to_hash_config(
         "soft_refine_temperature": config.soft_refine_temperature,
         "soft_refine_iterations": config.soft_refine_iterations,
         "vegetation_filter": config.apply_vegetation_filter,
-        "supervised": config.version == "v4",
+        "supervised": config.supervised,
         "stride": config.stride,
         "tiling": config.use_tiling,
         "tile_overlap": getattr(config, "tile_overlap", 0),
@@ -326,7 +326,9 @@ def store_segment_run(
     _ensure_dir(by_hash_dir)
 
     dataset_id = input_path.name if input_path.is_dir() else input_path.parent.name
-    hash_config = _config_to_hash_config(config, dataset_id, smart_k=False, grid_label=None)
+    hash_config = _config_to_hash_config(
+        config, dataset_id, smart_k=False, grid_label=None
+    )
     normalized = normalize_config(hash_config)
     hash_id = config_hash(normalized)
 
@@ -346,7 +348,9 @@ def store_segment_run(
         total_runtime += runtime
         sample_entries.append(
             {
-                "image_id": Path(seg_result.image_path).stem if seg_result.image_path else None,
+                "image_id": Path(seg_result.image_path).stem
+                if seg_result.image_path
+                else None,
                 "n_clusters_used": seg_result.n_clusters_used,
                 "runtime_seconds": runtime,
                 "stats": stats,

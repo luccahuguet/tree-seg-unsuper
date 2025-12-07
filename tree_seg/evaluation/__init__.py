@@ -1,6 +1,10 @@
 """Evaluation module for benchmarking segmentation methods."""
 
-from tree_seg.evaluation.benchmark import BenchmarkResults, BenchmarkRunner, run_benchmark
+from tree_seg.evaluation.benchmark import (
+    BenchmarkResults,
+    BenchmarkRunner,
+    run_benchmark,
+)
 from tree_seg.evaluation.datasets import ISPRSPotsdamDataset, load_isprs_potsdam
 from tree_seg.evaluation.metrics import (
     EvaluationResults,

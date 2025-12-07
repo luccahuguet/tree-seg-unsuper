@@ -88,7 +88,9 @@ def hungarian_matching(
     return mapping, confusion
 
 
-def apply_cluster_mapping(pred_labels: np.ndarray, mapping: Dict[int, int]) -> np.ndarray:
+def apply_cluster_mapping(
+    pred_labels: np.ndarray, mapping: Dict[int, int]
+) -> np.ndarray:
     """
     Apply cluster-to-class mapping to predicted labels.
 
@@ -106,7 +108,10 @@ def apply_cluster_mapping(pred_labels: np.ndarray, mapping: Dict[int, int]) -> n
 
 
 def compute_iou_per_class(
-    pred_labels: np.ndarray, gt_labels: np.ndarray, num_classes: int, ignore_index: int = -1
+    pred_labels: np.ndarray,
+    gt_labels: np.ndarray,
+    num_classes: int,
+    ignore_index: int = -1,
 ) -> Dict[int, float]:
     """
     Compute Intersection over Union (IoU) for each class.
@@ -153,7 +158,10 @@ def compute_iou_per_class(
 
 
 def compute_miou(
-    pred_labels: np.ndarray, gt_labels: np.ndarray, num_classes: int, ignore_index: int = -1
+    pred_labels: np.ndarray,
+    gt_labels: np.ndarray,
+    num_classes: int,
+    ignore_index: int = -1,
 ) -> float:
     """
     Compute mean Intersection over Union (mIoU) across all classes.
@@ -167,7 +175,9 @@ def compute_miou(
     Returns:
         Mean IoU score
     """
-    iou_per_class = compute_iou_per_class(pred_labels, gt_labels, num_classes, ignore_index)
+    iou_per_class = compute_iou_per_class(
+        pred_labels, gt_labels, num_classes, ignore_index
+    )
     return np.mean(list(iou_per_class.values()))
 
 
@@ -206,7 +216,10 @@ def compute_pixel_accuracy(
 
 
 def compute_pixel_accuracy_per_class(
-    pred_labels: np.ndarray, gt_labels: np.ndarray, num_classes: int, ignore_index: int = -1
+    pred_labels: np.ndarray,
+    gt_labels: np.ndarray,
+    num_classes: int,
+    ignore_index: int = -1,
 ) -> Dict[int, float]:
     """
     Compute pixel accuracy for each class individually.

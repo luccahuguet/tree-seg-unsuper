@@ -52,7 +52,15 @@ def download_dataset(dataset_id: str, download_path: Path):
     try:
         # Use subprocess to call kaggle CLI
         result = subprocess.run(
-            ["kaggle", "datasets", "download", "-d", dataset_id, "-p", str(download_path)],
+            [
+                "kaggle",
+                "datasets",
+                "download",
+                "-d",
+                dataset_id,
+                "-p",
+                str(download_path),
+            ],
             capture_output=True,
             text=True,
             check=True,
@@ -84,7 +92,7 @@ def extract_dataset(download_path: Path):
     for zip_path in zip_files:
         print(f"   Extracting: {zip_path.name}")
         try:
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            with zipfile.ZipFile(zip_path, "r") as zip_ref:
                 zip_ref.extractall(download_path)
             print(f"   ✓ Extracted {zip_path.name}")
         except Exception as e:
@@ -117,7 +125,9 @@ def organize_files(download_path: Path):
         all_files.extend(download_path.glob(pattern))
 
     # Filter out files already in images/ or labels/
-    all_files = [f for f in all_files if "images" not in f.parts and "labels" not in f.parts]
+    all_files = [
+        f for f in all_files if "images" not in f.parts and "labels" not in f.parts
+    ]
 
     if not all_files:
         print("⚠ No image files found to organize")
@@ -209,7 +219,9 @@ def verify_dataset(dataset_path: Path):
     print(f"   Location: {dataset_path.absolute()}")
     print("\nNext steps:")
     print("   1. Run tests: uv run python scripts/test_benchmark.py")
-    print("   2. Run benchmark: uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --num-samples 5")
+    print(
+        "   2. Run benchmark: uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --num-samples 5"
+    )
 
     return True
 
@@ -279,7 +291,9 @@ def main():
 
     # Step 6: Verify
     if not verify_dataset(args.output_dir):
-        print("\n⚠ Dataset verification failed. You may need to manually organize the files.")
+        print(
+            "\n⚠ Dataset verification failed. You may need to manually organize the files."
+        )
         print(f"   See: {args.output_dir / 'README.md'}")
         return 1
 

@@ -15,12 +15,14 @@ def _generate_full_factorial() -> List[Dict]:
             for refine in refinements:
                 refine_str = "slic" if refine else "km"
                 label = f"{model}_e{threshold:.1f}_{refine_str}".replace(".", "-")
-                configs.append({
-                    "model_name": model,
-                    "elbow_threshold": threshold,
-                    "refine": refine,
-                    "label": label,
-                })
+                configs.append(
+                    {
+                        "model_name": model,
+                        "elbow_threshold": threshold,
+                        "refine": refine,
+                        "label": label,
+                    }
+                )
     return configs
 
 
@@ -49,15 +51,55 @@ GRIDS = {
         "description": "Focused exploration of best-performing combinations",
         "configs": [
             # small model × top thresholds × both refinements
-            {"model_name": "small", "elbow_threshold": 10.0, "refine": None, "label": "small_e10_km"},
-            {"model_name": "small", "elbow_threshold": 10.0, "refine": "slic", "label": "small_e10_slic"},
-            {"model_name": "small", "elbow_threshold": 20.0, "refine": None, "label": "small_e20_km"},
-            {"model_name": "small", "elbow_threshold": 20.0, "refine": "slic", "label": "small_e20_slic"},
+            {
+                "model_name": "small",
+                "elbow_threshold": 10.0,
+                "refine": None,
+                "label": "small_e10_km",
+            },
+            {
+                "model_name": "small",
+                "elbow_threshold": 10.0,
+                "refine": "slic",
+                "label": "small_e10_slic",
+            },
+            {
+                "model_name": "small",
+                "elbow_threshold": 20.0,
+                "refine": None,
+                "label": "small_e20_km",
+            },
+            {
+                "model_name": "small",
+                "elbow_threshold": 20.0,
+                "refine": "slic",
+                "label": "small_e20_slic",
+            },
             # base model × top thresholds × both refinements
-            {"model_name": "base", "elbow_threshold": 10.0, "refine": None, "label": "base_e10_km"},
-            {"model_name": "base", "elbow_threshold": 10.0, "refine": "slic", "label": "base_e10_slic"},
-            {"model_name": "base", "elbow_threshold": 20.0, "refine": None, "label": "base_e20_km"},
-            {"model_name": "base", "elbow_threshold": 20.0, "refine": "slic", "label": "base_e20_slic"},
+            {
+                "model_name": "base",
+                "elbow_threshold": 10.0,
+                "refine": None,
+                "label": "base_e10_km",
+            },
+            {
+                "model_name": "base",
+                "elbow_threshold": 10.0,
+                "refine": "slic",
+                "label": "base_e10_slic",
+            },
+            {
+                "model_name": "base",
+                "elbow_threshold": 20.0,
+                "refine": None,
+                "label": "base_e20_km",
+            },
+            {
+                "model_name": "base",
+                "elbow_threshold": 20.0,
+                "refine": "slic",
+                "label": "base_e20_slic",
+            },
         ],
     },
     "full": {
@@ -70,15 +112,63 @@ GRIDS = {
         "description": "Evaluate tiling performance: tiling on/off × base/large × stride 4/2",
         "configs": [
             # No tiling
-            {"model_name": "base", "stride": 4, "use_tiling": False, "refine": "slic", "label": "notile_base_s4"},
-            {"model_name": "base", "stride": 2, "use_tiling": False, "refine": "slic", "label": "notile_base_s2"},
-            {"model_name": "large", "stride": 4, "use_tiling": False, "refine": "slic", "label": "notile_large_s4"},
-            {"model_name": "large", "stride": 2, "use_tiling": False, "refine": "slic", "label": "notile_large_s2"},
+            {
+                "model_name": "base",
+                "stride": 4,
+                "use_tiling": False,
+                "refine": "slic",
+                "label": "notile_base_s4",
+            },
+            {
+                "model_name": "base",
+                "stride": 2,
+                "use_tiling": False,
+                "refine": "slic",
+                "label": "notile_base_s2",
+            },
+            {
+                "model_name": "large",
+                "stride": 4,
+                "use_tiling": False,
+                "refine": "slic",
+                "label": "notile_large_s4",
+            },
+            {
+                "model_name": "large",
+                "stride": 2,
+                "use_tiling": False,
+                "refine": "slic",
+                "label": "notile_large_s2",
+            },
             # With tiling
-            {"model_name": "base", "stride": 4, "use_tiling": True, "refine": "slic", "label": "tile_base_s4"},
-            {"model_name": "base", "stride": 2, "use_tiling": True, "refine": "slic", "label": "tile_base_s2"},
-            {"model_name": "large", "stride": 4, "use_tiling": True, "refine": "slic", "label": "tile_large_s4"},
-            {"model_name": "large", "stride": 2, "use_tiling": True, "refine": "slic", "label": "tile_large_s2"},
+            {
+                "model_name": "base",
+                "stride": 4,
+                "use_tiling": True,
+                "refine": "slic",
+                "label": "tile_base_s4",
+            },
+            {
+                "model_name": "base",
+                "stride": 2,
+                "use_tiling": True,
+                "refine": "slic",
+                "label": "tile_base_s2",
+            },
+            {
+                "model_name": "large",
+                "stride": 4,
+                "use_tiling": True,
+                "refine": "slic",
+                "label": "tile_large_s4",
+            },
+            {
+                "model_name": "large",
+                "stride": 2,
+                "use_tiling": True,
+                "refine": "slic",
+                "label": "tile_large_s2",
+            },
         ],
     },
     "tiling_refine": {
@@ -109,7 +199,11 @@ GRIDS = {
             {"clustering_method": "gmm", "refine": "slic", "label": "gmm_slic"},
             # Spectral
             {"clustering_method": "spectral", "refine": None, "label": "spectral"},
-            {"clustering_method": "spectral", "refine": "slic", "label": "spectral_slic"},
+            {
+                "clustering_method": "spectral",
+                "refine": "slic",
+                "label": "spectral_slic",
+            },
         ],
     },
     "slic_params": {
@@ -117,23 +211,68 @@ GRIDS = {
         "description": "Optimize SLIC compactness and sigma parameters",
         "configs": [
             # Baseline
-            {"refine": "slic", "refine_slic_compactness": 10.0, "refine_slic_sigma": 1.0, "label": "slic_c10_s1.0"},
+            {
+                "refine": "slic",
+                "refine_slic_compactness": 10.0,
+                "refine_slic_sigma": 1.0,
+                "label": "slic_c10_s1.0",
+            },
             # Vary compactness (sigma=1.0)
-            {"refine": "slic", "refine_slic_compactness": 5.0, "refine_slic_sigma": 1.0, "label": "slic_c5_s1.0"},
-            {"refine": "slic", "refine_slic_compactness": 20.0, "refine_slic_sigma": 1.0, "label": "slic_c20_s1.0"},
+            {
+                "refine": "slic",
+                "refine_slic_compactness": 5.0,
+                "refine_slic_sigma": 1.0,
+                "label": "slic_c5_s1.0",
+            },
+            {
+                "refine": "slic",
+                "refine_slic_compactness": 20.0,
+                "refine_slic_sigma": 1.0,
+                "label": "slic_c20_s1.0",
+            },
             # Vary sigma (compactness=10.0)
-            {"refine": "slic", "refine_slic_compactness": 10.0, "refine_slic_sigma": 0.5, "label": "slic_c10_s0.5"},
-            {"refine": "slic", "refine_slic_compactness": 10.0, "refine_slic_sigma": 2.0, "label": "slic_c10_s2.0"},
+            {
+                "refine": "slic",
+                "refine_slic_compactness": 10.0,
+                "refine_slic_sigma": 0.5,
+                "label": "slic_c10_s0.5",
+            },
+            {
+                "refine": "slic",
+                "refine_slic_compactness": 10.0,
+                "refine_slic_sigma": 2.0,
+                "label": "slic_c10_s2.0",
+            },
         ],
     },
     "tile_overlap": {
         "name": "Tile Overlap Sweep",
         "description": "Vary tile overlap to reduce stitching artifacts (tiling on, base model, stride 4)",
         "configs": [
-            {"use_tiling": True, "tile_overlap": 128, "refine": "slic", "label": "overlap_128"},
-            {"use_tiling": True, "tile_overlap": 256, "refine": "slic", "label": "overlap_256"},  # baseline
-            {"use_tiling": True, "tile_overlap": 384, "refine": "slic", "label": "overlap_384"},
-            {"use_tiling": True, "tile_overlap": 512, "refine": "slic", "label": "overlap_512"},
+            {
+                "use_tiling": True,
+                "tile_overlap": 128,
+                "refine": "slic",
+                "label": "overlap_128",
+            },
+            {
+                "use_tiling": True,
+                "tile_overlap": 256,
+                "refine": "slic",
+                "label": "overlap_256",
+            },  # baseline
+            {
+                "use_tiling": True,
+                "tile_overlap": 384,
+                "refine": "slic",
+                "label": "overlap_384",
+            },
+            {
+                "use_tiling": True,
+                "tile_overlap": 512,
+                "refine": "slic",
+                "label": "overlap_512",
+            },
         ],
     },
 }

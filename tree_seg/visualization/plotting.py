@@ -15,7 +15,9 @@ from .composites import overlay_labels
 from .overlay import generate_edge_overlay, generate_side_by_side
 
 
-def generate_visualizations(results: SegmentationResults, config: Config, output_paths: OutputPaths) -> None:
+def generate_visualizations(
+    results: SegmentationResults, config: Config, output_paths: OutputPaths
+) -> None:
     """Generate all visualizations using modern architecture."""
     verbose = getattr(config, "verbose", True)
     if not results.success:
@@ -24,13 +26,14 @@ def generate_visualizations(results: SegmentationResults, config: Config, output
         return
 
     filename = os.path.basename(results.image_path)
+    method_name = "supervised" if config.supervised else config.clustering_method
     config_text = get_config_text(
         results.n_clusters_used,
         config.overlay_ratio,
         config.stride,
         config.model_display_name,
         filename,
-        config.version,
+        method_name,
         config.edge_width,
         config.elbow_threshold if config.auto_k else None,
         n_clusters_requested=results.n_clusters_requested,
@@ -44,7 +47,9 @@ def generate_visualizations(results: SegmentationResults, config: Config, output
     else:
         cmap = plt.get_cmap("viridis", n_clusters)
 
-    _generate_segmentation_legend(results, config, output_paths, cmap, config_text, verbose)
+    _generate_segmentation_legend(
+        results, config, output_paths, cmap, config_text, verbose
+    )
     generate_edge_overlay(results, config, output_paths, cmap, config_text, verbose)
     generate_side_by_side(results, config, output_paths, cmap, config_text, verbose)
     _generate_overlay(results, config, output_paths, verbose)
@@ -53,7 +58,12 @@ def generate_visualizations(results: SegmentationResults, config: Config, output
         print(f"✅ Generated visualizations for {filename}")
 
 
-def _generate_overlay(results: SegmentationResults, config: Config, output_paths: OutputPaths, verbose: bool = True) -> None:
+def _generate_overlay(
+    results: SegmentationResults,
+    config: Config,
+    output_paths: OutputPaths,
+    verbose: bool = True,
+) -> None:
     """Generate simple overlay image via composites helper."""
     if config.overlay_ratio <= 0:
         return
@@ -79,8 +89,12 @@ def _generate_segmentation_legend(
     """Generate segmentation map with legend."""
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    im = ax.imshow(results.labels_resized, cmap=cmap, vmin=0, vmax=results.n_clusters_used - 1)
-    cbar = plt.colorbar(im, ax=ax, ticks=range(results.n_clusters_used), shrink=0.3, aspect=15)
+    im = ax.imshow(
+        results.labels_resized, cmap=cmap, vmin=0, vmax=results.n_clusters_used - 1
+    )
+    cbar = plt.colorbar(
+        im, ax=ax, ticks=range(results.n_clusters_used), shrink=0.3, aspect=15
+    )
     cbar.ax.set_yticklabels([f"Cluster {i}" for i in range(results.n_clusters_used)])
     cbar.ax.tick_params(labelsize=6)
 
@@ -97,7 +111,12 @@ def _generate_segmentation_legend(
     )
 
     plt.tight_layout()
-    plt.savefig(output_paths.segmentation_legend, bbox_inches="tight", pad_inches=0.1, dpi=DPI_SEGMENTATION)
+    plt.savefig(
+        output_paths.segmentation_legend,
+        bbox_inches="tight",
+        pad_inches=0.1,
+        dpi=DPI_SEGMENTATION,
+    )
     plt.close()
 
     if verbose:

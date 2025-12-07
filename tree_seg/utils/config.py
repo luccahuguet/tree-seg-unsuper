@@ -2,13 +2,14 @@
 Configuration utilities for tree segmentation.
 """
 
+
 def parse_model_info(model_name):
     """
     Parse model name to extract base name, nickname, and version.
-    
+
     Args:
         model_name: String like "dinov2_vits14", "dinov2_vitb14", etc.
-        
+
     Returns:
         tuple: (base_name, nickname, version)
     """
@@ -26,7 +27,7 @@ def parse_model_info(model_name):
     else:
         base_name = model_name
         version = "v1"
-    
+
     # Extract size nickname
     if "vits" in name:
         nickname = "Small"
@@ -40,17 +41,26 @@ def parse_model_info(model_name):
         nickname = "Mega"
     else:
         nickname = "Unknown"
-    
+
     return base_name, nickname, version
 
 
-def get_config_text(n_clusters_used, overlay_ratio, stride, model_name, filename, version, edge_width,
-                    elbow_threshold=None, n_clusters_requested: int | None = None):
+def get_config_text(
+    n_clusters_used,
+    overlay_ratio,
+    stride,
+    model_name,
+    filename,
+    version,
+    edge_width,
+    elbow_threshold=None,
+    n_clusters_requested: int | None = None,
+):
     """
     Generate a configuration text block for plots.
     """
     base_name, nickname, model_version = parse_model_info(model_name)
-    
+
     # Clusters line: show used, and requested if different/available
     if n_clusters_requested is not None and n_clusters_requested != n_clusters_used:
         k_line = f"Clusters (k): {n_clusters_used} (requested {n_clusters_requested})"
@@ -66,7 +76,7 @@ def get_config_text(n_clusters_used, overlay_ratio, stride, model_name, filename
         f"Overlay Ratio: {overlay_ratio}\n"
         f"Edge Width: {edge_width}"
     )
-    
+
     if elbow_threshold is not None:
         config_text += f"\nElbow Threshold: {elbow_threshold}"
-    return config_text 
+    return config_text

@@ -45,18 +45,18 @@ class TreeDetectionMetrics:
     def to_dict(self) -> Dict:
         """Convert to dictionary."""
         return {
-            'precision': self.precision,
-            'recall': self.recall,
-            'f1_score': self.f1_score,
-            'mean_iou': self.mean_iou,
-            'median_iou': self.median_iou,
-            'ap_50': self.ap_50,
-            'ap_75': self.ap_75,
-            'num_predictions': self.num_predictions,
-            'num_ground_truth': self.num_ground_truth,
-            'true_positives': self.true_positives,
-            'false_positives': self.false_positives,
-            'false_negatives': self.false_negatives,
+            "precision": self.precision,
+            "recall": self.recall,
+            "f1_score": self.f1_score,
+            "mean_iou": self.mean_iou,
+            "median_iou": self.median_iou,
+            "ap_50": self.ap_50,
+            "ap_75": self.ap_75,
+            "num_predictions": self.num_predictions,
+            "num_ground_truth": self.num_ground_truth,
+            "true_positives": self.true_positives,
+            "false_positives": self.false_positives,
+            "false_negatives": self.false_negatives,
         }
 
 
@@ -101,9 +101,7 @@ def compute_iou(mask1: np.ndarray, mask2: np.ndarray) -> float:
 
 
 def match_predictions_to_ground_truth(
-    pred_masks: List[np.ndarray],
-    gt_masks: List[np.ndarray],
-    iou_threshold: float = 0.5
+    pred_masks: List[np.ndarray], gt_masks: List[np.ndarray], iou_threshold: float = 0.5
 ) -> Tuple[List[Tuple[int, int, float]], List[int], List[int]]:
     """Match predicted instances to ground truth using Hungarian matching.
 
@@ -159,9 +157,7 @@ def match_predictions_to_ground_truth(
 
 
 def evaluate_sample(
-    pred_mask: np.ndarray,
-    gt_annotations: List[Dict],
-    iou_threshold: float = 0.5
+    pred_mask: np.ndarray, gt_annotations: List[Dict], iou_threshold: float = 0.5
 ) -> TreeDetectionMetrics:
     """Evaluate tree detection on a single sample.
 
@@ -181,11 +177,11 @@ def evaluate_sample(
     pred_masks = [pred_mask == pid for pid in pred_ids]
 
     # Extract ground truth trees (category_id == 1)
-    gt_trees = [ann for ann in gt_annotations if ann.get('category_id') == 1]
+    gt_trees = [ann for ann in gt_annotations if ann.get("category_id") == 1]
     gt_masks = []
 
     for ann in gt_trees:
-        seg = ann.get('segmentation')
+        seg = ann.get("segmentation")
         if seg and isinstance(seg, list) and len(seg) > 0:
             # Convert first polygon to mask
             polygon = seg[0]
@@ -204,7 +200,11 @@ def evaluate_sample(
 
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+    f1 = (
+        2 * precision * recall / (precision + recall)
+        if (precision + recall) > 0
+        else 0.0
+    )
 
     # IoU statistics
     ious = [iou for _, _, iou in matches]
@@ -258,7 +258,7 @@ class OAMTCDEvaluator:
         self,
         predictions_dir: Path,
         iou_threshold: float = 0.5,
-        max_samples: Optional[int] = None
+        max_samples: Optional[int] = None,
     ) -> Dict:
         """Evaluate predictions on test set.
 
@@ -273,13 +273,17 @@ class OAMTCDEvaluator:
         """
         results = []
 
-        num_samples = min(len(self.test_data), max_samples) if max_samples else len(self.test_data)
+        num_samples = (
+            min(len(self.test_data), max_samples)
+            if max_samples
+            else len(self.test_data)
+        )
 
         print(f"\nEvaluating {num_samples} samples...")
 
         for idx in range(num_samples):
             sample = self.test_data[idx]
-            image_id = sample['image_id']
+            image_id = sample["image_id"]
 
             # Load prediction
             pred_path = predictions_dir / f"{image_id}_prediction.png"
@@ -291,15 +295,12 @@ class OAMTCDEvaluator:
             pred_mask = cv2.imread(str(pred_path), cv2.IMREAD_UNCHANGED)
 
             # Load ground truth annotations
-            gt_annotations = json.loads(sample['coco_annotations'])
+            gt_annotations = json.loads(sample["coco_annotations"])
 
             # Evaluate
             metrics = evaluate_sample(pred_mask, gt_annotations, iou_threshold)
 
-            results.append({
-                'image_id': image_id,
-                'metrics': metrics.to_dict()
-            })
+            results.append({"image_id": image_id, "metrics": metrics.to_dict()})
 
             if (idx + 1) % 10 == 0:
                 print(f"  Processed {idx + 1}/{num_samples} samples")
@@ -308,9 +309,9 @@ class OAMTCDEvaluator:
         aggregate = self._aggregate_metrics(results)
 
         return {
-            'aggregate': aggregate,
-            'per_sample': results,
-            'num_samples': len(results),
+            "aggregate": aggregate,
+            "per_sample": results,
+            "num_samples": len(results),
         }
 
     def _aggregate_metrics(self, results: List[Dict]) -> Dict:
@@ -319,38 +320,44 @@ class OAMTCDEvaluator:
             return {}
 
         # Sum counts
-        total_tp = sum(r['metrics']['true_positives'] for r in results)
-        total_fp = sum(r['metrics']['false_positives'] for r in results)
-        total_fn = sum(r['metrics']['false_negatives'] for r in results)
-        total_preds = sum(r['metrics']['num_predictions'] for r in results)
-        total_gts = sum(r['metrics']['num_ground_truth'] for r in results)
+        total_tp = sum(r["metrics"]["true_positives"] for r in results)
+        total_fp = sum(r["metrics"]["false_positives"] for r in results)
+        total_fn = sum(r["metrics"]["false_negatives"] for r in results)
+        total_preds = sum(r["metrics"]["num_predictions"] for r in results)
+        total_gts = sum(r["metrics"]["num_ground_truth"] for r in results)
 
         # Compute aggregate precision/recall/F1
-        precision = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+        precision = (
+            total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+        )
         recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        f1 = (
+            2 * precision * recall / (precision + recall)
+            if (precision + recall) > 0
+            else 0.0
+        )
 
         # Mean IoU across all samples
-        mean_iou = np.mean([r['metrics']['mean_iou'] for r in results])
-        median_iou = np.median([r['metrics']['median_iou'] for r in results])
+        mean_iou = np.mean([r["metrics"]["mean_iou"] for r in results])
+        median_iou = np.median([r["metrics"]["median_iou"] for r in results])
 
         # Mean AP
-        mean_ap_50 = np.mean([r['metrics']['ap_50'] for r in results])
-        mean_ap_75 = np.mean([r['metrics']['ap_75'] for r in results])
+        mean_ap_50 = np.mean([r["metrics"]["ap_50"] for r in results])
+        mean_ap_75 = np.mean([r["metrics"]["ap_75"] for r in results])
 
         return {
-            'precision': precision,
-            'recall': recall,
-            'f1_score': f1,
-            'mean_iou': mean_iou,
-            'median_iou': median_iou,
-            'ap_50': mean_ap_50,
-            'ap_75': mean_ap_75,
-            'total_predictions': total_preds,
-            'total_ground_truth': total_gts,
-            'true_positives': total_tp,
-            'false_positives': total_fp,
-            'false_negatives': total_fn,
+            "precision": precision,
+            "recall": recall,
+            "f1_score": f1,
+            "mean_iou": mean_iou,
+            "median_iou": median_iou,
+            "ap_50": mean_ap_50,
+            "ap_75": mean_ap_75,
+            "total_predictions": total_preds,
+            "total_ground_truth": total_gts,
+            "true_positives": total_tp,
+            "false_positives": total_fp,
+            "false_negatives": total_fn,
         }
 
 
@@ -360,7 +367,7 @@ def print_metrics(metrics: Dict):
     print("OAM-TCD Tree Detection Evaluation Results")
     print("=" * 80)
 
-    agg = metrics['aggregate']
+    agg = metrics["aggregate"]
 
     print("\nInstance-Level Metrics:")
     print(f"  Precision:  {agg['precision']:.3f}")
@@ -391,34 +398,28 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Evaluate V3 predictions on OAM-TCD")
     parser.add_argument(
-        "--dataset",
-        type=str,
-        default="data/oam_tcd",
-        help="Path to OAM-TCD dataset"
+        "--dataset", type=str, default="data/oam_tcd", help="Path to OAM-TCD dataset"
     )
     parser.add_argument(
         "--predictions",
         type=str,
         required=True,
-        help="Directory containing prediction masks"
+        help="Directory containing prediction masks",
     )
     parser.add_argument(
         "--iou-threshold",
         type=float,
         default=0.5,
-        help="IoU threshold for matching (default: 0.5)"
+        help="IoU threshold for matching (default: 0.5)",
     )
     parser.add_argument(
         "--max-samples",
         type=int,
         default=None,
-        help="Maximum number of samples to evaluate"
+        help="Maximum number of samples to evaluate",
     )
     parser.add_argument(
-        "--output",
-        type=str,
-        default=None,
-        help="Output JSON file for results"
+        "--output", type=str, default=None, help="Output JSON file for results"
     )
 
     args = parser.parse_args()
@@ -428,7 +429,7 @@ if __name__ == "__main__":
     results = evaluator.evaluate(
         Path(args.predictions),
         iou_threshold=args.iou_threshold,
-        max_samples=args.max_samples
+        max_samples=args.max_samples,
     )
 
     # Print results
@@ -439,7 +440,7 @@ if __name__ == "__main__":
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(results, f, indent=2)
 
         print(f"✓ Results saved to {output_path}")

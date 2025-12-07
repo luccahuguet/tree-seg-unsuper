@@ -65,21 +65,11 @@ def create_config(
 ) -> Config:
     """Create Config object from CLI parameters."""
     if use_supervised:
-        version = "v4"
-    elif refine == "soft-em" or refine == "soft-em+slic":
-        version = "v2"
-    elif apply_vegetation_filter:
-        version = "v3"
-    else:
-        version = "v1.5"
-
-    if use_supervised:
         if model != "mega":
             model = "mega"
         if image_size == 1024:
             image_size = 896
         return Config(
-            version="v4",
             model_name="mega",
             image_size=image_size,
             auto_k=False,
@@ -88,6 +78,7 @@ def create_config(
             metrics=True,
             verbose=not quiet,
             use_attention_features=use_attention_features,
+            supervised=True,
         )
 
     clustering_method = clustering
@@ -106,10 +97,13 @@ def create_config(
             use_soft_refine = True
             refine_method = "slic"
 
-    scales = tuple(float(s.strip()) for s in pyramid_scales.split(",")) if pyramid_scales else (0.5, 1.0, 2.0)
+    scales = (
+        tuple(float(s.strip()) for s in pyramid_scales.split(","))
+        if pyramid_scales
+        else (0.5, 1.0, 2.0)
+    )
 
     return Config(
-        version=version,
         clustering_method=clustering_method,
         refine=refine_method,
         model_name=model,
@@ -149,11 +143,14 @@ def resolve_output_dir(
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     refine_str = config.refine if config.refine else config.clustering_method
-    method_str = f"{config.version}_{refine_str}"
+    method_str = f"{config.clustering_method}_{refine_str}"
     if smart_k:
         method_str += "_smartk"
     model_str = config.model_display_name.lower().replace(" ", "_")
-    return Path("data/output/results") / f"{dataset_type}_{method_str}_{model_str}_{timestamp}"
+    return (
+        Path("data/output/results")
+        / f"{dataset_type}_{method_str}_{model_str}_{timestamp}"
+    )
 
 
 def try_cached_results(
@@ -168,7 +165,9 @@ def try_cached_results(
     if force:
         return False
 
-    hash_config = _config_to_hash_config(config, dataset_path.name, smart_k, grid_label=None)
+    hash_config = _config_to_hash_config(
+        config, dataset_path.name, smart_k, grid_label=None
+    )
     normalized = normalize_config(hash_config)
     hash_id = config_hash(normalized)
     meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
@@ -184,17 +183,23 @@ def try_cached_results(
         rpath = Path(rjson) if rjson else results_json
         if not rpath.exists():
             return False
-        console.print(f"[green]♻️  Cache hit for {hash_id}; reusing existing results.[/green]")
+        console.print(
+            f"[green]♻️  Cache hit for {hash_id}; reusing existing results.[/green]"
+        )
         with rpath.open() as f:
             cached = json.load(f)
-        table = Table(title="Cached Benchmark Results", show_header=True, header_style="bold cyan")
+        table = Table(
+            title="Cached Benchmark Results", show_header=True, header_style="bold cyan"
+        )
         table.add_column("Metric", style="cyan")
         table.add_column("Value", justify="right", style="green")
         metrics = cached.get("metrics", {})
         table.add_row("Dataset", cached.get("dataset", ""))
         table.add_row("Method", cached.get("method", ""))
         table.add_row("Mean mIoU", f"{metrics.get('mean_miou', 0):.4f}")
-        table.add_row("Mean Pixel Accuracy", f"{metrics.get('mean_pixel_accuracy', 0):.4f}")
+        table.add_row(
+            "Mean Pixel Accuracy", f"{metrics.get('mean_pixel_accuracy', 0):.4f}"
+        )
         table.add_row("Mean Runtime", f"{metrics.get('mean_runtime', 0):.2f}s")
         table.add_row("Total Samples", str(cached.get("total_samples", 0)))
         console.print()
@@ -234,7 +239,9 @@ def run_single_benchmark(
         use_smart_k=smart_k,
     )
 
-    summary_info = save_comparison_summary([config_to_dict(config)], results, output_dir, smart_k=smart_k)
+    summary_info = save_comparison_summary(
+        [config_to_dict(config)], results, output_dir, smart_k=smart_k
+    )
     try:
         store_run(summary_info)
     except Exception:
@@ -261,7 +268,9 @@ def run_sweep(
     """Run a grid sweep and return results + sweep_dir."""
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     smartk_suffix = "_smartk" if smart_k else ""
-    sweep_dir = Path("data/output/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
+    sweep_dir = (
+        Path("data/output/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
+    )
     sweep_dir.mkdir(parents=True, exist_ok=True)
 
     console.print(f"[green]📁 Sweep directory: {sweep_dir}[/green]\n")
@@ -277,21 +286,29 @@ def run_sweep(
         config = Config(**config_dict)
         label = config_override["label"]
 
-        console.print(f"\n[bold][{i + 1}/{len(configs_to_test)}] Testing: {label}[/bold]")
+        console.print(
+            f"\n[bold][{i + 1}/{len(configs_to_test)}] Testing: {label}[/bold]"
+        )
         console.print("-" * 40)
 
         if use_cache:
-            hash_config = _config_to_hash_config(config, dataset_path.name, smart_k, grid_label=label)
+            hash_config = _config_to_hash_config(
+                config, dataset_path.name, smart_k, grid_label=label
+            )
             normalized = normalize_config(hash_config)
             hash_id = config_hash(normalized)
             meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
             if meta_path.exists():
-                console.print(f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]")
+                console.print(
+                    f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
+                )
                 continue
 
         model_key = (config.model_display_name, config.stride, config.image_size)
         if model_key in model_cache:
-            console.print(f"[dim]♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})[/dim]")
+            console.print(
+                f"[dim]♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})[/dim]"
+            )
 
         results = run_benchmark(
             config=config,

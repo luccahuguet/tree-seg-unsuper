@@ -7,6 +7,7 @@ from datasets import load_from_disk
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+
 def inspect_dataset(data_dir: str = "data/oam_tcd"):
     """Inspect OAM-TCD dataset structure and show examples."""
     data_path = Path(data_dir)
@@ -58,14 +59,14 @@ def inspect_dataset(data_dir: str = "data/oam_tcd"):
 
     # Parse COCO annotations
     print("\n\nCOCO Annotations:")
-    coco_data = json.loads(sample['coco_annotations'])
+    coco_data = json.loads(sample["coco_annotations"])
     print(f"  Type: {type(coco_data)}")
 
     # Handle both list and dict formats
     if isinstance(coco_data, dict):
         print(f"  Keys: {list(coco_data.keys())}")
-        annotations = coco_data.get('annotations', [])
-        categories = coco_data.get('categories', [])
+        annotations = coco_data.get("annotations", [])
+        categories = coco_data.get("categories", [])
     elif isinstance(coco_data, list):
         # coco_data is directly a list of annotations
         annotations = coco_data
@@ -81,18 +82,20 @@ def inspect_dataset(data_dir: str = "data/oam_tcd"):
         # Count by category
         category_counts = {}
         for ann in annotations:
-            cat_id = ann.get('category_id', 0)
+            cat_id = ann.get("category_id", 0)
             category_counts[cat_id] = category_counts.get(cat_id, 0) + 1
 
         print("\n  Annotations by category:")
         for cat_id, count in sorted(category_counts.items()):
             # Find category name if categories exist
             if categories:
-                cat_name = next((c['name'] for c in categories if c['id'] == cat_id), 'unknown')
+                cat_name = next(
+                    (c["name"] for c in categories if c["id"] == cat_id), "unknown"
+                )
             else:
                 # Common tree dataset categories
-                cat_names = {0: 'background', 1: 'tree', 2: 'canopy'}
-                cat_name = cat_names.get(cat_id, f'class_{cat_id}')
+                cat_names = {0: "background", 1: "tree", 2: "canopy"}
+                cat_name = cat_names.get(cat_id, f"class_{cat_id}")
             print(f"    Category {cat_id} ({cat_name}): {count} instances")
 
         # Show first annotation
@@ -105,9 +108,9 @@ def inspect_dataset(data_dir: str = "data/oam_tcd"):
             print(f"    Area: {ann.get('area', 'N/A')}")
             print(f"    BBox: {ann.get('bbox', 'N/A')}")
             print(f"    Segmentation type: {type(ann.get('segmentation'))}")
-            if 'segmentation' in ann and ann['segmentation']:
-                seg = ann['segmentation']
-                if isinstance(seg, dict) and 'counts' in seg:
+            if "segmentation" in ann and ann["segmentation"]:
+                seg = ann["segmentation"]
+                if isinstance(seg, dict) and "counts" in seg:
                     print("      Format: RLE (Run-Length Encoding)")
                     print(f"      RLE size: {len(seg.get('counts', []))} bytes")
                 elif isinstance(seg, list):
@@ -117,15 +120,15 @@ def inspect_dataset(data_dir: str = "data/oam_tcd"):
 
     # Parse segments (alternative format)
     print("\n\nSegments field:")
-    segments = json.loads(sample['segments'])
+    segments = json.loads(sample["segments"])
     print(f"  Type: {type(segments)}")
     print(f"  Keys: {list(segments.keys()) if isinstance(segments, dict) else 'N/A'}")
 
     # Parse meta
     print("\n\nMeta field:")
     try:
-        if sample['meta']:
-            meta = json.loads(sample['meta'])
+        if sample["meta"]:
+            meta = json.loads(sample["meta"])
             if isinstance(meta, dict):
                 print(f"  Keys: {list(meta.keys())}")
                 for key, value in meta.items():
@@ -142,6 +145,7 @@ def inspect_dataset(data_dir: str = "data/oam_tcd"):
 
     return train_data, sample
 
+
 def visualize_sample(sample, output_path: str = None):
     """Visualize a sample with annotations."""
     print("\n" + "=" * 80)
@@ -149,24 +153,24 @@ def visualize_sample(sample, output_path: str = None):
     print("=" * 80)
 
     # Get image and annotation
-    image = sample['image']
-    annotation = sample['annotation']
+    image = sample["image"]
+    annotation = sample["annotation"]
 
     # Parse COCO annotations
-    coco_data = json.loads(sample['coco_annotations'])
+    coco_data = json.loads(sample["coco_annotations"])
 
     # Handle both list and dict formats
     if isinstance(coco_data, list):
         annotations = coco_data
         categories = []
     else:
-        annotations = coco_data.get('annotations', [])
-        categories = coco_data.get('categories', [])
+        annotations = coco_data.get("annotations", [])
+        categories = coco_data.get("categories", [])
 
     # Count categories
     category_counts = {}
     for ann in annotations:
-        cat_id = ann.get('category_id', 0)
+        cat_id = ann.get("category_id", 0)
         category_counts[cat_id] = category_counts.get(cat_id, 0) + 1
 
     # Create figure
@@ -175,70 +179,70 @@ def visualize_sample(sample, output_path: str = None):
     # Original image
     axes[0].imshow(image)
     axes[0].set_title(f"Original Image\n{sample['width']}x{sample['height']} @ 10cm/px")
-    axes[0].axis('off')
+    axes[0].axis("off")
 
     # Annotation mask
-    axes[1].imshow(annotation, cmap='tab20')
+    axes[1].imshow(annotation, cmap="tab20")
     axes[1].set_title(f"Annotation Mask\n{len(annotations)} instances")
-    axes[1].axis('off')
+    axes[1].axis("off")
 
     # Overlay
     axes[2].imshow(image)
-    axes[2].imshow(annotation, alpha=0.5, cmap='tab20')
+    axes[2].imshow(annotation, alpha=0.5, cmap="tab20")
     axes[2].set_title(f"Overlay\nBiome: {sample['biome_name']}")
-    axes[2].axis('off')
+    axes[2].axis("off")
 
     # Add legend for categories
     if categories:
         legend_patches = [
-            mpatches.Patch(color=f'C{i}', label=cat['name'])
+            mpatches.Patch(color=f"C{i}", label=cat["name"])
             for i, cat in enumerate(categories)
         ]
-        axes[2].legend(handles=legend_patches, loc='upper right', fontsize=8)
+        axes[2].legend(handles=legend_patches, loc="upper right", fontsize=8)
     else:
         # Manual categories for tree dataset
-        cat_names = {1: 'tree', 2: 'canopy'}
+        cat_names = {1: "tree", 2: "canopy"}
         legend_patches = [
-            mpatches.Patch(color=f'C{cat_id}', label=f"{cat_names.get(cat_id, f'cat_{cat_id}')} ({count})")
+            mpatches.Patch(
+                color=f"C{cat_id}",
+                label=f"{cat_names.get(cat_id, f'cat_{cat_id}')} ({count})",
+            )
             for cat_id, count in sorted(category_counts.items())
         ]
         if legend_patches:
-            axes[2].legend(handles=legend_patches, loc='upper right', fontsize=8)
+            axes[2].legend(handles=legend_patches, loc="upper right", fontsize=8)
 
-    plt.suptitle(f"OAM-TCD Sample {sample['image_id']} - {sample['license']}", fontsize=12)
+    plt.suptitle(
+        f"OAM-TCD Sample {sample['image_id']} - {sample['license']}", fontsize=12
+    )
     plt.tight_layout()
 
     if output_path:
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(output_file, dpi=150, bbox_inches='tight')
+        plt.savefig(output_file, dpi=150, bbox_inches="tight")
         print(f"\n✓ Saved visualization to {output_file}")
     else:
-        plt.savefig("data/oam_tcd/sample_visualization.png", dpi=150, bbox_inches='tight')
+        plt.savefig(
+            "data/oam_tcd/sample_visualization.png", dpi=150, bbox_inches="tight"
+        )
         print("\n✓ Saved visualization to data/oam_tcd/sample_visualization.png")
 
     plt.close()
+
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Inspect OAM-TCD dataset")
     parser.add_argument(
-        "--data-dir",
-        type=str,
-        default="data/oam_tcd",
-        help="Dataset directory"
+        "--data-dir", type=str, default="data/oam_tcd", help="Dataset directory"
     )
     parser.add_argument(
-        "--visualize",
-        action="store_true",
-        help="Create visualization of first sample"
+        "--visualize", action="store_true", help="Create visualization of first sample"
     )
     parser.add_argument(
-        "--output",
-        type=str,
-        default=None,
-        help="Output path for visualization"
+        "--output", type=str, default=None, help="Output path for visualization"
     )
 
     args = parser.parse_args()
