@@ -100,6 +100,32 @@ def _maybe_append_xy(features: np.ndarray, use_xy: bool) -> np.ndarray:
     return np.concatenate([features, coords], axis=-1)
 
 
+def flatten_features_labels(
+    features: np.ndarray,
+    labels: np.ndarray,
+    ignore_index: Optional[int] = None,
+    max_samples: Optional[int] = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Flatten (N,H,W,D) features and (N,H,W) labels with optional ignore filter and subsampling.
+    Returns X (float32) and y (int).
+    """
+    X = features.reshape(-1, features.shape[-1]).astype(np.float32)
+    y = labels.reshape(-1)
+
+    if ignore_index is not None:
+        valid = y != ignore_index
+        X = X[valid]
+        y = y[valid]
+
+    if max_samples and len(y) > max_samples:
+        idx = np.random.choice(len(y), max_samples, replace=False)
+        X = X[idx]
+        y = y[idx]
+
+    return X, y
+
+
 def _evaluate_predictions(
     features: list[np.ndarray],
     masks: list[np.ndarray],

@@ -29,6 +29,7 @@ from tree_seg.supervised.utils import (
     _maybe_append_xy,
     _remap_masks_contiguous,
     _stop_progress,
+    flatten_features_labels,
 )
 
 
@@ -202,18 +203,12 @@ def train_sklearn_classifier(
     tol: float = 1e-3,
 ) -> LogisticRegression:
     """Train a per-pixel logistic regression classifier."""
-    X = features.reshape(-1, features.shape[-1])
-    y = labels.flatten()
-
-    if ignore_index is not None:
-        valid_mask = y != ignore_index
-        X = X[valid_mask]
-        y = y[valid_mask]
-
-    if len(y) > max_samples:
-        indices = np.random.choice(len(y), max_samples, replace=False)
-        X = X[indices]
-        y = y[indices]
+    X, y = flatten_features_labels(
+        features,
+        labels,
+        ignore_index=ignore_index,
+        max_samples=max_samples,
+    )
 
     print(f"Training on {len(y):,} pixels...")
     clf = LogisticRegression(
@@ -322,18 +317,12 @@ def train_mlp_classifier(
     patience: int = 10,
 ) -> tuple[MLPClassifier, Optional[StandardScaler]]:
     """Train a nonlinear MLP classifier on flattened patch features."""
-    X = features.reshape(-1, features.shape[-1])
-    y = labels.flatten()
-
-    if ignore_index is not None:
-        valid_mask = y != ignore_index
-        X = X[valid_mask]
-        y = y[valid_mask]
-
-    if len(y) > max_samples:
-        indices = np.random.choice(len(y), max_samples, replace=False)
-        X = X[indices]
-        y = y[indices]
+    X, y = flatten_features_labels(
+        features,
+        labels,
+        ignore_index=ignore_index,
+        max_samples=max_samples,
+    )
 
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
@@ -478,37 +467,13 @@ def train_linear_head(
     use_xy: bool = False,
 ):
     """Train a simple Linear -> CrossEntropy head with optional early stopping."""
-    coords_flat = None
-    if use_xy:
-        n_total = features.shape[0]
-        h, w = features.shape[1:3]
-        yy, xx = np.meshgrid(
-            np.linspace(0, 1, h, dtype=np.float32),
-            np.linspace(0, 1, w, dtype=np.float32),
-            indexing="ij",
-        )
-        coords = np.stack([yy, xx], axis=-1)  # H,W,2
-        coords_flat = np.broadcast_to(coords, (n_total, h, w, 2)).reshape(-1, 2)
-
-    X = features.reshape(-1, features.shape[-1]).astype(np.float32)
-    y = labels.reshape(-1)
-
-    if ignore_index is not None:
-        valid = y != ignore_index
-        X = X[valid]
-        y = y[valid]
-        if coords_flat is not None:
-            coords_flat = coords_flat[valid]
-
-    if len(y) > max_patches:
-        idx = np.random.choice(len(y), max_patches, replace=False)
-        X = X[idx]
-        y = y[idx]
-        if coords_flat is not None:
-            coords_flat = coords_flat[idx]
-
-    if coords_flat is not None:
-        X = np.concatenate([X, coords_flat], axis=1)
+    features = _maybe_append_xy(features, use_xy)
+    X, y = flatten_features_labels(
+        features,
+        labels,
+        ignore_index=ignore_index,
+        max_samples=max_patches,
+    )
 
     X_tensor = torch.from_numpy(X)
     y_tensor = torch.from_numpy(y.astype(np.int64))
