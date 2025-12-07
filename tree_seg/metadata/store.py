@@ -176,11 +176,8 @@ def _append_to_metrics_csv(
     smart_k: bool,
     grid_label: Optional[str],
 ) -> None:
-    """Append a row to the git-tracked metrics CSV."""
+    """Upsert a row to the git-tracked metrics CSV (update if hash exists, append if new)."""
     csv_path = base_dir / "metrics.csv"
-
-    # Check if file exists to determine if we need to write header
-    file_exists = csv_path.exists()
 
     # Prepare row data
     row = {
@@ -226,12 +223,29 @@ def _append_to_metrics_csv(
         "gpu_tier",
     ]
 
-    # Append to CSV
-    with csv_path.open("a", newline="") as f:
+    # Read existing rows if file exists, update matching hash or append new
+    existing_rows = []
+    updated = False
+    if csv_path.exists():
+        with csv_path.open("r", newline="") as f:
+            reader = csv.DictReader(f)
+            for existing_row in reader:
+                if existing_row["hash"] == hash_id:
+                    # Update existing row with new data
+                    existing_rows.append(row)
+                    updated = True
+                else:
+                    existing_rows.append(existing_row)
+
+    # Append new row if not updated
+    if not updated:
+        existing_rows.append(row)
+
+    # Write all rows back
+    with csv_path.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(row)
+        writer.writeheader()
+        writer.writerows(existing_rows)
 
 
 def _config_to_hash_config(
