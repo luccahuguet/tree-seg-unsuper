@@ -1,0 +1,53 @@
+# Curated sweep presets for tree-seg experiments
+# Usage: tree-seg sweep data/fortress --preset quick
+
+[presets.quick]
+description = "Quick comparison: K-means vs GMM, SLIC vs none (4 configs)"
+clustering_method = ["kmeans", "gmm"]
+refine = ["slic", "none"]
+
+[presets.clustering]
+description = "Compare all clustering algorithms with SLIC refinement (7 configs)"
+clustering_method = ["kmeans", "gmm", "spectral", "hdbscan", "spherical", "dpmeans", "potts"]
+refine = ["slic"]
+
+[presets.refine]
+description = "Compare all refinement methods with K-means (5 configs)"
+clustering_method = ["kmeans"]
+refine = ["none", "slic", "soft-em", "bilateral", "soft-em+slic"]
+
+[presets.tiling]
+description = "Tiling on/off with base and large models (8 configs)"
+use_tiling = [true, false]
+model_name = ["base", "large"]
+stride = [4, 2]
+
+[presets.models]
+description = "Compare all DINOv3 model sizes (4 configs)"
+model_name = ["small", "base", "large", "mega"]
+clustering_method = ["kmeans"]
+refine = ["slic"]
+
+[presets.elbow]
+description = "Sweep elbow thresholds for auto-K selection (5 configs)"
+elbow_threshold = [2.5, 5.0, 10.0, 20.0, 50.0]
+clustering_method = ["kmeans"]
+refine = ["slic"]
+
+[presets.paper]
+description = "Final paper configurations: clustering × refinement (9 configs)"
+clustering_method = ["kmeans", "gmm", "spectral"]
+refine = ["none", "slic", "soft-em"]
+
+[presets.full]
+description = "Comprehensive sweep: clustering × refine × tiling (28 configs)"
+clustering_method = ["kmeans", "gmm", "spectral", "hdbscan"]
+refine = ["none", "slic", "soft-em"]
+use_tiling = [true, false]
+
+[presets.stride]
+description = "Compare feature extraction strides (3 configs)"
+stride = [2, 4, 8]
+model_name = ["base"]
+clustering_method = ["kmeans"]
+refine = ["slic"]

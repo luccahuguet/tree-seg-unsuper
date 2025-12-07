@@ -7,6 +7,7 @@ from tree_seg.cli.evaluate import evaluate_command
 from tree_seg.cli.eval_super import eval_super_command
 from tree_seg.cli.results import results_command
 from tree_seg.cli.segment import segment_command
+from tree_seg.cli.sweep import sweep_command
 
 app = typer.Typer(
     name="tree-seg",
@@ -32,6 +33,7 @@ app.command(name="eval", help="Evaluate segmentation methods on labeled datasets
 app.command(name="eval-super", help="Evaluate supervised baseline (shortcut)")(
     eval_super_command
 )
+app.command(name="sweep", help="Run multiplicative parameter sweep")(sweep_command)
 app.command(name="results", help="Query stored experiment metadata")(results_command)
 
 

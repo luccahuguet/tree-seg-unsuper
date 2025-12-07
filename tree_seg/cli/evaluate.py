@@ -9,17 +9,11 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
-from tree_seg.evaluation.formatters import (
-    format_comparison_table,
-    save_comparison_summary,
-)
-from tree_seg.evaluation.grids import get_grid
 from tree_seg.evaluation.runner import (
     create_config,
     detect_dataset_type,
     resolve_output_dir,
     run_single_benchmark,
-    run_sweep,
     try_cached_results,
 )
 
@@ -143,50 +137,6 @@ def _run_single_benchmark(
     console.print(f"\n[green]✅ Results saved to: {out_dir / 'results.json'}[/green]")
 
     return results
-
-
-def _run_comparison_benchmark(
-    dataset_path: Path,
-    dataset_type: str,
-    grid_name: str,
-    base_config_params: dict,
-    num_samples: Optional[int],
-    save_viz: bool,
-    save_labels: bool,
-    quiet: bool,
-    smart_k: bool,
-    use_cache: bool,
-):
-    """Run comparison across multiple configurations."""
-    grid = get_grid(grid_name)
-    configs_to_test = grid["configs"]
-
-    console.print("\n[bold cyan]🔄 Running comparison benchmark[/bold cyan]")
-    console.print(f"Grid: [bold]{grid['name']}[/bold]")
-    console.print(f"Description: {grid['description']}")
-    console.print(f"Configurations: {len(configs_to_test)}\n")
-
-    all_results, sweep_dir = run_sweep(
-        dataset_path=dataset_path,
-        dataset_type=dataset_type,
-        grid_name=grid_name,
-        configs_to_test=configs_to_test,
-        base_config_params=base_config_params,
-        num_samples=num_samples,
-        save_viz=save_viz,
-        save_labels=save_labels,
-        quiet=quiet,
-        smart_k=smart_k,
-        console=console,
-        use_cache=use_cache,
-    )
-
-    console.print("\n" + format_comparison_table(all_results) + "\n")
-
-    comparison_path = sweep_dir / f"sweep_summary_{grid_name}.json"
-    save_comparison_summary(all_results, comparison_path)
-    console.print(f"[green]📊 Sweep summary saved to: {comparison_path}[/green]")
-    console.print(f"[green]📁 All results in: {sweep_dir}[/green]\n")
 
 
 def evaluate_command(
@@ -386,33 +336,6 @@ def evaluate_command(
         "-f",
         help="Re-run even if a cache entry exists for this config/dataset hash",
     ),
-    compare_configs: bool = typer.Option(
-        False,
-        "--compare-configs",
-        help="Run comparison across multiple configurations",
-    ),
-    smart_grid: bool = typer.Option(
-        False,
-        "--smart-grid",
-        help="Use smart grid search (8 configs)",
-    ),
-    grid: Optional[
-        Literal[
-            "ofat",
-            "smart",
-            "full",
-            "tiling",
-            "tiling_refine",
-            "clustering",
-            "slic_params",
-            "tile_overlap",
-        ]
-    ] = typer.Option(
-        None,
-        "--grid",
-        "-g",
-        help="Grid to use for comparison mode",
-    ),
     quiet: bool = typer.Option(
         False,
         "--quiet",
@@ -465,8 +388,8 @@ def evaluate_command(
         # Supervised PyTorch linear head
         tree-seg eval data/fortress --supervised --supervised-head linear
 
-        # Run comparison across multiple configs
-        tree-seg eval data/fortress --compare-configs --grid tiling
+        # For parameter sweeps, use the 'sweep' command instead
+        tree-seg sweep data/fortress --clustering kmeans gmm --refine slic none
     """
     if not dataset_type:
         dataset_type = detect_dataset_type(dataset)
@@ -572,67 +495,17 @@ def evaluate_command(
         use_attention_features=use_attention_features,
     )
 
-    # Run comparison or single benchmark
-    if compare_configs:
-        # Determine grid
-        if grid:
-            grid_name = grid
-        elif smart_grid:
-            grid_name = "smart"
-        elif dataset_type == "fortress":
-            grid_name = "tiling"  # Default for FORTRESS
-        else:
-            grid_name = "ofat"  # Default for others
-
-        # Create base config params
-        base_config_params = {
-            "refine": config.refine,
-            "clustering_method": config.clustering_method,
-            "model_name": config.model_name,
-            "stride": stride,
-            "image_size": config.image_size,
-            "elbow_threshold": elbow_threshold,
-            "auto_k": (fixed_k is None),
-            "n_clusters": fixed_k if fixed_k else 6,
-            "apply_vegetation_filter": apply_vegetation_filter,
-            "exg_threshold": exg_threshold,
-            "use_tiling": not no_tiling,
-            "viz_two_panel": viz_two_panel,
-            "viz_two_panel_opaque": viz_two_panel_opaque,
-            "use_pyramid": config.use_pyramid,
-            "pyramid_scales": config.pyramid_scales,
-            "pyramid_aggregation": config.pyramid_aggregation,
-            "use_soft_refine": config.use_soft_refine,
-            "soft_refine_temperature": config.soft_refine_temperature,
-            "soft_refine_iterations": config.soft_refine_iterations,
-            "soft_refine_spatial_alpha": config.soft_refine_spatial_alpha,
-            "use_attention_features": config.use_attention_features,
-            "metrics": True,
-        }
-
-        _run_comparison_benchmark(
-            dataset_path=dataset,
-            dataset_type=dataset_type,
-            grid_name=grid_name,
-            base_config_params=base_config_params,
-            num_samples=num_samples,
-            save_viz=save_viz,
-            save_labels=save_labels,
-            quiet=quiet,
-            smart_k=smart_k,
-            use_cache=use_cache,
-        )
-    else:
-        _run_single_benchmark(
-            dataset_path=dataset,
-            dataset_type=dataset_type,
-            config=config,
-            output_dir=output_dir,
-            num_samples=num_samples,
-            save_viz=save_viz,
-            save_labels=save_labels,
-            quiet=quiet,
-            smart_k=smart_k,
-            use_cache=use_cache,
-            force=force,
-        )
+    # Run single benchmark
+    _run_single_benchmark(
+        dataset_path=dataset,
+        dataset_type=dataset_type,
+        config=config,
+        output_dir=output_dir,
+        num_samples=num_samples,
+        save_viz=save_viz,
+        save_labels=save_labels,
+        quiet=quiet,
+        smart_k=smart_k,
+        use_cache=use_cache,
+        force=force,
+    )

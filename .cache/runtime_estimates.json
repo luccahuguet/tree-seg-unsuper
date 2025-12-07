@@ -8,7 +8,8 @@
     "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic": 198.22490453720093,
     "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic_skimage": 370.99083971977234,
     "v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinebilateral": 137.1894326210022,
-    "kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refineslic": 27.744566679000854
+    "kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refineslic": 28.442777156829834,
+    "kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refinebilateral": 8.120107650756836
   },
   "run_totals": {
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingoff/img1024/refineslic_skimage/samples1": 213.53153038024902,
@@ -20,9 +21,11 @@
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic_skimage/samples1": 370.99083971977234,
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refinebilateral/samples1": 137.1894326210022,
     "fortress_processed/v1.5/dinov3_vitb16/stride4/tilingon/img1024/refineslic/samples3": 642.9043278694153,
-    "fortress_processed/kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refineslic/samples1": 27.744566679000854
+    "fortress_processed/kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refineslic/samples1": 28.442777156829834,
+    "fortress_processed/kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refinebilateral/samples1": 8.120107650756836
   },
   "hardware_tier": {
-    "kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refineslic": "mid"
+    "kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refineslic": "mid",
+    "kmeans/dinov3_vitb16/stride4/tilingoff/img1024/refinebilateral": "mid"
   }
 }
