@@ -1,6 +1,5 @@
 """Results/metadata command for tree-seg CLI."""
 
-import datetime
 import json
 from pathlib import Path
 from typing import Optional
@@ -211,7 +210,7 @@ def results_command(
     export_csv: bool = typer.Option(
         False,
         "--export-csv",
-        help="Export results to CSV at results/exports/{dataset}_{timestamp}.csv",
+        help="Export results to CSV at results/exports/{dataset}.csv (upserts to same file)",
     ),
     export_path: Optional[Path] = typer.Option(
         None,
@@ -312,12 +311,11 @@ def results_command(
             csv_path = export_path
             csv_path.parent.mkdir(parents=True, exist_ok=True)
         else:
-            # Generate default path
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            # Generate default path (no timestamp - upsert to same file)
             dataset_name = dataset or "all"
             export_dir = Path("results/exports")
             export_dir.mkdir(parents=True, exist_ok=True)
-            csv_path = export_dir / f"{dataset_name}_{timestamp}.csv"
+            csv_path = export_dir / f"{dataset_name}.csv"
 
         rows = export_to_csv(entries, csv_path, base_dir=base_dir)
         console.print(f"[green]💾 Exported {rows} row(s) to {csv_path}[/green]")
