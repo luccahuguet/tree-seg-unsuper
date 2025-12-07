@@ -373,6 +373,16 @@ Official DINOv3 repository includes linear segmentation head. Multiple approache
 
 **All unsupervised clustering experiments completed. K-means + SLIC remains the best unsupervised approach.**
 
+## 📈 Supervised Baselines (for comparison)
+
+- **sklearn LogisticRegression** (`--head sklearn`): mIoU ≈ 0.082, PA ≈ 0.536 on `fortress_processed` (stride=4, 47 tiles, 100k sample cap, max_iter=3000).
+- **Torch Linear MLP** (`--head linear`): best observed so far mIoU ≈ 0.074, PA ≈ 0.236 (stride=2, 2M patches, lr=5e-4, patience 20, val_split 0.1).
+- **sklearn MLPClassifier** (`--head mlp`):
+  - Peak (no early stop, likely overfit): mIoU ≈ 0.427, PA ≈ 0.953 with `--stride 2 --max-patches 2000000 --epochs 400 --patience 0 --val-split 0 --lr 5e-4 --mlp-use-xy`.
+  - Best with early stopping (non-overfitting peak, reproducible): mIoU ≈ 0.278, PA ≈ 0.833 with `--stride 2 --max-patches 2000000 --epochs 400 --patience 5 --val-split 0.02 --lr 5e-4 --mlp-use-xy`.
+
+Use these supervised numbers as the bar for unsupervised DINO improvements.
+
 ---
 
 ## 🧭 Possible Next: K-means Successors (Not Tried)
