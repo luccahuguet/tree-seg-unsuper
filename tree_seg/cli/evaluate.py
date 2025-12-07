@@ -493,6 +493,7 @@ def evaluate_command(
                 verbose=not quiet,
                 num_samples=num_samples,
                 ignore_index=supervised_ignore_index,
+                train_ratio=supervised_train_ratio,
             )
         elif supervised_head == "mlp":
             results = evaluate_mlp_baseline(
@@ -509,6 +510,7 @@ def evaluate_command(
                 use_xy=supervised_mlp_use_xy,
                 val_split=supervised_val_split,
                 patience=supervised_patience,
+                train_ratio=supervised_train_ratio,
             )
         else:
             results = evaluate_linear_head(
@@ -526,6 +528,7 @@ def evaluate_command(
                 dropout=supervised_dropout,
                 ignore_index=supervised_ignore_index,
                 use_xy=supervised_use_xy,
+                train_ratio=supervised_train_ratio,
             )
 
         # Print summary

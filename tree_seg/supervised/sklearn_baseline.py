@@ -1,67 +1,35 @@
 """Supervised baselines on DINOv3 features (sklearn + PyTorch heads)."""
 
+import copy
 import os
 import time
-import copy
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import torch
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
+from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.preprocessing import StandardScaler
 
 from tree_seg.core.features import extract_features
 from tree_seg.core.types import Config
-from tree_seg.evaluation.benchmark import BenchmarkResults, BenchmarkSample
-from tree_seg.evaluation.metrics import evaluate_segmentation
+from tree_seg.evaluation.benchmark import BenchmarkResults
 from tree_seg.evaluation.runner import detect_dataset_type, load_dataset
 from tree_seg.models.preprocessing import init_model_and_preprocess
 from tree_seg.supervised.data import load_dataset as load_supervised_dataset
 from tree_seg.supervised.data import resize_masks_to_features
-from sklearn.neural_network import MLPClassifier
-
-
-def _remap_masks_contiguous(
-    masks: np.ndarray, ignore_index: Optional[int]
-) -> tuple[np.ndarray, int, int]:
-    """
-    Remap mask labels to contiguous ids starting at 0.
-
-    Returns remapped masks, num_classes, and ignore_index for evaluation
-    (or -1 when not used).
-    """
-    uniques = np.unique(masks)
-    if ignore_index is not None:
-        uniques = uniques[uniques != ignore_index]
-    uniques_sorted = sorted(int(u) for u in uniques.tolist())
-
-    if not uniques_sorted:
-        return masks, 0, -1
-
-    max_val = int(np.max(masks))
-    lookup = np.full(max_val + 1, -1, dtype=np.int32)
-    for new_id, old_val in enumerate(uniques_sorted):
-        lookup[old_val] = new_id
-
-    remapped = lookup[masks]
-    ignore_eval = -1
-    if ignore_index is not None:
-        remapped[masks == ignore_index] = ignore_index
-        ignore_eval = ignore_index
-
-    num_classes = len(uniques_sorted)
-    return remapped, num_classes, ignore_eval
+from tree_seg.supervised.utils import (
+    _evaluate_predictions,
+    _make_bar_progress,
+    _make_spinner,
+    _maybe_append_xy,
+    _remap_masks_contiguous,
+    _stop_progress,
+)
 
 
 def _set_torch_threads():
@@ -129,6 +97,7 @@ def _load_and_extract_features(
         )
         dataset = None
 
+    # Build a single iterable of (image, mask) pairs to avoid duplicated loops
     if dataset is not None:
         total_samples = len(dataset)
         sample_total = min(total_samples, num_samples) if num_samples else total_samples
@@ -136,114 +105,52 @@ def _load_and_extract_features(
             print(
                 f"Loaded dataset: {dataset_name} ({sample_total}/{total_samples} samples)"
             )
-            progress = Progress(
-                TextColumn("[bold cyan]Extracting features[/bold cyan]"),
-                BarColumn(),
-                TextColumn("{task.completed}/{task.total}"),
-                TimeElapsedColumn(),
-                TimeRemainingColumn(),
-            )
-            progress.start()
-            feat_task = progress.add_task("features", total=sample_total)
-        else:
-            progress = None
-            feat_task = None
-
-        all_features = []
-        all_masks = []
-        indices = range(sample_total)
-
-        for idx in indices:
-            image, gt_mask, _image_id = dataset[idx]
-            _start = time.time()
-            features_np, H, W = extract_features(
-                image_np=image,
-                model=model,
-                preprocess=preprocess,
-                stride=stride,
-                device=device,
-                use_attention_features=config.use_attention_features,
-                use_multi_layer=config.use_multi_layer,
-                layer_indices=config.layer_indices,
-                feature_aggregation=config.feature_aggregation,
-                use_pyramid=config.use_pyramid,
-                pyramid_scales=config.pyramid_scales,
-                pyramid_aggregation=config.pyramid_aggregation,
-                verbose=False,
-            )
-            _ = time.time() - _start
-
-            if verbose:
-                progress.update(
-                    feat_task,
-                    advance=1,
-                    description=(
-                        f"[bold cyan]Extracting features[/bold cyan] ({idx+1}/{sample_total})"
-                    ),
-                )
-
-            all_features.append(features_np)
-            all_masks.append(gt_mask)
-
-        if progress:
-            progress.stop()
+        pairs = [dataset[idx][:2] for idx in range(sample_total)]
     else:
-        total_samples = len(images)
         if num_samples:
             images = images[:num_samples]
             masks = masks[:num_samples]
         sample_total = len(images)
         if verbose:
             print(f"Loaded {sample_total} image/mask pairs")
-            progress = Progress(
-                TextColumn("[bold cyan]Extracting features[/bold cyan]"),
-                BarColumn(),
-                TextColumn("{task.completed}/{task.total}"),
-                TimeElapsedColumn(),
-                TimeRemainingColumn(),
+        pairs = list(zip(images, masks))
+
+    progress, feat_task = _make_bar_progress("Extracting features", sample_total, verbose)
+    all_features = []
+    all_masks = []
+
+    for idx, (image, mask) in enumerate(pairs):
+        _start = time.time()
+        features_np, H, W = extract_features(
+            image_np=image,
+            model=model,
+            preprocess=preprocess,
+            stride=stride,
+            device=device,
+            use_attention_features=config.use_attention_features,
+            use_multi_layer=config.use_multi_layer,
+            layer_indices=config.layer_indices,
+            feature_aggregation=config.feature_aggregation,
+            use_pyramid=config.use_pyramid,
+            pyramid_scales=config.pyramid_scales,
+            pyramid_aggregation=config.pyramid_aggregation,
+            verbose=False,
+        )
+        _ = time.time() - _start
+
+        if progress and feat_task is not None:
+            progress.update(
+                feat_task,
+                advance=1,
+                description=(
+                    f"[bold cyan]Extracting features[/bold cyan] ({idx+1}/{sample_total})"
+                ),
             )
-            progress.start()
-            feat_task = progress.add_task("features", total=sample_total)
-        else:
-            progress = None
-            feat_task = None
 
-        all_features = []
-        all_masks = []
+        all_features.append(features_np)
+        all_masks.append(mask)
 
-        for idx, (image, mask) in enumerate(zip(images, masks)):
-            _start = time.time()
-            features_np, H, W = extract_features(
-                image_np=image,
-                model=model,
-                preprocess=preprocess,
-                stride=stride,
-                device=device,
-                use_attention_features=config.use_attention_features,
-                use_multi_layer=config.use_multi_layer,
-                layer_indices=config.layer_indices,
-                feature_aggregation=config.feature_aggregation,
-                use_pyramid=config.use_pyramid,
-                pyramid_scales=config.pyramid_scales,
-                pyramid_aggregation=config.pyramid_aggregation,
-                verbose=False,
-            )
-            _ = time.time() - _start
-
-            if verbose:
-                progress.update(
-                    feat_task,
-                    advance=1,
-                    description=(
-                        f"[bold cyan]Extracting features[/bold cyan] ({idx+1}/{sample_total})"
-                    ),
-                )
-
-            all_features.append(features_np)
-            all_masks.append(mask)
-
-        if progress:
-            progress.stop()
+    _stop_progress(progress)
 
     all_features = np.stack(all_features)  # (N, H, W, D)
 
@@ -339,6 +246,7 @@ def evaluate_sklearn_baseline(
     max_samples: int = 100_000,
     verbose: bool = True,
     num_samples: Optional[int] = None,
+    train_ratio: float = 1.0,
 ) -> BenchmarkResults:
     """
     Full pipeline: extract features, train sklearn LR, evaluate.
@@ -367,20 +275,12 @@ def evaluate_sklearn_baseline(
         ignore_index=ignore_index,
         verbose=verbose,
         num_samples=num_samples,
+        train_ratio=train_ratio,
     )
 
     if verbose:
         print("\nTraining supervised classifier...")
-        train_progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[bold magenta]Training Logistic Regression[/bold magenta]"),
-            TimeElapsedColumn(),
-        )
-        train_progress.start()
-        train_task = train_progress.add_task("train", total=None)
-    else:
-        train_progress = None
-        train_task = None
+    train_progress, _ = _make_spinner("Training Logistic Regression", verbose)
 
     clf = train_sklearn_classifier(
         all_features,
@@ -391,88 +291,22 @@ def evaluate_sklearn_baseline(
         tol=1e-3,
     )
 
-    if train_progress:
-        train_progress.update(
-            train_task, advance=1, description="[bold green]Training complete[/bold green]"
-        )
-        train_progress.stop()
+    _stop_progress(train_progress)
 
     if verbose:
         print("\nEvaluating predictions...")
-        progress = Progress(
-            TextColumn("[bold green]Evaluating[/bold green]"),
-            BarColumn(),
-            TextColumn("{task.completed}/{task.total}"),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-        )
-        progress.start()
-        eval_task = progress.add_task("eval", total=len(all_features))
-    else:
-        progress = None
-        eval_task = None
 
-    samples = []
-    for idx in range(len(all_features)):
-        start_time = time.time()
-        pred = predict_sklearn(clf, all_features[idx])
-        elapsed = time.time() - start_time
-
-        eval_result = evaluate_segmentation(
-            pred,
-            all_masks_resized[idx],
-            num_classes=num_classes,
-            ignore_index=ignore_idx,
-            use_hungarian=False,
-        )
-
-        sample = BenchmarkSample(
-            image_id=f"img_{idx:03d}",
-            miou=eval_result.miou,
-            pixel_accuracy=eval_result.pixel_accuracy,
-            per_class_iou=eval_result.per_class_iou,
-            num_clusters=len(np.unique(pred)),
-            runtime_seconds=elapsed,
-            image_shape=all_features[idx].shape[:2],
-        )
-        samples.append(sample)
-
-        if progress:
-            progress.update(
-                eval_task,
-                advance=1,
-                description=(
-                    f"[bold green]Evaluating[/bold green] ({idx+1}/{len(all_features)})"
-                ),
-            )
-
-    mean_miou = np.mean([s.miou for s in samples])
-    mean_pixel_accuracy = np.mean([s.pixel_accuracy for s in samples])
-    mean_runtime = np.mean([s.runtime_seconds for s in samples])
-
-    if progress:
-        progress.stop()
-
-    results = BenchmarkResults(
-        dataset_name=dataset_name,
+    return _evaluate_predictions(
+        features=list(all_features),
+        masks=list(all_masks_resized),
+        num_classes=num_classes,
+        ignore_index=ignore_idx,
         method_name="supervised-sklearn",
+        dataset_name=dataset_name,
         config=config,
-        samples=samples,
-        mean_miou=mean_miou,
-        mean_pixel_accuracy=mean_pixel_accuracy,
-        mean_runtime=mean_runtime,
-        total_samples=len(samples),
+        predict_fn=lambda feat: predict_sklearn(clf, feat),
+        verbose=verbose,
     )
-
-    if verbose:
-        print(f"\n{'=' * 60}")
-        print("Final Results:")
-        print(f"  Mean mIoU: {mean_miou:.3f}")
-        print(f"  Mean Pixel Accuracy: {mean_pixel_accuracy:.3f}")
-        print(f"  Mean Runtime: {mean_runtime:.3f}s")
-        print(f"{'=' * 60}")
-
-    return results
 
 
 def train_mlp_classifier(
@@ -550,6 +384,7 @@ def evaluate_mlp_baseline(
     use_xy: bool = False,
     val_split: float = 0.1,
     patience: int = 10,
+    train_ratio: float = 1.0,
 ) -> BenchmarkResults:
     """Train/evaluate a sklearn MLPClassifier head on DINOv3 features."""
     (
@@ -569,33 +404,13 @@ def evaluate_mlp_baseline(
         ignore_index=ignore_index,
         verbose=verbose,
         num_samples=num_samples,
-        train_ratio=1.0,
+        train_ratio=train_ratio,
     )
 
-    if verbose:
-        train_progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[bold magenta]Training MLP head[/bold magenta]"),
-            TimeElapsedColumn(),
-        )
-        train_progress.start()
-        train_task = train_progress.add_task("train", total=None)
-    else:
-        train_progress = None
-        train_task = None
+    train_progress, _ = _make_spinner("Training MLP head", verbose)
 
     # Optionally append XY coords to each patch vector
-    features_for_head = train_features
-    if use_xy:
-        n, h, w, d = train_features.shape
-        yy, xx = np.meshgrid(
-            np.linspace(0, 1, h, dtype=np.float32),
-            np.linspace(0, 1, w, dtype=np.float32),
-            indexing="ij",
-        )
-        coords = np.stack([yy, xx], axis=-1)  # H,W,2
-        coords = np.broadcast_to(coords, (n, h, w, 2))
-        features_for_head = np.concatenate([train_features, coords], axis=-1)
+    features_for_head = _maybe_append_xy(train_features, use_xy)
 
     clf, scaler = train_mlp_classifier(
         features_for_head,
@@ -609,99 +424,37 @@ def evaluate_mlp_baseline(
         patience=patience,
     )
 
-    if train_progress:
-        train_progress.update(
-            train_task, advance=1, description="[bold green]Training complete[/bold green]"
-        )
-        train_progress.stop()
+    _stop_progress(train_progress)
 
     if verbose:
         print("\nEvaluating predictions...")
-        progress = Progress(
-            TextColumn("[bold green]Evaluating[/bold green]"),
-            BarColumn(),
-            TextColumn("{task.completed}/{task.total}"),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-        )
-        progress.start()
-        eval_task = progress.add_task("eval", total=len(all_features))
-    else:
-        progress = None
-        eval_task = None
 
-    samples = []
-    all_eval_features = list(features_for_head) + (
-        list(holdout_features) if len(holdout_features) > 0 else []
+    holdout_eval = (
+        list(_maybe_append_xy(holdout_features, use_xy))
+        if len(holdout_features) > 0
+        else []
     )
+    all_eval_features = list(features_for_head) + holdout_eval
     all_eval_masks = list(train_masks) + (
         list(holdout_masks) if len(holdout_masks) > 0 else []
     )
-    for idx in range(len(all_eval_features)):
-        start_time = time.time()
-        pred = predict_mlp(
-            clf,
-            all_eval_features[idx],
-            scaler,
-        )
-        elapsed = time.time() - start_time
+    sample_ids = [
+        f"img_{idx:03d}" + ("_holdout" if idx >= len(train_masks) else "")
+        for idx in range(len(all_eval_features))
+    ]
 
-        eval_result = evaluate_segmentation(
-            pred,
-            all_eval_masks[idx],
-            num_classes=num_classes,
-            ignore_index=ignore_idx,
-            use_hungarian=False,
-        )
-
-        sample = BenchmarkSample(
-            image_id=f"img_{idx:03d}"
-            + ("_holdout" if idx >= len(train_masks) else ""),
-            miou=eval_result.miou,
-            pixel_accuracy=eval_result.pixel_accuracy,
-            per_class_iou=eval_result.per_class_iou,
-            num_clusters=len(np.unique(pred)),
-            runtime_seconds=elapsed,
-            image_shape=all_eval_features[idx].shape[:2],
-        )
-        samples.append(sample)
-
-        if progress:
-            progress.update(
-                eval_task,
-                advance=1,
-                description=(
-                    f"[bold green]Evaluating[/bold green] ({idx+1}/{len(all_features)})"
-                ),
-            )
-
-    mean_miou = np.mean([s.miou for s in samples])
-    mean_pixel_accuracy = np.mean([s.pixel_accuracy for s in samples])
-    mean_runtime = np.mean([s.runtime_seconds for s in samples])
-
-    if progress:
-        progress.stop()
-
-    results = BenchmarkResults(
-        dataset_name=dataset_name,
+    return _evaluate_predictions(
+        features=all_eval_features,
+        masks=all_eval_masks,
+        num_classes=num_classes,
+        ignore_index=ignore_idx,
         method_name="supervised-mlp",
+        dataset_name=dataset_name,
         config=config,
-        samples=samples,
-        mean_miou=mean_miou,
-        mean_pixel_accuracy=mean_pixel_accuracy,
-        mean_runtime=mean_runtime,
-        total_samples=len(samples),
+        predict_fn=lambda feat: predict_mlp(clf, feat, scaler),
+        verbose=verbose,
+        sample_ids=sample_ids,
     )
-
-    if verbose:
-        print(f"\n{'=' * 60}")
-        print("Final Results:")
-        print(f"  Mean mIoU: {mean_miou:.3f}")
-        print(f"  Mean Pixel Accuracy: {mean_pixel_accuracy:.3f}")
-        print(f"  Mean Runtime: {mean_runtime:.3f}s")
-        print(f"{'=' * 60}")
-
-    return results
 
 
 def train_linear_head(
@@ -725,20 +478,7 @@ def train_linear_head(
     use_xy: bool = False,
 ):
     """Train a simple Linear -> CrossEntropy head with optional early stopping."""
-    X = features.reshape(-1, features.shape[-1]).astype(np.float32)
-    y = labels.reshape(-1)
-
-    if ignore_index is not None:
-        valid = y != ignore_index
-        X = X[valid]
-        y = y[valid]
-
-    if len(y) > max_patches:
-        idx = np.random.choice(len(y), max_patches, replace=False)
-        X = X[idx]
-        y = y[idx]
-
-    # Optionally append XY coords to each patch vector
+    coords_flat = None
     if use_xy:
         n_total = features.shape[0]
         h, w = features.shape[1:3]
@@ -749,9 +489,26 @@ def train_linear_head(
         )
         coords = np.stack([yy, xx], axis=-1)  # H,W,2
         coords_flat = np.broadcast_to(coords, (n_total, h, w, 2)).reshape(-1, 2)
-        # Align coords with the flattened X, then filter by valid mask below
-        if X.shape[0] == coords_flat.shape[0]:
-            X = np.concatenate([X, coords_flat], axis=1)
+
+    X = features.reshape(-1, features.shape[-1]).astype(np.float32)
+    y = labels.reshape(-1)
+
+    if ignore_index is not None:
+        valid = y != ignore_index
+        X = X[valid]
+        y = y[valid]
+        if coords_flat is not None:
+            coords_flat = coords_flat[valid]
+
+    if len(y) > max_patches:
+        idx = np.random.choice(len(y), max_patches, replace=False)
+        X = X[idx]
+        y = y[idx]
+        if coords_flat is not None:
+            coords_flat = coords_flat[idx]
+
+    if coords_flat is not None:
+        X = np.concatenate([X, coords_flat], axis=1)
 
     X_tensor = torch.from_numpy(X)
     y_tensor = torch.from_numpy(y.astype(np.int64))
@@ -837,7 +594,6 @@ def train_linear_head(
                     ),
                 )
 
-        # Early stopping on val loss
         if val_loader is not None:
             model.eval()
             val_loss = 0.0
@@ -901,6 +657,7 @@ def evaluate_linear_head(
     hidden_dim: int = 2048,
     dropout: float = 0.1,
     use_xy: bool = False,
+    train_ratio: float = 1.0,
 ) -> BenchmarkResults:
     """Train/evaluate a tiny PyTorch LinearHead on DINOv3 features."""
     (
@@ -920,31 +677,26 @@ def evaluate_linear_head(
         ignore_index=ignore_index,
         verbose=verbose,
         num_samples=num_samples,
-        train_ratio=1.0,
+        train_ratio=train_ratio,
     )
 
     if verbose:
         print("\nTraining supervised classifier...")
-        train_progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[bold magenta]Preparing LinearHead[/bold magenta]"),
-            TimeElapsedColumn(),
-        )
-        train_progress.start()
-        # We replace the spinner with a bar once data loader is known
-        train_progress.stop()
+    train_progress, _ = _make_spinner("Preparing LinearHead", verbose)
 
-        bar = Progress(
+    bar = (
+        Progress(
             TextColumn("[bold magenta]Training LinearHead[/bold magenta]"),
             BarColumn(),
             TextColumn("{task.completed}/{task.total}"),
             TimeElapsedColumn(),
             TimeRemainingColumn(),
         )
+        if verbose
+        else None
+    )
+    if bar:
         bar.start()
-    else:
-        train_progress = None
-        bar = None
 
     model = train_linear_head(
         train_features,
@@ -966,7 +718,8 @@ def evaluate_linear_head(
         use_xy=use_xy,
     )
 
-    if bar:
+    _stop_progress(train_progress)
+    if verbose and bar:
         for task in bar.tasks:
             if not task.finished:
                 bar.update(task.id, advance=task.total)
@@ -974,81 +727,27 @@ def evaluate_linear_head(
 
     if verbose:
         print("\nEvaluating predictions...")
-        progress = Progress(
-            TextColumn("[bold green]Evaluating[/bold green]"),
-            BarColumn(),
-            TextColumn("{task.completed}/{task.total}"),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-        )
-        progress.start()
-        eval_task = progress.add_task("eval", total=len(all_features))
-    else:
-        progress = None
-        eval_task = None
 
-    samples = []
-    # Evaluate on train + holdout (if any)
-    all_eval_features = list(train_features) + (list(holdout_features) if len(holdout_features) > 0 else [])
-    all_eval_masks = list(train_masks) + (list(holdout_masks) if len(holdout_masks) > 0 else [])
-
-    for idx in range(len(all_eval_features)):
-        start_time = time.time()
-        pred = _predict_linear_head(model, all_eval_features[idx], device)
-        elapsed = time.time() - start_time
-
-        eval_result = evaluate_segmentation(
-            pred,
-            all_eval_masks[idx],
-            num_classes=num_classes,
-            ignore_index=ignore_idx,
-            use_hungarian=False,
-        )
-
-        sample = BenchmarkSample(
-            image_id=f"img_{idx:03d}",
-            miou=eval_result.miou,
-            pixel_accuracy=eval_result.pixel_accuracy,
-            per_class_iou=eval_result.per_class_iou,
-            num_clusters=len(np.unique(pred)),
-            runtime_seconds=elapsed,
-            image_shape=all_features[idx].shape[:2],
-        )
-        samples.append(sample)
-
-        if progress:
-            progress.update(
-                eval_task,
-                advance=1,
-                description=(
-                    f"[bold green]Evaluating[/bold green] ({idx+1}/{len(all_features)})"
-                ),
-            )
-
-    mean_miou = np.mean([s.miou for s in samples])
-    mean_pixel_accuracy = np.mean([s.pixel_accuracy for s in samples])
-    mean_runtime = np.mean([s.runtime_seconds for s in samples])
-
-    if progress:
-        progress.stop()
-
-    results = BenchmarkResults(
-        dataset_name=dataset_name,
-        method_name="supervised-linear-head",
-        config=config,
-        samples=samples,
-        mean_miou=mean_miou,
-        mean_pixel_accuracy=mean_pixel_accuracy,
-        mean_runtime=mean_runtime,
-        total_samples=len(samples),
+    all_eval_features = list(train_features) + (
+        list(holdout_features) if len(holdout_features) > 0 else []
     )
+    all_eval_masks = list(train_masks) + (
+        list(holdout_masks) if len(holdout_masks) > 0 else []
+    )
+    sample_ids = [
+        f"img_{idx:03d}" + ("_holdout" if idx >= len(train_masks) else "")
+        for idx in range(len(all_eval_features))
+    ]
 
-    if verbose:
-        print(f"\n{'=' * 60}")
-        print("Final Results:")
-        print(f"  Mean mIoU: {mean_miou:.3f}")
-        print(f"  Mean Pixel Accuracy: {mean_pixel_accuracy:.3f}")
-        print(f"  Mean Runtime: {mean_runtime:.3f}s")
-        print(f"{'=' * 60}")
-
-    return results
+    return _evaluate_predictions(
+        features=all_eval_features,
+        masks=all_eval_masks,
+        num_classes=num_classes,
+        ignore_index=ignore_idx,
+        method_name="supervised-linear-head",
+        dataset_name=dataset_name,
+        config=config,
+        predict_fn=lambda feat: _predict_linear_head(model, feat, device),
+        verbose=verbose,
+        sample_ids=sample_ids,
+    )
