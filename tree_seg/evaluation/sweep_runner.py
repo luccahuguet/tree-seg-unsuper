@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import datetime
 import itertools
+import datetime
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -127,11 +128,10 @@ def run_multiplicative_sweep(
     # Generate all config combinations
     configs_to_test = generate_sweep_configs(base_config_params, sweep_params)
 
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     smartk_suffix = "_smartk" if smart_k else ""
-    sweep_dir = (
-        Path("data/outputs/results") / f"sweep_{sweep_name}{smartk_suffix}_{timestamp}"
-    )
+    sweep_dir = Path("data/outputs/results") / f"sweep_{sweep_name}{smartk_suffix}"
+    if sweep_dir.exists():
+        shutil.rmtree(sweep_dir)
     sweep_dir.mkdir(parents=True, exist_ok=True)
 
     console.print(

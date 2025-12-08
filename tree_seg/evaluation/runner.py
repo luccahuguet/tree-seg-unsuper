@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import datetime
 import json
 import os
+import datetime
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -362,11 +363,10 @@ def run_sweep(
     use_cache: bool = True,
 ):
     """Run a grid sweep and return results + sweep_dir."""
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     smartk_suffix = "_smartk" if smart_k else ""
-    sweep_dir = (
-        Path("data/outputs/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
-    )
+    sweep_dir = Path("data/outputs/results") / f"sweep_{grid_name}{smartk_suffix}"
+    if sweep_dir.exists():
+        shutil.rmtree(sweep_dir)
     sweep_dir.mkdir(parents=True, exist_ok=True)
 
     console.print(f"[green]📁 Sweep directory: {sweep_dir}[/green]\n")
