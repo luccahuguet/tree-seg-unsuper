@@ -22,7 +22,9 @@ from tree_seg.tree_focus.vegetation_indices import (
 
 
 def analyze_vegetation_features(
-    image_path: str, k_value: int = 15, output_dir: str = "data/output/feature_analysis"
+    image_path: str,
+    k_value: int = 15,
+    output_dir: str = "data/outputs/feature_analysis",
 ):
     """
     Analyze how well DINOv3 features separate vegetation from non-vegetation.
@@ -257,7 +259,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output",
         type=str,
-        default="data/output/feature_analysis",
+        default="data/outputs/feature_analysis",
         help="Output directory",
     )
 

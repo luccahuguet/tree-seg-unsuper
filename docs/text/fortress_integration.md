@@ -48,7 +48,7 @@ FORTRESS (Forest Tree Species Segmentation) provides **species-level semantic an
 
 **Original Format:**
 ```
-data/fortress/10.35097-538/data/dataset/
+data/datasets/fortress/10.35097-538/data/dataset/
 ├── orthomosaic/          # RGB TIF files (*_ortho.tif)
 └── shapefile/            # Vector polygons (poly_*.shp)
 ```
@@ -57,7 +57,7 @@ data/fortress/10.35097-538/data/dataset/
 
 **Output Structure:**
 ```
-data/fortress_processed/
+data/datasets/fortress_processed/
 ├── images/               # Symlinks to orthomosaics
 ├── labels/               # Rasterized semantic masks (*_label.tif)
 └── species_mapping.txt   # ID → species name mapping
@@ -74,8 +74,8 @@ data/fortress_processed/
 **Usage:**
 ```bash
 python scripts/preprocess_fortress.py \
-  --data-dir data/fortress/10.35097-538/data/dataset \
-  --output-dir data/fortress_processed \
+  --data-dir data/datasets/fortress/10.35097-538/data/dataset \
+  --output-dir data/datasets/fortress_processed \
   --extract-ortho  # Optional: extract orthomosaic.zip
 ```
 
@@ -91,7 +91,7 @@ python scripts/preprocess_fortress.py \
 ```python
 from tree_seg.evaluation.datasets import FortressDataset
 
-dataset = FortressDataset("data/fortress_processed")
+dataset = FortressDataset("data/datasets/fortress_processed")
 
 # Get sample
 image, label, image_id = dataset[0]
@@ -177,7 +177,7 @@ Hungarian matching → mIoU vs ground truth species
 
 ```bash
 python scripts/evaluate_fortress.py \
-    --dataset data/fortress_processed \
+    --dataset data/datasets/fortress_processed \
     --method v3 \
     --model base \
     --exg-threshold 0.10 \
@@ -185,14 +185,14 @@ python scripts/evaluate_fortress.py \
 ```
 
 **Output:**
-- Results JSON: `data/output/results/fortress_v3_*/results.json`
-- Visualizations: `data/output/results/fortress_v3_*/visualizations/`
+- Results JSON: `data/outputs/results/fortress_v3_*/results.json`
+- Visualizations: `data/outputs/results/fortress_v3_*/visualizations/`
 
 ### V1.5 Baseline
 
 ```bash
 python scripts/evaluate_fortress.py \
-    --dataset data/fortress_processed \
+    --dataset data/datasets/fortress_processed \
     --method v1.5 \
     --model base \
     --elbow-threshold 10.0 \

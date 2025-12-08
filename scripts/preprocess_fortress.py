@@ -174,13 +174,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default="data/fortress/10.35097-538/data/dataset",
+        default="data/datasets/fortress/10.35097-538/data/dataset",
         help="Path to FORTRESS dataset directory",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default="data/fortress_processed",
+        default="data/datasets/fortress_processed",
         help="Output directory for processed dataset",
     )
     parser.add_argument(

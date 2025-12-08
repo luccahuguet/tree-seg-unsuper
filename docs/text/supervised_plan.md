@@ -13,14 +13,14 @@
 Example commands:
 ```bash
 # Quick linear head (defaults, stride=4)
-tree-seg eval-super data/fortress_processed --head linear
+tree-seg eval-super data/datasets/fortress_processed --head linear
 
 # Stronger linear head
-tree-seg eval-super data/fortress_processed --head linear \
+tree-seg eval-super data/datasets/fortress_processed --head linear \
   --stride 2 --max-patches 2000000 --epochs 200 --patience 20 --val-split 0.1 --lr 5e-4
 
 # Sklearn MLP head (nonlinear)
-tree-seg eval-super data/fortress_processed --head mlp --stride 2 --max-patches 2000000 --epochs 200
+tree-seg eval-super data/datasets/fortress_processed --head mlp --stride 2 --max-patches 2000000 --epochs 200
 ```
 
 ## Notes

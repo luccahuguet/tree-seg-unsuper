@@ -10,7 +10,7 @@ import argparse
 from datetime import datetime
 
 
-def load_benchmarks(file_path="data/output/performance_log.jsonl"):
+def load_benchmarks(file_path="data/outputs/performance_log.jsonl"):
     """Load benchmark data from JSONL file."""
     log_file = Path(file_path)
     if not log_file.exists():
@@ -185,7 +185,7 @@ def main():
     parser.add_argument(
         "--file",
         "-f",
-        default="data/output/performance_log.jsonl",
+        default="data/outputs/performance_log.jsonl",
         help="Path to benchmark JSONL file",
     )
     parser.add_argument(

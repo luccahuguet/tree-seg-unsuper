@@ -87,7 +87,7 @@ class FortressDataset:
 
         Args:
             dataset_path: Path to preprocessed FORTRESS dataset
-                         (e.g., data/fortress_processed/)
+                         (e.g., data/datasets/fortress_processed/)
             split: Optional split name (not used, kept for API consistency)
         """
         self.dataset_path = Path(dataset_path)

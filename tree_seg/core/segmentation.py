@@ -36,7 +36,7 @@ def process_image(
     refine_slic_sigma: float = 1.0,
     collect_metrics: bool = False,
     model_name=None,
-    output_dir="data/output",
+    output_dir="data/outputs",
     verbose: bool = True,
     apply_vegetation_filter: bool = False,
     exg_threshold: float = 0.10,

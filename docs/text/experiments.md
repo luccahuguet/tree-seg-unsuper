@@ -25,19 +25,19 @@ The evaluation CLI uses composable flags at different abstraction levels:
 **Examples:**
 ```bash
 # V1.5 baseline: K-means + SLIC
-tree-seg eval data/fortress
+tree-seg eval data/datasets/fortress
 
 # V2: K-means + soft EM refinement
-tree-seg eval data/fortress --refine soft-em
+tree-seg eval data/datasets/fortress --refine soft-em
 
 # Experiment: GMM + soft EM
-tree-seg eval data/fortress --clustering gmm --refine soft-em
+tree-seg eval data/datasets/fortress --clustering gmm --refine soft-em
 
 # V3 task: Species segmentation
-tree-seg eval data/fortress --vegetation-filter
+tree-seg eval data/datasets/fortress --vegetation-filter
 
 # No refinement: just clustering
-tree-seg eval data/fortress --refine none
+tree-seg eval data/datasets/fortress --refine none
 ```
 
 ---
@@ -196,22 +196,22 @@ For each experiment:
 **Running Sweeps:**
 ```bash
 # Test clustering methods with new sweep command
-uv run tree-seg sweep data/fortress_processed -c all -r slic,none --num-samples 1 --save-viz --smart-k
+uv run tree-seg sweep data/datasets/fortress_processed -c all -r slic,none --num-samples 1 --save-viz --smart-k
 
 # Test specific clustering vs refinement combinations
-uv run tree-seg sweep data/fortress_processed -c kmeans,gmm -r slic,soft-em,none --num-samples 1 --save-viz
+uv run tree-seg sweep data/datasets/fortress_processed -c kmeans,gmm -r slic,soft-em,none --num-samples 1 --save-viz
 
 # Test V2 soft EM refinement
-uv run tree-seg eval data/fortress_processed --refine soft-em --num-samples 1 --save-viz
+uv run tree-seg eval data/datasets/fortress_processed --refine soft-em --num-samples 1 --save-viz
 
 # Test refinement combinations
-uv run tree-seg eval data/fortress_processed --refine soft-em+slic --num-samples 1 --save-viz
+uv run tree-seg eval data/datasets/fortress_processed --refine soft-em+slic --num-samples 1 --save-viz
 
 # Experiment: GMM with soft EM
-uv run tree-seg eval data/fortress_processed --clustering gmm --refine soft-em --num-samples 1 --save-viz
+uv run tree-seg eval data/datasets/fortress_processed --clustering gmm --refine soft-em --num-samples 1 --save-viz
 
 # Use preset for comprehensive testing
-uv run tree-seg sweep data/fortress_processed --preset paper --num-samples 3 --save-viz --smart-k
+uv run tree-seg sweep data/datasets/fortress_processed --preset paper --num-samples 3 --save-viz --smart-k
 ```
 
 Metadata tips:

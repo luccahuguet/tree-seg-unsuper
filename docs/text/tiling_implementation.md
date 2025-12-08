@@ -109,18 +109,18 @@ config = Config(**PRESETS['speed'])
 ```bash
 # Tiling enabled automatically for large images
 python segment_folder.py \
-    --input-dir data/fortress_processed/images \
+    --input-dir data/datasets/fortress_processed/images \
     --model base
 
 # Disable tiling (force downsampling)
 python segment_folder.py \
-    --input-dir data/fortress_processed/images \
+    --input-dir data/datasets/fortress_processed/images \
     --model base \
     --no-tiling
 
 # Speed mode: 2× downsample before tiling
 python segment_folder.py \
-    --input-dir data/fortress_processed/images \
+    --input-dir data/datasets/fortress_processed/images \
     --model base \
     --downsample-before-tiling
 ```

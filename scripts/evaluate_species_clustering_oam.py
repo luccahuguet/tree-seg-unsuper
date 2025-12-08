@@ -31,8 +31,8 @@ from tree_seg.evaluation.oam_tcd_eval import OAMTCDEvaluator, print_metrics
 
 
 def run_v3_on_oam_tcd(
-    dataset_path: str = "data/oam_tcd",
-    output_dir: str = "data/oam_tcd/v3_predictions",
+    dataset_path: str = "data/datasets/oam_tcd",
+    output_dir: str = "data/datasets/oam_tcd/v3_predictions",
     max_samples: int = None,
     exg_threshold: float = 0.10,
 ):
@@ -108,8 +108,8 @@ def run_v3_on_oam_tcd(
 
 
 def evaluate_v3_results(
-    dataset_path: str = "data/oam_tcd",
-    predictions_dir: str = "data/oam_tcd/v3_predictions",
+    dataset_path: str = "data/datasets/oam_tcd",
+    predictions_dir: str = "data/datasets/oam_tcd/v3_predictions",
     output_json: str = "results/v3_oam_tcd_evaluation.json",
     max_samples: int = None,
 ):
@@ -152,7 +152,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Evaluate V3 on OAM-TCD")
     parser.add_argument(
-        "--dataset", type=str, default="data/oam_tcd", help="Path to OAM-TCD dataset"
+        "--dataset",
+        type=str,
+        default="data/datasets/oam_tcd",
+        help="Path to OAM-TCD dataset",
     )
     parser.add_argument(
         "--max-samples",
@@ -174,7 +177,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    predictions_dir = f"data/oam_tcd/v3_predictions_exg{args.exg_threshold}"
+    predictions_dir = f"data/datasets/oam_tcd/v3_predictions_exg{args.exg_threshold}"
 
     # Run inference (unless skipped)
     if not args.skip_inference:

@@ -147,7 +147,7 @@ def resolve_output_dir(
         method_str += "_smartk"
     model_str = config.model_display_name.lower().replace(" ", "_")
     return (
-        Path("data/output/results")
+        Path("data/outputs/results")
         / f"{dataset_type}_{method_str}_{model_str}_{timestamp}"
     )
 
@@ -279,7 +279,7 @@ def run_sweep(
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     smartk_suffix = "_smartk" if smart_k else ""
     sweep_dir = (
-        Path("data/output/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
+        Path("data/outputs/results") / f"sweep_{grid_name}{smartk_suffix}_{timestamp}"
     )
     sweep_dir.mkdir(parents=True, exist_ok=True)
 

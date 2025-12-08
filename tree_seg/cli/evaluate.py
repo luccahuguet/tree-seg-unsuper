@@ -362,34 +362,34 @@ def evaluate_command(
     Examples:
 
         # V1.5 baseline: K-means + SLIC
-        tree-seg eval data/fortress
+        tree-seg eval data/datasets/fortress
 
         # V2: K-means + soft EM refinement
-        tree-seg eval data/fortress --refine soft-em
+        tree-seg eval data/datasets/fortress --refine soft-em
 
         # V2 + SLIC: K-means + soft EM + SLIC (combine both refinements)
-        tree-seg eval data/fortress --refine soft-em+slic
+        tree-seg eval data/datasets/fortress --refine soft-em+slic
 
         # V3 task: Species segmentation with vegetation filter
-        tree-seg eval data/fortress --vegetation-filter
+        tree-seg eval data/datasets/fortress --vegetation-filter
 
         # V2 + V3: Soft EM + vegetation filter
-        tree-seg eval data/fortress --refine soft-em --vegetation-filter
+        tree-seg eval data/datasets/fortress --refine soft-em --vegetation-filter
 
         # Experiment: GMM clustering + soft EM
-        tree-seg eval data/fortress --clustering gmm --refine soft-em
+        tree-seg eval data/datasets/fortress --clustering gmm --refine soft-em
 
         # No refinement: just clustering
-        tree-seg eval data/fortress --refine none
+        tree-seg eval data/datasets/fortress --refine none
 
         # Supervised sklearn baseline
-        tree-seg eval data/fortress --supervised
+        tree-seg eval data/datasets/fortress --supervised
 
         # Supervised PyTorch linear head
-        tree-seg eval data/fortress --supervised --supervised-head linear
+        tree-seg eval data/datasets/fortress --supervised --supervised-head linear
 
         # For parameter sweeps, use the 'sweep' command instead
-        tree-seg sweep data/fortress --clustering kmeans gmm --refine slic none
+        tree-seg sweep data/datasets/fortress --clustering kmeans gmm --refine slic none
     """
     if not dataset_type:
         dataset_type = detect_dataset_type(dataset)

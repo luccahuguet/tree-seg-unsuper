@@ -220,7 +220,7 @@ def verify_dataset(dataset_path: Path):
     print("\nNext steps:")
     print("   1. Run tests: uv run python scripts/test_benchmark.py")
     print(
-        "   2. Run benchmark: uv run python scripts/run_benchmark.py --dataset data/isprs_potsdam --num-samples 5"
+        "   2. Run benchmark: uv run python scripts/run_benchmark.py --dataset data/datasets/isprs_potsdam --num-samples 5"
     )
 
     return True
@@ -243,8 +243,8 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/isprs_potsdam"),
-        help="Output directory (default: data/isprs_potsdam)",
+        default=Path("data/datasets/isprs_potsdam"),
+        help="Output directory (default: data/datasets/isprs_potsdam)",
     )
 
     parser.add_argument(

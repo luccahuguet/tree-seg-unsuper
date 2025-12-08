@@ -13,7 +13,7 @@ Segment aerial imagery into **species-level regions** where visually similar veg
 ## Quick Start
 - Install dependencies: `uv sync`
 - Run the CLI: `UV_CACHE_DIR=.uv_cache uv run python main.py --help`
-- Default inputs live in `data/input/`; results are written to `data/output/`
+- Default inputs live in `data/inputs/`; results are written to `data/outputs/`
 
 For full setup instructions, walkthroughs, and benchmarks, jump to the dedicated docs below.
 
@@ -32,8 +32,8 @@ For full setup instructions, walkthroughs, and benchmarks, jump to the dedicated
 - Documentation sweep instructions – `examples/sweeps/README.md`
 
 ## Data Layout
-- `data/input/` – source imagery used by the CLI and examples (ignored from version control)
-- `data/output/` – generated artifacts, benchmarks, and documentation assets
+- `data/inputs/` – source imagery used by the CLI and examples (ignored from version control)
+- `data/outputs/` – generated artifacts, benchmarks, and documentation assets
 
 ## Reproducible Workflows
 - CLI usage & automation scripts live under `scripts/`

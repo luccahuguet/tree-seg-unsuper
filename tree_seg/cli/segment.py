@@ -20,7 +20,7 @@ console = Console()
 
 def segment_command(
     image_path: Path = typer.Argument(
-        Path("data/input"),
+        Path("data/inputs"),
         help="Path to image or directory to process",
         exists=True,
     ),
@@ -29,7 +29,7 @@ def segment_command(
         help="Model size: small/base/large/giant/mega or full name",
     ),
     output_dir: Path = typer.Option(
-        Path("data/output"),
+        Path("data/outputs"),
         "--output-dir",
         "-o",
         help="Output directory for results",

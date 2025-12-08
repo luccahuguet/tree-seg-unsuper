@@ -305,7 +305,7 @@ tree-seg results --hash a3f7c2d1ab --render
 ### Automatic Save (after eval)
 
 ```bash
-tree-seg eval data/fortress --clustering kmeans --k 5 --refine slic
+tree-seg eval data/datasets/fortress --clustering kmeans --k 5 --refine slic
 # → Saves to results/by-hash/{hash}/
 # → Appends to results/index.jsonl
 # → Output: Saved to a3f7c2d1 (mIoU: 0.415, 14.0s)

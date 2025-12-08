@@ -6,7 +6,7 @@ Writes a CSV with runtime, VRAM, and configuration per image.
 
 Usage:
   uv run python scripts/utils/benchmark_profiles.py \
-    --input data/input --output-csv bench.csv \
+    --input data/inputs --output-csv bench.csv \
     --profiles quality balanced speed \
     --models small base
 
@@ -72,7 +72,7 @@ def main():
         if first_write:
             writer.writeheader()
 
-        base_output_dir = Path("data/output") / "benchmarks"
+        base_output_dir = Path("data/outputs") / "benchmarks"
         base_output_dir.mkdir(parents=True, exist_ok=True)
 
         for profile in args.profiles:

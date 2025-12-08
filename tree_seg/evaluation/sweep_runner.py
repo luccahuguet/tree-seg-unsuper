@@ -130,7 +130,7 @@ def run_multiplicative_sweep(
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     smartk_suffix = "_smartk" if smart_k else ""
     sweep_dir = (
-        Path("data/output/results") / f"sweep_{sweep_name}{smartk_suffix}_{timestamp}"
+        Path("data/outputs/results") / f"sweep_{sweep_name}{smartk_suffix}_{timestamp}"
     )
     sweep_dir.mkdir(parents=True, exist_ok=True)
 

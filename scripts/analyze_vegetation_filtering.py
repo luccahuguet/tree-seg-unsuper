@@ -19,7 +19,7 @@ def evaluate_v3_1_sample(
     n_samples: int = 10,
     k_value: int = 20,
     exg_threshold: float = 0.10,
-    output_dir: str = "data/output/v3_1_eval",
+    output_dir: str = "data/outputs/v3_1_eval",
     seed: int = 42,
 ):
     """
@@ -42,7 +42,7 @@ def evaluate_v3_1_sample(
 
     # Load test split
     print("Loading OAM-TCD test split...")
-    test_data = load_from_disk("data/oam_tcd/test")
+    test_data = load_from_disk("data/datasets/oam_tcd/test")
     print(f"Loaded {len(test_data)} test samples")
     print()
 
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     parser.add_argument("--k", type=int, default=20, help="Number of clusters")
     parser.add_argument("--threshold", type=float, default=0.10, help="ExG threshold")
     parser.add_argument(
-        "--output", type=str, default="data/output/v3_1_eval", help="Output directory"
+        "--output", type=str, default="data/outputs/v3_1_eval", help="Output directory"
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
 

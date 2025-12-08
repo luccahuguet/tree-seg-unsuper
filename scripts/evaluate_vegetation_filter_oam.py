@@ -29,7 +29,7 @@ def evaluate_vegetation_filter(
     exg_threshold: float = 0.10,
     auto_k: bool = True,
     elbow_threshold: float = 5.0,
-    output_dir: str = "data/output/veg_filter_eval",
+    output_dir: str = "data/outputs/veg_filter_eval",
     random_seed: int = 42,
 ):
     """
@@ -54,7 +54,7 @@ def evaluate_vegetation_filter(
 
     # Load dataset
     print(f"Loading OAM-TCD {dataset_split} split...")
-    dataset = load_from_disk(f"data/oam_tcd/{dataset_split}")
+    dataset = load_from_disk(f"data/datasets/oam_tcd/{dataset_split}")
     print(f"  Total images: {len(dataset)}")
 
     # Sample if needed
@@ -329,7 +329,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output",
         type=str,
-        default="data/output/veg_filter_eval",
+        default="data/outputs/veg_filter_eval",
         help="Output directory",
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed for sampling")

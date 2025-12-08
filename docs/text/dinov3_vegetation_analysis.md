@@ -171,7 +171,7 @@ Do vegetation clusters at K=20-30 correspond to species boundaries?
 
 ## Visualizations Generated
 
-Analysis outputs saved to `data/output/feature_analysis/`:
+Analysis outputs saved to `data/outputs/feature_analysis/`:
 
 **Per-sample 6-panel visualizations:**
 1. Original image

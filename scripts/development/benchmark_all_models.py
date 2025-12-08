@@ -15,7 +15,7 @@ MODEL_VARIANTS = [
 ]
 
 
-def run_model_benchmark(model_name: str, image_path: str = "data/input/forest.jpg"):
+def run_model_benchmark(model_name: str, image_path: str = "data/inputs/forest.jpg"):
     """Run benchmark for a single model."""
     print(f"\n{'=' * 60}")
     print(f"🚀 Running benchmark for {model_name}")
@@ -25,7 +25,7 @@ def run_model_benchmark(model_name: str, image_path: str = "data/input/forest.jp
         # Run segmentation with benchmarking enabled
         segment_trees(
             input_path=image_path,
-            output_dir="data/output",
+            output_dir="data/outputs",
             model=model_name,
             auto_k=True,
             elbow_threshold=0.15,
@@ -58,8 +58,8 @@ def main():
         status = "✅ SUCCESS" if success else "❌ FAILED"
         print(f"{model_name:<20} {status}")
 
-    print("\n📁 Results saved to: data/output/performance_log.jsonl")
-    print("🔍 Use 'cat data/output/performance_log.jsonl' to view detailed timings")
+    print("\n📁 Results saved to: data/outputs/performance_log.jsonl")
+    print("🔍 Use 'cat data/outputs/performance_log.jsonl' to view detailed timings")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ def generate_semantic_samples(
     n_samples: int = 10,
     elbow_threshold: float = 5.0,
     exg_threshold: float = 0.10,
-    output_dir: str = "data/output/v3_semantic",
+    output_dir: str = "data/outputs/v3_semantic",
     seed: int = 42,
 ):
     """
@@ -38,7 +38,7 @@ def generate_semantic_samples(
 
     # Load test split
     print("Loading OAM-TCD test split...")
-    test_data = load_from_disk("data/oam_tcd/test")
+    test_data = load_from_disk("data/datasets/oam_tcd/test")
     print(f"Loaded {len(test_data)} test samples")
     print()
 
@@ -111,7 +111,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--threshold", type=float, default=0.10, help="ExG threshold")
     parser.add_argument(
-        "--output", type=str, default="data/output/v3_semantic", help="Output directory"
+        "--output",
+        type=str,
+        default="data/outputs/v3_semantic",
+        help="Output directory",
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
 

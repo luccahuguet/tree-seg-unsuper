@@ -215,7 +215,7 @@ def results_command(
     export_csv: bool = typer.Option(
         False,
         "--export-csv",
-        help="Export results to CSV at data/output/{dataset}.csv (upserts to same file)",
+        help="Export results to CSV at data/outputs/{dataset}.csv (upserts to same file)",
     ),
     export_path: Optional[Path] = typer.Option(
         None,
@@ -284,7 +284,7 @@ def results_command(
             return
 
         console.print(
-            f"[bold]🔄 Syncing visualizations for {len(entries)} entr{'y' if len(entries)==1 else 'ies'}[/bold]"
+            f"[bold]🔄 Syncing visualizations for {len(entries)} entr{'y' if len(entries) == 1 else 'ies'}[/bold]"
         )
 
         rendered = skipped_existing = missing_labels = missing_meta = errors = 0
@@ -301,7 +301,9 @@ def results_command(
 
             artifacts = meta.get("artifacts", {})
             run_dir = Path(base_dir) / "by-hash" / hash_entry
-            viz_dir = Path(artifacts.get("visualizations_dir") or run_dir / "visualizations")
+            viz_dir = Path(
+                artifacts.get("visualizations_dir") or run_dir / "visualizations"
+            )
             labels_dir = artifacts.get("labels_dir")
 
             if viz_dir.exists() and any(viz_dir.glob("*.png")):
@@ -368,7 +370,7 @@ def results_command(
         else:
             # Generate default path (no timestamp - upsert to same file)
             dataset_name = dataset or "all"
-            export_dir = Path("data/output")
+            export_dir = Path("data/outputs")
             export_dir.mkdir(parents=True, exist_ok=True)
             csv_path = export_dir / f"{dataset_name}.csv"
 

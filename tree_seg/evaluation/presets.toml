@@ -1,5 +1,5 @@
 # Curated sweep presets for tree-seg experiments
-# Usage: tree-seg sweep data/fortress --preset quick
+# Usage: tree-seg sweep data/datasets/fortress --preset quick
 
 [presets.quick]
 description = "Quick comparison: K-means vs GMM, SLIC vs none (4 configs)"

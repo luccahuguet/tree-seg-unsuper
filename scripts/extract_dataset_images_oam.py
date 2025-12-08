@@ -10,7 +10,9 @@ from PIL import Image
 
 
 def extract_images(
-    split: str = "test", output_dir: str = "data/oam_tcd_images", max_images: int = None
+    split: str = "test",
+    output_dir: str = "data/datasets/oam_tcd_images",
+    max_images: int = None,
 ):
     """
     Extract OAM-TCD images to individual files.
@@ -24,7 +26,7 @@ def extract_images(
     output_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Loading OAM-TCD {split} split...")
-    data = load_from_disk(f"data/oam_tcd/{split}")
+    data = load_from_disk(f"data/datasets/oam_tcd/{split}")
 
     n_images = len(data)
     if max_images:
@@ -66,7 +68,10 @@ if __name__ == "__main__":
         help="Dataset split to extract",
     )
     parser.add_argument(
-        "--output", type=str, default="data/oam_tcd_images", help="Output directory"
+        "--output",
+        type=str,
+        default="data/datasets/oam_tcd_images",
+        help="Output directory",
     )
     parser.add_argument(
         "--max", type=int, default=None, help="Maximum number of images (default: all)"

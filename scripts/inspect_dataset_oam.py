@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 
-def inspect_dataset(data_dir: str = "data/oam_tcd"):
+def inspect_dataset(data_dir: str = "data/datasets/oam_tcd"):
     """Inspect OAM-TCD dataset structure and show examples."""
     data_path = Path(data_dir)
 
@@ -224,9 +224,13 @@ def visualize_sample(sample, output_path: str = None):
         print(f"\n✓ Saved visualization to {output_file}")
     else:
         plt.savefig(
-            "data/oam_tcd/sample_visualization.png", dpi=150, bbox_inches="tight"
+            "data/datasets/oam_tcd/sample_visualization.png",
+            dpi=150,
+            bbox_inches="tight",
         )
-        print("\n✓ Saved visualization to data/oam_tcd/sample_visualization.png")
+        print(
+            "\n✓ Saved visualization to data/datasets/oam_tcd/sample_visualization.png"
+        )
 
     plt.close()
 
@@ -236,7 +240,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Inspect OAM-TCD dataset")
     parser.add_argument(
-        "--data-dir", type=str, default="data/oam_tcd", help="Dataset directory"
+        "--data-dir",
+        type=str,
+        default="data/datasets/oam_tcd",
+        help="Dataset directory",
     )
     parser.add_argument(
         "--visualize", action="store_true", help="Create visualization of first sample"

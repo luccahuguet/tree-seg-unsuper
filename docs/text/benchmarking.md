@@ -19,7 +19,7 @@ End-to-end reference for acquiring the ISPRS Potsdam dataset, authenticating wit
    ```bash
    uv run python scripts/download_dataset_isprs.py
    ```
-   The helper script will download ~20 GB, extract, organize under `data/isprs_potsdam/{images,labels}/`, clean temp files, and verify integrity.
+   The helper script will download ~20 GB, extract, organize under `data/datasets/isprs_potsdam/{images,labels}/`, clean temp files, and verify integrity.
 
 3. **Alternate dataset options**
    ```bash
@@ -55,14 +55,14 @@ The benchmark harness evaluates segmentation quality (mIoU, pixel accuracy) and 
 ```bash
 # Baseline V1.5 run on 5 samples (GPU if available)
 uv run python scripts/evaluate_semantic_segmentation.py \
-  --dataset data/isprs_potsdam \
+  --dataset data/datasets/isprs_potsdam \
   --method v1.5 \
   --num-samples 5 \
   --save-viz
 
 # Force CPU if necessary
 FORCE_CPU=1 uv run python scripts/evaluate_semantic_segmentation.py \
-  --dataset data/isprs_potsdam \
+  --dataset data/datasets/isprs_potsdam \
   --method v1.5 \
   --num-samples 5 \
   --save-viz
@@ -72,17 +72,17 @@ FORCE_CPU=1 uv run python scripts/evaluate_semantic_segmentation.py \
 
 ```bash
 uv run python scripts/evaluate_semantic_segmentation.py \
-  --dataset data/isprs_potsdam \
+  --dataset data/datasets/isprs_potsdam \
   --method v1.5 \
   --model base \
   --clustering slic \
   --elbow-threshold 20.0 \
   --num-samples 10 \
   --save-viz \
-  --output-dir data/output/results/base_e20_slic_run
+  --output-dir data/outputs/results/base_e20_slic_run
 ```
 
-Outputs land in `data/output/results/<method>_<model>_<timestamp>/`:
+Outputs land in `data/outputs/results/<method>_<model>_<timestamp>/`:
 - `results.json` – metrics per image and aggregate statistics
 - `visualizations/` – optional overlays when `--save-viz` is used
 
@@ -105,38 +105,38 @@ Outputs land in `data/output/results/<method>_<model>_<timestamp>/`:
 
 ```bash
 # Compare elbow thresholds
-uv run python scripts/evaluate_semantic_segmentation.py --dataset data/isprs_potsdam --elbow-threshold 2.5 --num-samples 5
-uv run python scripts/evaluate_semantic_segmentation.py --dataset data/isprs_potsdam --elbow-threshold 20.0 --num-samples 5
+uv run python scripts/evaluate_semantic_segmentation.py --dataset data/datasets/isprs_potsdam --elbow-threshold 2.5 --num-samples 5
+uv run python scripts/evaluate_semantic_segmentation.py --dataset data/datasets/isprs_potsdam --elbow-threshold 20.0 --num-samples 5
 
 # Model comparison
-uv run python scripts/evaluate_semantic_segmentation.py --dataset data/isprs_potsdam --model small --num-samples 5
-uv run python scripts/evaluate_semantic_segmentation.py --dataset data/isprs_potsdam --model mega --num-samples 5
+uv run python scripts/evaluate_semantic_segmentation.py --dataset data/datasets/isprs_potsdam --model small --num-samples 5
+uv run python scripts/evaluate_semantic_segmentation.py --dataset data/datasets/isprs_potsdam --model mega --num-samples 5
 
 # K-means vs. SLIC refinement
-uv run python scripts/evaluate_semantic_segmentation.py --dataset data/isprs_potsdam --clustering slic --num-samples 5
+uv run python scripts/evaluate_semantic_segmentation.py --dataset data/datasets/isprs_potsdam --clustering slic --num-samples 5
 
 # Full run with explicit destination
 uv run python scripts/evaluate_semantic_segmentation.py \
-  --dataset data/isprs_potsdam \
+  --dataset data/datasets/isprs_potsdam \
   --method v1.5 \
   --model base \
   --clustering slic \
   --elbow-threshold 20.0 \
   --num-samples 10 \
   --save-viz \
-  --output-dir data/output/results/base_e20_slic_run
+  --output-dir data/outputs/results/base_e20_slic_run
 ```
 
 ### Comparison grid mode
 
 ```bash
 uv run python scripts/evaluate_semantic_segmentation.py \
-  --dataset data/isprs_potsdam \
+  --dataset data/datasets/isprs_potsdam \
   --compare-configs \
   --num-samples 5
 ```
 
-Automatically sweeps several elbow thresholds, model sizes, and clustering strategies, saving a summary to `data/output/results/comparison_summary.json`.
+Automatically sweeps several elbow thresholds, model sizes, and clustering strategies, saving a summary to `data/outputs/results/comparison_summary.json`.
 
 ### Metrics primer
 - **mIoU** (mean Intersection over Union): primary quality metric, typically 0.20–0.35 for unsupervised V1.5 on Potsdam.
@@ -150,7 +150,7 @@ Predicted clusters are matched to ground-truth labels using the Hungarian algori
 ## 3. Evaluation Roadmap (condensed)
 
 1. **Dataset readiness**
-   - Verify `data/isprs_potsdam/{images,labels}` structure.
+   - Verify `data/datasets/isprs_potsdam/{images,labels}` structure.
    - Decide on tiling/downsampling strategy for 6000×6000 TIFFs if needed.
 
 2. **Benchmark infrastructure**

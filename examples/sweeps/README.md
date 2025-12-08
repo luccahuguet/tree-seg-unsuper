@@ -16,10 +16,10 @@ The `docs_image_generation.json` sweep generates comprehensive results for:
 ### 1. Run the Documentation Sweep
 
 ```bash
-uv run python scripts/generate_docs_images.py data/input/forest2.jpeg
+uv run python scripts/generate_docs_images.py data/inputs/forest2.jpeg
 ```
 
-This will generate results in `data/output/sweeps/` with organized subdirectories for each configuration and automatically organize them into the proper `docs/results/` structure expected by the Jekyll documentation site.
+This will generate results in `data/outputs/sweeps/` with organized subdirectories for each configuration and automatically organize them into the proper `docs/results/` structure expected by the Jekyll documentation site.
 
 ## Generated Image Structure
 
@@ -94,14 +94,14 @@ The generated images are automatically referenced in:
 
 To update documentation images:
 
-1. Run the complete generation script: `uv run python scripts/generate_docs_images.py data/input/forest2.jpeg`
+1. Run the complete generation script: `uv run python scripts/generate_docs_images.py data/inputs/forest2.jpeg`
 2. Commit updated images to repository
 
 The script automatically handles sweep execution and image organization.
 
 ## Notes
 
-- Uses `data/input/forest.jpg` as the standard test image for consistency
+- Uses `data/inputs/forest.jpg` as the standard test image for consistency
 - Default elbow threshold is 5.0%; threshold comparison includes 2.5%, 5.0%, 10.0%, 20.0%
 - Images are generated in web-optimized JPEG format
 - Sweep takes approximately 15-20 minutes to complete all configurations

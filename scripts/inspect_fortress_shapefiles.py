@@ -90,7 +90,7 @@ def inspect_shapefile_fiona(shp_path):
 
 
 if __name__ == "__main__":
-    shapefile_dir = Path("data/fortress/10.35097-538/data/dataset/shapefile")
+    shapefile_dir = Path("data/datasets/fortress/10.35097-538/data/dataset/shapefile")
 
     # Find a few sample shapefiles
     shapefiles = sorted(shapefile_dir.glob("poly_CFB*.shp"))[:3]

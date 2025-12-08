@@ -135,7 +135,7 @@ Original planning document for V2 implementation (now complete).
 **New unified interface** (Dec 2024):
 ```bash
 # Each flag controls a different aspect
-tree-seg eval data/fortress \
+tree-seg eval data/datasets/fortress \
   --clustering kmeans|gmm|spectral|hdbscan \
   --refine none|slic|soft-em|bilateral|soft-em+slic \
   --vegetation-filter \

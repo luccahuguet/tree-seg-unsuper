@@ -34,7 +34,7 @@
 ## Reproduction Command
 ```bash
 uv run python scripts/evaluate_fortress.py \
-    --dataset data/fortress_processed \
+    --dataset data/datasets/fortress_processed \
     --method v1.5 \
     --model base \
     --num-samples 1 \

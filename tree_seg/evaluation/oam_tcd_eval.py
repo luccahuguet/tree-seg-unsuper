@@ -237,7 +237,7 @@ def evaluate_sample(
 class OAMTCDEvaluator:
     """Evaluator for V3 predictions against OAM-TCD dataset."""
 
-    def __init__(self, dataset_path: str = "data/oam_tcd"):
+    def __init__(self, dataset_path: str = "data/datasets/oam_tcd"):
         """Initialize evaluator.
 
         Args:
@@ -398,7 +398,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Evaluate V3 predictions on OAM-TCD")
     parser.add_argument(
-        "--dataset", type=str, default="data/oam_tcd", help="Path to OAM-TCD dataset"
+        "--dataset",
+        type=str,
+        default="data/datasets/oam_tcd",
+        help="Path to OAM-TCD dataset",
     )
     parser.add_argument(
         "--predictions",

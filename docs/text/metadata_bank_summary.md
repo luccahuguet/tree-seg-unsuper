@@ -32,7 +32,7 @@ results/
 
 **Auto-save (automatic):**
 ```bash
-tree-seg eval data/fortress --clustering kmeans
+tree-seg eval data/datasets/fortress --clustering kmeans
 # → Saves to results/by-hash/{hash}/ automatically
 ```
 

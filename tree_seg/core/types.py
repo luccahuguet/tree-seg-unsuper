@@ -15,8 +15,8 @@ class Config:
     """
 
     # Input/Output
-    input_dir: str = "data/input"
-    output_dir: str = "data/output"
+    input_dir: str = "data/inputs"
+    output_dir: str = "data/outputs"
     filename: Optional[str] = None  # If None, process all images
 
     # Model settings

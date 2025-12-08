@@ -20,7 +20,7 @@ All commands below assume you run them from the project root.
 ## 2. Fast Start
 
 ```bash
-# Process every image in data/input/ with the balanced profile
+# Process every image in data/inputs/ with the balanced profile
 UV_CACHE_DIR=.uv_cache uv run tree-seg segment
 
 # Inspect available flags
@@ -28,8 +28,8 @@ UV_CACHE_DIR=.uv_cache uv run tree-seg --help
 ```
 
 Defaults:
-- Input directory: `data/input`
-- Output directory: `data/output`
+- Input directory: `data/inputs`
+- Output directory: `data/outputs`
 - Model: DINOv3 Base (`dinov3_vitb16`)
 - Balanced profile (`image_size=1024`, `feature_upsample_factor=2`, `refine=slic`)
 
@@ -40,9 +40,9 @@ Defaults:
 ### 3.1 Single Image, Custom Output
 ```bash
 UV_CACHE_DIR=.uv_cache uv run tree-seg segment \
-  data/input/forest2.jpeg \
+  data/inputs/forest2.jpeg \
   base \
-  --output-dir data/output/my_run
+  --output-dir data/outputs/my_run
 ```
 
 ### 3.2 Quality vs. Speed Profiles
@@ -92,19 +92,19 @@ Run the sweep:
 
 ```bash
 UV_CACHE_DIR=.uv_cache uv run tree-seg segment \
-  data/input \
+  data/inputs \
   giant \
-  --output-dir data/output \
+  --output-dir data/outputs \
   --sweep sweeps/example.yaml \
   --metrics
 ```
 
-Results appear under `data/output/<sweep-prefix>/<name>/` (default prefix: `sweeps`).
+Results appear under `data/outputs/<sweep-prefix>/<name>/` (default prefix: `sweeps`).
 
 For the curated documentation sweep:
 
 ```bash
-UV_CACHE_DIR=.uv_cache uv run python scripts/generate_docs_images.py data/input/forest2.jpeg
+UV_CACHE_DIR=.uv_cache uv run python scripts/generate_docs_images.py data/inputs/forest2.jpeg
 ```
 
 ---
@@ -113,9 +113,9 @@ UV_CACHE_DIR=.uv_cache uv run python scripts/generate_docs_images.py data/input/
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `image_path` | Single file or directory to process | `data/input` |
+| `image_path` | Single file or directory to process | `data/inputs` |
 | `model` | Model size (`small`, `base`, `large`, `giant`, `mega` or full ID) | `base` |
-| `output_dir` | Destination folder | `data/output` |
+| `output_dir` | Destination folder | `data/outputs` |
 | `--image-size` | Resize dimension before feature extraction | `1024` |
 | `--feature-upsample` | Upsample factor for feature grid | `2` |
 | `--pca-dim` | Apply PCA before clustering (`None` = disabled) | `None` |
@@ -137,7 +137,7 @@ UV_CACHE_DIR=.uv_cache uv run python scripts/generate_docs_images.py data/input/
 
 - **Profiles first, explicit flags second**: Supplying `--profile` loads defaults unless you also pass the corresponding flag (`--image-size`, `--feature-upsample`, etc.), in which case the explicit flag wins.
 - **Sweeps inherit CLI defaults**: When `--sweep` is provided, the top-level CLI arguments (model, image size, output dir, etc.) become the baseline for every sweep item. Each item can override specific fields (including selecting its own `profile`). Reserved keys: `name`, `model`, and `profile`.
-- **Per-sweep outputs**: `--output_dir` defines the base directory; each sweep entry writes to `data/output/<prefix>/<name>/`. Outdirectories are cleared automatically; the global `--clean-output` flag is only honored for non-sweep runs.
+- **Per-sweep outputs**: `--output_dir` defines the base directory; each sweep entry writes to `data/outputs/<prefix>/<name>/`. Outdirectories are cleared automatically; the global `--clean-output` flag is only honored for non-sweep runs.
 - **Verbose vs. quiet**: Passing `--quiet` disables verbose logging even if `--verbose` is set earlier.
 - **Metrics during sweeps**: `--metrics` applies to both single runs and all sweep items.
 
@@ -147,7 +147,7 @@ Evaluate on labeled datasets with rich progress, metadata, and label dumps:
 
 ```bash
 # Baseline on FORTRESS with viz + labels
-UV_CACHE_DIR=.uv_cache uv run tree-seg eval data/fortress_processed \
+UV_CACHE_DIR=.uv_cache uv run tree-seg eval data/datasets/fortress_processed \
   --model base \
   --clustering kmeans \
   --refine slic \
@@ -159,14 +159,14 @@ UV_CACHE_DIR=.uv_cache uv run tree-seg eval data/fortress_processed \
 Parameter sweep with metadata per config:
 
 ```bash
-UV_CACHE_DIR=.uv_cache uv run tree-seg sweep data/fortress_processed \
+UV_CACHE_DIR=.uv_cache uv run tree-seg sweep data/datasets/fortress_processed \
   --preset tiling \
   --num-samples 1 \
   --save-viz --save-labels
 ```
 
 Notes:
-- Outputs land in `data/output/results/<dataset>_<method>_<timestamp>/` unless `--output-dir` is provided.
+- Outputs land in `data/outputs/results/<dataset>_<method>_<timestamp>/` unless `--output-dir` is provided.
 - `--save-labels/--no-save-labels` controls NPZ dumps under `labels/`; metadata is stored best-effort in `results/`.
 - Progress bar shows ETA using cached runtimes (scaled by hardware tier).
 

@@ -297,28 +297,28 @@ def sweep_command(
     Examples:
 
         # Basic sweep: 2 clustering × 2 refine = 4 configs
-        tree-seg sweep data/fortress -c kmeans,gmm -r slic,none
+        tree-seg sweep data/datasets/fortress -c kmeans,gmm -r slic,none
 
         # Use "all" for convenience: 7 clustering × 2 refine = 14 configs
-        tree-seg sweep data/fortress -c all -r slic,none
+        tree-seg sweep data/datasets/fortress -c all -r slic,none
 
         # All refinement methods with K-means: 5 configs
-        tree-seg sweep data/fortress -c kmeans -r all
+        tree-seg sweep data/datasets/fortress -c kmeans -r all
 
         # Multi-parameter: 4 models × 3 strides = 12 configs
-        tree-seg sweep data/fortress --model all --stride all
+        tree-seg sweep data/datasets/fortress --model all --stride all
 
         # Use a curated preset
-        tree-seg sweep data/fortress --preset clustering
+        tree-seg sweep data/datasets/fortress --preset clustering
 
         # From TOML file
-        tree-seg sweep data/fortress --from sweeps/my_study.toml
+        tree-seg sweep data/datasets/fortress --from sweeps/my_study.toml
 
         # Preview without running
-        tree-seg sweep data/fortress -c all -r slic,none --dry-run
+        tree-seg sweep data/datasets/fortress -c all -r slic,none --dry-run
 
         # Limit samples and save visualizations
-        tree-seg sweep data/fortress -c kmeans,gmm -r slic -n 5 --save-viz
+        tree-seg sweep data/datasets/fortress -c kmeans,gmm -r slic -n 5 --save-viz
     """
     if not dataset_type:
         dataset_type = detect_dataset_type(dataset)

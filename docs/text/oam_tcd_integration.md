@@ -26,7 +26,7 @@ We've integrated the **OAM-TCD (OpenAerialMap Tree Cover Dataset)** primarily fo
 
 ### Location
 ```
-data/oam_tcd/
+data/datasets/oam_tcd/
 ├── train/              # 4,169 training images
 ├── test/               # 439 test images
 ├── dataset_info.json   # Dataset metadata
@@ -95,7 +95,7 @@ uv run python scripts/download_dataset_oam.py --subset 100
 # View dataset structure and first sample
 uv run python scripts/inspect_dataset_oam.py --visualize
 
-# Output: data/oam_tcd/sample_visualization.png
+# Output: data/datasets/oam_tcd/sample_visualization.png
 ```
 
 ### 3. Visualize V3 on OAM-TCD Images
@@ -239,7 +239,7 @@ uv run python scripts/visualize_v3_simple.py --image 545   # Sparse vegetation
 
 ### Scripts
 1. **`scripts/download_dataset_oam.py`**
-   Downloads dataset from HuggingFace, saves to `data/oam_tcd/`
+   Downloads dataset from HuggingFace, saves to `data/datasets/oam_tcd/`
 
 2. **`scripts/inspect_dataset_oam.py`**
    Inspects dataset structure, creates visualizations
