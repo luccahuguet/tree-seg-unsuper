@@ -3,6 +3,9 @@ Elbow method for automatic K selection in tree segmentation clustering.
 """
 
 import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")  # Use non-interactive backend to avoid threading issues
 import matplotlib.pyplot as plt
 import os
 import hashlib

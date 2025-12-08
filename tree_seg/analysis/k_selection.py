@@ -4,6 +4,9 @@ Implements elbow method and silhouette analysis for optimal cluster number selec
 """
 
 import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")  # Use non-interactive backend to avoid threading issues
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score

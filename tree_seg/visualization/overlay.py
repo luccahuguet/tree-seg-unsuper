@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import os
+import matplotlib
+
+matplotlib.use("Agg")  # Use non-interactive backend to avoid threading issues
 import matplotlib.pyplot as plt
 
 from ..constants import (
