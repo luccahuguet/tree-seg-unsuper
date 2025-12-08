@@ -288,9 +288,11 @@ Metadata tips:
 
 ---
 
-## 🛠️ Infrastructure Improvements (Dec 5, 2024)
+## 🛠️ Infrastructure Improvements (Dec 2024)
 
-- ✅ Added `--grid clustering` sweep configuration
+- ✅ Added new `sweep` command with multiplicative parameter exploration (Dec 7)
+- ✅ Curated sweep presets in presets.toml (quick/clustering/refine/models/etc.)
+- ✅ Support for 'all' keyword to expand parameter options
 - ✅ Fixed visualization overwriting in sweep mode
 - ✅ Visualizations now saved with unique config labels
 - ✅ Implemented GMM clustering method

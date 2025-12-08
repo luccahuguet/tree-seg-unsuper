@@ -156,11 +156,11 @@ UV_CACHE_DIR=.uv_cache uv run tree-seg eval data/fortress_processed \
   --save-labels
 ```
 
-Comparison sweep with metadata per config:
+Parameter sweep with metadata per config:
 
 ```bash
-UV_CACHE_DIR=.uv_cache uv run tree-seg eval data/fortress_processed \
-  --compare-configs --grid tiling --smart-k \
+UV_CACHE_DIR=.uv_cache uv run tree-seg sweep data/fortress_processed \
+  --preset tiling \
   --num-samples 1 \
   --save-viz --save-labels
 ```

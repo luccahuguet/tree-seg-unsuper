@@ -42,7 +42,7 @@ See `docs/text/dinov3_vegetation_analysis.md` for detailed analysis.
 - **Property methods**: Smart getters like `model_display_name` for name mapping
 - **Validation**: Early error detection with clear messages
 - **Quality Presets**: `tree_seg/presets.py` - PRESETS dict (quality/balanced/speed)
-- **Research Grids**: `tree_seg/evaluation/grids.py` - GRIDS dict (ofat/smart/full)
+- **Sweep Presets**: `tree_seg/evaluation/presets.toml` - Curated parameter sweep configurations (quick/clustering/refine/models/etc.)
 
 ### 2. Result Objects  
 - **SegmentationResults**: Structured returns instead of tuples
