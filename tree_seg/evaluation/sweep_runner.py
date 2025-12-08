@@ -282,6 +282,9 @@ def run_multiplicative_sweep(
             labels_dir = sweep_dir / "labels"
             if labels_dir.exists():
                 artifacts["labels_dir"] = str(labels_dir)
+            viz_dir = sweep_dir / "visualizations"
+            if viz_dir.exists():
+                artifacts["visualizations_dir"] = str(viz_dir)
             store_run(
                 results=results,
                 config=config,
