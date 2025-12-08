@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -152,6 +153,69 @@ def resolve_output_dir(
     )
 
 
+def _hash_and_run_dir(
+    config: Config, dataset_path: Path, smart_k: bool, grid_label: Optional[str]
+) -> tuple[str, Path]:
+    """Compute hash + canonical run directory for a config/dataset."""
+    hash_config = _config_to_hash_config(
+        config, dataset_path.name, smart_k, grid_label=grid_label
+    )
+    normalized = normalize_config(hash_config)
+    hash_id = config_hash(normalized)
+    run_dir = Path("results") / "by-hash" / hash_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return hash_id, run_dir
+
+
+def _symlink_artifacts(
+    src_dir: Path, dest_dir: Path, *, label: Optional[str], ensure_label: bool
+) -> None:
+    """Create flat symlinks for all files in src_dir into dest_dir."""
+    if not src_dir.exists():
+        return
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    for src_file in src_dir.glob("*"):
+        dest_name = src_file.name
+        if ensure_label and label:
+            stem, suffix = src_file.stem, src_file.suffix
+            if label not in stem:
+                dest_name = f"{stem}_{label}{suffix}"
+        dest_file = dest_dir / dest_name
+        if dest_file.exists() or dest_file.is_symlink():
+            try:
+                if dest_file.is_symlink() and dest_file.resolve() == src_file.resolve():
+                    continue
+                dest_file.unlink()
+            except Exception:
+                continue
+        try:
+            relative = os.path.relpath(src_file, dest_file.parent)
+            dest_file.symlink_to(relative)
+        except FileExistsError:
+            continue
+
+
+def _link_run_into_sweep(sweep_dir: Path, label: str, run_dir: Path) -> None:
+    """Symlink canonical artifacts into sweep folder for browsing."""
+    viz_src = run_dir / "visualizations"
+    labels_src = run_dir / "labels"
+
+    if viz_src.exists():
+        _symlink_artifacts(
+            viz_src,
+            sweep_dir / "visualizations",
+            label=label,
+            ensure_label=True,
+        )
+    if labels_src.exists():
+        _symlink_artifacts(
+            labels_src,
+            sweep_dir / "labels",
+            label=label,
+            ensure_label=True,
+        )
+
+
 def try_cached_results(
     *,
     config: Config,
@@ -230,20 +294,42 @@ def run_single_benchmark(
     use_cache: bool,
 ):
     """Run a single benchmark configuration and persist metadata."""
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # Canonical storage keyed by hash
+    hash_id, run_dir = _hash_and_run_dir(
+        config=config, dataset_path=dataset_path, smart_k=smart_k, grid_label=None
+    )
+
+    # User-facing directory (for browsing) gets symlinks; canonical files live under results/by-hash
+    browse_dir = output_dir
+    browse_dir.mkdir(parents=True, exist_ok=True)
 
     dataset, _dtype = load_dataset(dataset_path, dataset_type)
 
     results = run_benchmark(
         config=config,
         dataset=dataset,
-        output_dir=output_dir,
+        output_dir=run_dir,
         num_samples=num_samples,
         save_visualizations=save_viz,
         save_labels=save_labels,
         verbose=not quiet,
         use_smart_k=smart_k,
     )
+
+    # Mirror artifacts into the requested output directory via symlinks
+    if browse_dir != run_dir:
+        _symlink_artifacts(
+            run_dir / "visualizations",
+            browse_dir / "visualizations",
+            label=None,
+            ensure_label=False,
+        )
+        _symlink_artifacts(
+            run_dir / "labels",
+            browse_dir / "labels",
+            label=None,
+            ensure_label=False,
+        )
 
     # Store results in metadata bank
     try:
@@ -301,17 +387,17 @@ def run_sweep(
         )
         console.print("-" * 40)
 
+        hash_id, run_dir = _hash_and_run_dir(
+            config=config, dataset_path=dataset_path, smart_k=smart_k, grid_label=label
+        )
+
         if use_cache:
-            hash_config = _config_to_hash_config(
-                config, dataset_path.name, smart_k, grid_label=label
-            )
-            normalized = normalize_config(hash_config)
-            hash_id = config_hash(normalized)
             meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
             if meta_path.exists():
                 console.print(
                     f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
                 )
+                _link_run_into_sweep(sweep_dir, label, run_dir)
                 continue
 
         model_key = (config.model_display_name, config.stride, config.image_size)
@@ -323,7 +409,7 @@ def run_sweep(
         results = run_benchmark(
             config=config,
             dataset=dataset,
-            output_dir=sweep_dir,
+            output_dir=run_dir,
             num_samples=num_samples,
             save_visualizations=save_viz,
             save_labels=save_labels,
@@ -334,11 +420,15 @@ def run_sweep(
         )
 
         all_results.append({"label": label, "config": config_dict, "results": results})
+
+        _link_run_into_sweep(sweep_dir, label, run_dir)
+
         try:
-            artifacts = {"sweep_dir": str(sweep_dir)}
-            labels_dir = sweep_dir / "labels"
-            if labels_dir.exists():
-                artifacts["labels_dir"] = str(labels_dir)
+            artifacts = {
+                "sweep_dir": str(sweep_dir),
+                "labels_dir": str(run_dir / "labels"),
+                "visualizations_dir": str(run_dir / "visualizations"),
+            }
             store_run(
                 results=results,
                 config=config,

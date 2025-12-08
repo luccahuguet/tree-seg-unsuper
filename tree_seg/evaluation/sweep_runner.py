@@ -20,13 +20,8 @@ from tree_seg.evaluation.formatters import (
     format_comparison_table,
     save_comparison_summary,
 )
-from tree_seg.evaluation.runner import load_dataset
-from tree_seg.metadata.store import (
-    _config_to_hash_config,
-    config_hash,
-    normalize_config,
-    store_run,
-)
+from tree_seg.evaluation.runner import load_dataset, _hash_and_run_dir, _link_run_into_sweep
+from tree_seg.metadata.store import store_run
 from tree_seg.metadata.load import lookup
 
 
@@ -181,17 +176,18 @@ def run_multiplicative_sweep(
         )
         console.print("-" * 60)
 
+        hash_id, run_dir = _hash_and_run_dir(
+            config=config, dataset_path=dataset_path, smart_k=smart_k, grid_label=label
+        )
+
         # Check cache
         if use_cache:
-            hash_config = _config_to_hash_config(
-                config, dataset_path.name, smart_k, grid_label=label
-            )
-            normalized = normalize_config(hash_config)
-            hash_id = config_hash(normalized)
             meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
             if meta_path.exists():
-                # Load cached metadata
                 meta = lookup(hash_id)
+                console.print(
+                    f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
+                )
                 if meta:
                     metrics = meta.get("metrics", {})
                     timing = meta.get("timing", {})
@@ -200,9 +196,6 @@ def run_multiplicative_sweep(
                     auto_tags = tags.get("auto", [])
                     user_tags = tags.get("user", [])
 
-                    console.print(
-                        f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
-                    )
                     console.print(
                         f"[dim]   📊 mIoU={metrics.get('mean_miou', 0):.4f}, "
                         f"PA={metrics.get('mean_pixel_accuracy', 0):.4f}, "
@@ -213,7 +206,6 @@ def run_multiplicative_sweep(
                         all_tags = ", ".join(auto_tags + user_tags)
                         console.print(f"[dim]   🏷️  Tags: {all_tags}[/dim]")
 
-                    # Reconstruct BenchmarkResults for comparison table
                     per_sample_stats = samples_meta.get("per_sample_stats", [])
                     benchmark_samples = []
                     for sample in per_sample_stats:
@@ -247,10 +239,7 @@ def run_multiplicative_sweep(
                             "results": cached_results,
                         }
                     )
-                else:
-                    console.print(
-                        f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
-                    )
+                _link_run_into_sweep(sweep_dir, label, run_dir)
                 continue
 
         # Model reuse optimization
@@ -264,7 +253,7 @@ def run_multiplicative_sweep(
         results = run_benchmark(
             config=config,
             dataset=dataset,
-            output_dir=sweep_dir,
+            output_dir=run_dir,
             num_samples=num_samples,
             save_visualizations=save_viz,
             save_labels=save_labels,
@@ -276,15 +265,15 @@ def run_multiplicative_sweep(
 
         all_results.append({"label": label, "config": config_dict, "results": results})
 
+        _link_run_into_sweep(sweep_dir, label, run_dir)
+
         # Store metadata
         try:
-            artifacts = {"sweep_dir": str(sweep_dir)}
-            labels_dir = sweep_dir / "labels"
-            if labels_dir.exists():
-                artifacts["labels_dir"] = str(labels_dir)
-            viz_dir = sweep_dir / "visualizations"
-            if viz_dir.exists():
-                artifacts["visualizations_dir"] = str(viz_dir)
+            artifacts = {
+                "sweep_dir": str(sweep_dir),
+                "labels_dir": str(run_dir / "labels"),
+                "visualizations_dir": str(run_dir / "visualizations"),
+            }
             store_run(
                 results=results,
                 config=config,
