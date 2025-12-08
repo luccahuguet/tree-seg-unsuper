@@ -154,6 +154,11 @@ def results_command(
         "-h",
         help="Show details for a specific run hash",
     ),
+    sync_all_viz: bool = typer.Option(
+        False,
+        "--sync-all-viz",
+        help="Regenerate visualizations for all runs that have labels but missing viz",
+    ),
     render: bool = typer.Option(
         False,
         "--render",
@@ -226,6 +231,7 @@ def results_command(
         tree-seg results --dataset fortress_processed --export-csv
         tree-seg results --dataset fortress --export-path custom_results.csv
         tree-seg results --hash abc123def0 --show-config
+        tree-seg results --sync-all-viz
         tree-seg results --compact
         tree-seg results --prune-older-than 30
     """
@@ -269,6 +275,55 @@ def results_command(
             console.print_json(data=match)
         else:
             console.print("[yellow]No runs in index to match against.[/yellow]")
+        return
+
+    if sync_all_viz:
+        entries = query_index(base_dir=base_dir)
+        if not entries:
+            console.print("[yellow]No entries found in results index.[/yellow]")
+            return
+
+        console.print(
+            f"[bold]🔄 Syncing visualizations for {len(entries)} entr{'y' if len(entries)==1 else 'ies'}[/bold]"
+        )
+
+        rendered = skipped_existing = missing_labels = missing_meta = errors = 0
+        for entry in entries:
+            hash_entry = entry.get("hash")
+            if not hash_entry:
+                missing_meta += 1
+                continue
+
+            meta = lookup(hash_entry, base_dir=base_dir)
+            if not meta:
+                missing_meta += 1
+                continue
+
+            artifacts = meta.get("artifacts", {})
+            run_dir = Path(base_dir) / "by-hash" / hash_entry
+            viz_dir = Path(artifacts.get("visualizations_dir") or run_dir / "visualizations")
+            labels_dir = artifacts.get("labels_dir")
+
+            if viz_dir.exists() and any(viz_dir.glob("*.png")):
+                skipped_existing += 1
+                continue
+
+            if not labels_dir or not Path(labels_dir).exists():
+                missing_labels += 1
+                continue
+
+            console.print(f"[cyan]• {hash_entry}: rendering from labels...[/cyan]")
+            try:
+                _render_visualizations(meta, base_dir=base_dir)
+                rendered += 1
+            except Exception as exc:  # noqa: BLE001
+                errors += 1
+                console.print(f"[red]  ↳ failed: {exc}[/red]")
+
+        console.print(
+            f"[green]Done.[/green] Rendered {rendered}, skipped (already have viz): {skipped_existing}, "
+            f"missing labels: {missing_labels}, missing meta: {missing_meta}, errors: {errors}"
+        )
         return
 
     entries = query_index(

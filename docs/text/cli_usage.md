@@ -190,7 +190,13 @@ uv run tree-seg results --nearest '{"clustering":"kmeans","model":"base","stride
 # Maintenance
 uv run tree-seg results --compact
 uv run tree-seg results --prune-older-than 30
+
+# Regenerate all missing visualizations
+uv run tree-seg results --sync-all-viz
 ```
+
+Notes:
+- `--render` works per-hash; `--sync-all-viz` scans the index and regenerates only missing PNGs from stored labels, skipping runs that already have viz. It does not rerun inference.
 
 ## 9. Environment Helpers
 
