@@ -11,7 +11,11 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
-from tree_seg.evaluation.benchmark import run_benchmark
+from tree_seg.evaluation.benchmark import (
+    run_benchmark,
+    BenchmarkResults,
+    BenchmarkSample,
+)
 from tree_seg.evaluation.formatters import (
     format_comparison_table,
     save_comparison_summary,
@@ -23,6 +27,7 @@ from tree_seg.metadata.store import (
     normalize_config,
     store_run,
 )
+from tree_seg.metadata.load import lookup
 
 
 def generate_sweep_configs(
@@ -185,9 +190,67 @@ def run_multiplicative_sweep(
             hash_id = config_hash(normalized)
             meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
             if meta_path.exists():
-                console.print(
-                    f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
-                )
+                # Load cached metadata
+                meta = lookup(hash_id)
+                if meta:
+                    metrics = meta.get("metrics", {})
+                    timing = meta.get("timing", {})
+                    samples_meta = meta.get("samples", {})
+                    tags = meta.get("tags", {})
+                    auto_tags = tags.get("auto", [])
+                    user_tags = tags.get("user", [])
+
+                    console.print(
+                        f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
+                    )
+                    console.print(
+                        f"[dim]   📊 mIoU={metrics.get('mean_miou', 0):.4f}, "
+                        f"PA={metrics.get('mean_pixel_accuracy', 0):.4f}, "
+                        f"samples={samples_meta.get('num_samples', 0)}, "
+                        f"time={timing.get('mean_runtime_s', 0):.1f}s[/dim]"
+                    )
+                    if auto_tags or user_tags:
+                        all_tags = ", ".join(auto_tags + user_tags)
+                        console.print(f"[dim]   🏷️  Tags: {all_tags}[/dim]")
+
+                    # Reconstruct BenchmarkResults for comparison table
+                    per_sample_stats = samples_meta.get("per_sample_stats", [])
+                    benchmark_samples = []
+                    for sample in per_sample_stats:
+                        benchmark_samples.append(
+                            BenchmarkSample(
+                                image_id=sample.get("image_id", ""),
+                                miou=sample.get("miou", 0.0),
+                                pixel_accuracy=sample.get("pixel_accuracy", 0.0),
+                                per_class_iou={},  # Not stored in meta
+                                num_clusters=sample.get("num_clusters", 0),
+                                runtime_seconds=sample.get("runtime_seconds", 0.0),
+                                image_shape=tuple(sample.get("image_shape", [0, 0, 0])),
+                            )
+                        )
+
+                    cached_results = BenchmarkResults(
+                        dataset_name=meta.get("dataset", ""),
+                        method_name=f"{config.clustering_method}+{config.refine or 'none'}",
+                        config=config,
+                        samples=benchmark_samples,
+                        mean_miou=metrics.get("mean_miou", 0.0),
+                        mean_pixel_accuracy=metrics.get("mean_pixel_accuracy", 0.0),
+                        mean_runtime=timing.get("mean_runtime_s", 0.0),
+                        total_samples=samples_meta.get("num_samples", 0),
+                    )
+
+                    all_results.append(
+                        {
+                            "label": label,
+                            "config": config_dict,
+                            "results": cached_results,
+                        }
+                    )
+                else:
+                    console.print(
+                        f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
+                    )
                 continue
 
         # Model reuse optimization

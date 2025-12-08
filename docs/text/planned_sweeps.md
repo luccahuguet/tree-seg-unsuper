@@ -7,12 +7,50 @@
 
 ## 🎯 Quick Reference
 
-**Baseline to beat:** K-means + SLIC = 8.86% mIoU, 41.50% pixel accuracy
+**Baselines:**
+- **Auto-K (Real Unsupervised):** K-means + SLIC = 8.86% mIoU, 41.50% pixel accuracy (single image CFB003)
+- **Smart-K (Oracle Mode):** K-means + SLIC = 7.61% mIoU, 34.2% pixel accuracy (3 samples avg, 9.75% best on CFB003)
+- **Supervised MLP:** 27.8% mIoU, 83.3% pixel accuracy (ceiling)
 
 **Sweep syntax:**
 ```bash
 uv run tree-seg sweep data/datasets/fortress_processed -c <methods> -r <refinements> [OPTIONS]
 ```
+
+---
+
+## ✅ Completed Sweeps
+
+### Quick Validation (Smart-K) - Dec 8, 2024
+
+**Command:**
+```bash
+uv run tree-seg sweep data/datasets/fortress_processed --preset quick --smart-k --num-samples 3 --save-viz --name quick_smartk
+```
+
+**Results (3 samples: CFB003, CFB008, CFB014):**
+
+| Config | mIoU | Pixel Acc | Per-Img Time | Total Time |
+|--------|------|-----------|--------------|------------|
+| **kmeans_slic** ✅ | **7.61%** | **34.2%** | 33s | 99s |
+| kmeans_none | 7.03% | 32.6% | 5s | 15s |
+| gmm_slic | 6.35% | 29.3% | 39s | 118s |
+| gmm_none | 6.17% | 28.5% | 13s | 38s |
+
+**Per-Image Breakdown (kmeans_slic):**
+- CFB003: **9.75% mIoU**, 35.8% PA, K=6 (best, matches/exceeds baseline)
+- CFB008: 6.43% mIoU, 48.0% PA, K=4
+- CFB014: 6.64% mIoU, 18.8% PA, K=10
+
+**Key Findings:**
+- ✅ **K-means > GMM** by ~1.26% mIoU (confirms previous experiments)
+- ✅ **SLIC helps** (+0.58% mIoU for kmeans, +0.18% for gmm)
+- ✅ **Smart-K working correctly** (uses ground truth K per image: 4, 6, 10)
+- ✅ **CFB003 performance matches baseline** (9.75% vs 8.86% from experiments.md)
+- ⚠️ **High variance across images** (6.4% to 9.75% mIoU)
+- 📊 **Metadb populated** with 4 configs (hashes: b0cc1f2406, 4a40a17681, f3b47a9143, e0c44c584a)
+
+**Status:** Complete. Metadb integration validated. Ready for comprehensive sweeps.
 
 ---
 

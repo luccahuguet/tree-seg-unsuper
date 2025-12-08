@@ -334,6 +334,10 @@ def sweep_command(
     elif preset:
         sweep_params = _load_preset(preset)
         sweep_name = name or preset
+        # Normalize preset values (same as CLI flags)
+        for key in list(sweep_params.keys()):
+            if key in ("refine", "stride", "tiling", "elbow_threshold"):
+                sweep_params[key] = _normalize_sweep_param(key, sweep_params[key])
     else:
         # Build from CLI flags
         if clustering:
