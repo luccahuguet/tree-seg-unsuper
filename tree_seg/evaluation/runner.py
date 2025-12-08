@@ -363,8 +363,7 @@ def run_sweep(
     use_cache: bool = True,
 ):
     """Run a grid sweep and return results + sweep_dir."""
-    smartk_suffix = "_smartk" if smart_k else ""
-    sweep_dir = Path("data/outputs/results") / f"sweep_{grid_name}{smartk_suffix}"
+    sweep_dir = Path("data/outputs/results") / f"sweep_{grid_name}"
     if sweep_dir.exists():
         shutil.rmtree(sweep_dir)
     sweep_dir.mkdir(parents=True, exist_ok=True)

@@ -128,8 +128,7 @@ def run_multiplicative_sweep(
     # Generate all config combinations
     configs_to_test = generate_sweep_configs(base_config_params, sweep_params)
 
-    smartk_suffix = "_smartk" if smart_k else ""
-    sweep_dir = Path("data/outputs/results") / f"sweep_{sweep_name}{smartk_suffix}"
+    sweep_dir = Path("data/outputs/results") / f"sweep_{sweep_name}"
     if sweep_dir.exists():
         shutil.rmtree(sweep_dir)
     sweep_dir.mkdir(parents=True, exist_ok=True)
