@@ -41,7 +41,10 @@ weights/*
 .pre-commit-cache/
 
 # Metadata/results cache
-results/
+results/*
+!results/exports/
+results/exports/*
+!results/exports/*.csv
 
 # Local benchmark outputs
 bench_models.csv

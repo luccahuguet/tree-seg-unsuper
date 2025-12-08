@@ -1,0 +1,4 @@
+hash,dataset,image_id,mIoU,pixel_accuracy,num_clusters,runtime_s,tags,type,created_at
+8811c47d2b,fortress_processed,CFB003,0.09753733285379441,0.3575586246694706,6,28.442777156829834,"fortress_processed,kmeans,k6,slic,base,stride-4,smart-k",benchmark,2025-12-07T12:37:03.535315Z
+8715f9aeaf,fortress_processed,CFB003,0.09689767489756075,0.3504815735410554,6,238.33431553840637,"fortress_processed,kmeans,k6,slic,base,stride-4,smart-k",benchmark,2025-12-07T12:59:20.780383Z
+d571fdfc66,fortress_processed,CFB003,0.08552209509136739,0.3269718287067953,6,8.120107650756836,"fortress_processed,kmeans,k6,bilateral,base,stride-4,smart-k",benchmark,2025-12-07T12:34:56.708428Z
