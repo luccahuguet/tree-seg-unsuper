@@ -21,7 +21,12 @@ from tree_seg.evaluation.formatters import (
     format_comparison_table,
     save_comparison_summary,
 )
-from tree_seg.evaluation.runner import load_dataset, _hash_and_run_dir, _link_run_into_sweep
+from tree_seg.evaluation.runner import (
+    load_dataset,
+    _hash_and_run_dir,
+    _link_run_into_sweep,
+    _apply_spectral_guard,
+)
 from tree_seg.metadata.store import store_run
 from tree_seg.metadata.load import lookup
 
@@ -169,6 +174,11 @@ def run_multiplicative_sweep(
     for i, config_dict in enumerate(configs_to_test):
         label = config_dict.pop("label")
         config = Config(**config_dict)
+        config = _apply_spectral_guard(config, console=console)
+        config_dict["image_size"] = config.image_size
+        config_dict["stride"] = config.stride
+        config_dict["use_tiling"] = config.use_tiling
+        config_dict["tile_threshold"] = config.tile_threshold
 
         console.print(
             f"\n[bold][{i + 1}/{len(configs_to_test)}] Running: {label}[/bold]"

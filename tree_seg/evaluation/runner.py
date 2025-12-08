@@ -217,6 +217,33 @@ def _link_run_into_sweep(sweep_dir: Path, label: str, run_dir: Path) -> None:
         )
 
 
+def _apply_spectral_guard(config: Config, console: Optional[Console] = None) -> Config:
+    """Downsize/tile spectral runs to avoid OOM on large images."""
+    if config.clustering_method != "spectral":
+        return config
+
+    changed = []
+    if config.image_size > 768:
+        config.image_size = 768
+        changed.append("image_size->768")
+    if config.stride < 8:
+        config.stride = 8
+        changed.append("stride->8")
+    if not config.use_tiling:
+        config.use_tiling = True
+        config.tile_threshold = min(config.tile_threshold, config.image_size)
+        changed.append("tiling->on")
+
+    if changed:
+        msg = "[yellow]⚠️  Spectral guard applied: {}[/yellow]".format(", ".join(changed))
+        if console:
+            console.print(msg)
+        else:
+            print(msg)
+
+    return config
+
+
 def try_cached_results(
     *,
     config: Config,
@@ -295,6 +322,7 @@ def run_single_benchmark(
     use_cache: bool,
 ):
     """Run a single benchmark configuration and persist metadata."""
+    config = _apply_spectral_guard(config)
     # Canonical storage keyed by hash
     hash_id, run_dir = _hash_and_run_dir(
         config=config, dataset_path=dataset_path, smart_k=smart_k, grid_label=None
@@ -379,6 +407,12 @@ def run_sweep(
         config_dict.update({k: v for k, v in config_override.items() if k != "label"})
 
         config = Config(**config_dict)
+        config = _apply_spectral_guard(config, console=console)
+        # Keep dict in sync for reporting/hashing consistency
+        config_dict["image_size"] = config.image_size
+        config_dict["stride"] = config.stride
+        config_dict["use_tiling"] = config.use_tiling
+        config_dict["tile_threshold"] = config.tile_threshold
         label = config_override["label"]
 
         console.print(
