@@ -7,6 +7,9 @@ from typing import List, Optional, Protocol, Tuple
 import numpy as np
 from PIL import Image
 
+# Disable PIL decompression bomb check for large aerial imagery
+Image.MAX_IMAGE_PIXELS = None
+
 
 class SegmentationDataset(Protocol):
     """

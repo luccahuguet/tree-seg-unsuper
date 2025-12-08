@@ -222,7 +222,7 @@ def run_multiplicative_sweep(
                                 image_id=sample.get("image_id", ""),
                                 miou=sample.get("miou", 0.0),
                                 pixel_accuracy=sample.get("pixel_accuracy", 0.0),
-                                per_class_iou={},  # Not stored in meta
+                                per_class_iou=sample.get("per_class_iou", {}),
                                 num_clusters=sample.get("num_clusters", 0),
                                 runtime_seconds=sample.get("runtime_seconds", 0.0),
                                 image_shape=tuple(sample.get("image_shape", [0, 0, 0])),

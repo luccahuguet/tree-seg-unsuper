@@ -327,6 +327,7 @@ def store_run(
             "image_id": s.image_id,
             "miou": float(s.miou),
             "pixel_accuracy": float(s.pixel_accuracy),
+            "per_class_iou": {k: float(v) for k, v in s.per_class_iou.items()},
             "num_clusters": int(s.num_clusters),
             "runtime_seconds": float(s.runtime_seconds),
             "image_shape": list(s.image_shape),
