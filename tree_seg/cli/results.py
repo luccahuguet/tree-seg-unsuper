@@ -13,6 +13,7 @@ from tree_seg.metadata.query import (
     query as query_index,
     compact as compact_index,
     prune_older_than,
+    purge_all,
     export_to_csv,
 )
 from tree_seg.visualization.plotting import generate_visualizations
@@ -222,6 +223,17 @@ def results_command(
         "--export-path",
         help="Custom path for CSV export (overrides --export-csv default location)",
     ),
+    purge_all_flag: bool = typer.Option(
+        False,
+        "--purge-all",
+        help="Delete ALL metadata (requires confirmation unless --yes)",
+    ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Skip confirmation prompts",
+    ),
 ):
     """
     Query stored experiment metadata or show details for a specific run.
@@ -234,8 +246,28 @@ def results_command(
         tree-seg results --sync-all-viz
         tree-seg results --compact
         tree-seg results --prune-older-than 30
+        tree-seg results --purge-all  # With confirmation
+        tree-seg results --purge-all --yes  # Skip confirmation
     """
     tag_list = _parse_tags(tags)
+
+    if purge_all_flag:
+        if not yes:
+            count = len(query_index(base_dir=base_dir))
+            if count == 0:
+                console.print("[yellow]No metadata to purge.[/yellow]")
+                return
+            confirm = typer.confirm(
+                f"⚠️  This will delete ALL {count} metadata entr{'y' if count == 1 else 'ies'}. Continue?"
+            )
+            if not confirm:
+                console.print("[yellow]Aborted.[/yellow]")
+                return
+        removed = purge_all(base_dir=base_dir)
+        console.print(
+            f"[green]🗑️  Purged {removed} entr{'y' if removed == 1 else 'ies'} (all metadata deleted)[/green]"
+        )
+        return
 
     if compact:
         removed = compact_index(base_dir=base_dir)

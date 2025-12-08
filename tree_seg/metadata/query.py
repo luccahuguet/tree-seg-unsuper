@@ -133,6 +133,34 @@ def prune_older_than(days: int, base_dir: Path | str = "results") -> int:
     return removed
 
 
+def purge_all(base_dir: Path | str = "results") -> int:
+    """
+    Delete ALL metadata (index + all by-hash directories).
+
+    Returns number of entries removed.
+    """
+    import shutil
+
+    base_path = Path(base_dir)
+    index_path = base_path / "index.jsonl"
+    by_hash_dir = base_path / "by-hash"
+
+    # Count entries before deletion
+    entries = _load_index(base_dir) if index_path.exists() else []
+    count = len(entries)
+
+    # Remove all by-hash directories
+    if by_hash_dir.exists():
+        shutil.rmtree(by_hash_dir)
+        by_hash_dir.mkdir(parents=True, exist_ok=True)
+
+    # Clear index file
+    if index_path.exists():
+        index_path.write_text("")
+
+    return count
+
+
 def export_to_csv(
     entries: List[Dict], csv_path: Path | str, base_dir: Path | str = "results"
 ) -> int:
