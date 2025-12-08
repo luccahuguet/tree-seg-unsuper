@@ -4,3 +4,7 @@
 # Allow specific files
 !.gitignore
 !*/README.md
+
+# Allow CSV exports (metadata bank)
+!output/
+!output/*.csv

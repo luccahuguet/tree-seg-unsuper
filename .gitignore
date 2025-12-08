@@ -4,9 +4,6 @@ __pycache__/
 env/
 .uv/
 
-# Output files
-data/output/
-
 # Input images in data/input (keep the folder, ignore images)
 data/input/*.jpg
 data/input/*.jpeg
@@ -42,9 +39,11 @@ weights/*
 
 # Metadata/results cache
 results/*
-!results/exports/
-results/exports/*
-!results/exports/*.csv
+
+# Track CSV exports in data/output (metadata bank)
+!data/output/
+data/output/*
+!data/output/*.csv
 
 # Local benchmark outputs
 bench_models.csv

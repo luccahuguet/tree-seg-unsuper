@@ -210,7 +210,7 @@ def results_command(
     export_csv: bool = typer.Option(
         False,
         "--export-csv",
-        help="Export results to CSV at results/exports/{dataset}.csv (upserts to same file)",
+        help="Export results to CSV at data/output/{dataset}.csv (upserts to same file)",
     ),
     export_path: Optional[Path] = typer.Option(
         None,
@@ -313,7 +313,7 @@ def results_command(
         else:
             # Generate default path (no timestamp - upsert to same file)
             dataset_name = dataset or "all"
-            export_dir = Path("results/exports")
+            export_dir = Path("data/output")
             export_dir.mkdir(parents=True, exist_ok=True)
             csv_path = export_dir / f"{dataset_name}.csv"
 
