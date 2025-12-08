@@ -155,6 +155,11 @@ def results_command(
         "-h",
         help="Show details for a specific run hash",
     ),
+    render_all: bool = typer.Option(
+        False,
+        "--render-all",
+        help="Regenerate visualizations for all runs using saved labels",
+    ),
     sync_all_viz: bool = typer.Option(
         False,
         "--sync-all-viz",
@@ -307,6 +312,35 @@ def results_command(
             console.print_json(data=match)
         else:
             console.print("[yellow]No runs in index to match against.[/yellow]")
+        return
+
+    if render_all:
+        entries = query_index(base_dir=base_dir)
+        if not entries:
+            console.print("[yellow]No entries found in results index.[/yellow]")
+            return
+        console.print(
+            f"[bold]🖼️ Regenerating visualizations for {len(entries)} entr{'y' if len(entries)==1 else 'ies'}[/bold]"
+        )
+        rendered = errors = missing = 0
+        for entry in entries:
+            hash_entry = entry.get("hash")
+            if not hash_entry:
+                missing += 1
+                continue
+            meta = lookup(hash_entry, base_dir=base_dir)
+            if not meta:
+                missing += 1
+                continue
+            try:
+                _render_visualizations(meta, base_dir=base_dir)
+                rendered += 1
+            except Exception as exc:  # noqa: BLE001
+                errors += 1
+                console.print(f"[red]  ↳ {hash_entry} failed: {exc}[/red]")
+        console.print(
+            f"[green]Done.[/green] Rendered {rendered}, missing meta/labels: {missing}, errors: {errors}"
+        )
         return
 
     if sync_all_viz:

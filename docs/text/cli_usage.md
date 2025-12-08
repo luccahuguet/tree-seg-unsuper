@@ -193,10 +193,14 @@ uv run tree-seg results --prune-older-than 30
 
 # Regenerate all missing visualizations
 uv run tree-seg results --sync-all-viz
+
+# Regenerate visualizations for all runs (overwrite/regenerate)
+uv run tree-seg results --render-all
 ```
 
 Notes:
 - `--render` works per-hash; `--sync-all-viz` scans the index and regenerates only missing PNGs from stored labels, skipping runs that already have viz. It does not rerun inference.
+- `--render-all` regenerates visualizations for every indexed run using stored labels (overwrites existing regen outputs).
 
 ## 9. Environment Helpers
 
