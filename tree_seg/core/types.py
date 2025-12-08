@@ -105,7 +105,7 @@ class Config:
 
     # Visualization settings
     overlay_ratio: int = 4  # 1=opaque, 10=transparent
-    edge_width: int = 2
+    edge_width: float = 1.0
     use_hatching: bool = True
     viz_two_panel: bool = False  # If True, use compact 2-panel GT+overlay viz
     viz_two_panel_opaque: bool = False  # If True, two-panel GT + prediction (opaque)

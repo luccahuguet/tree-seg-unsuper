@@ -67,15 +67,8 @@ def generate_edge_overlay(
         ax.contour(
             cluster_mask.astype(int),
             levels=[0.5],
-            colors=[cluster_color],
-            linewidths=config.edge_width + 1,
-            alpha=0.6,
-        )
-        ax.contour(
-            cluster_mask.astype(int),
-            levels=[0.5],
             colors="white",
-            linewidths=1,
+            linewidths=0.5,
             alpha=0.3,
         )
         if config.use_hatching:
