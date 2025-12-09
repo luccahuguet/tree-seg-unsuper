@@ -178,6 +178,9 @@ Query the metadata bank, regenerate visuals, and manage index size:
 # List top runs for fortress kmeans+slic
 uv run tree-seg results --dataset fortress --tags kmeans,slic --sort mIoU --top 5
 
+# Sort aliases: `--sort mIoU`, `--sort pa` (pixel accuracy), `--sort total` (total seconds), `--sort created`
+uv run tree-seg results --dataset fortress_processed --sort pa --top 10
+
 # Show details for a hash
 uv run tree-seg results --hash abc123 --show-config
 

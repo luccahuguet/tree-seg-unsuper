@@ -30,6 +30,30 @@ def _parse_tags(tags: Optional[str]) -> list[str]:
     return [t.strip() for t in tags.split(",") if t.strip()]
 
 
+def _normalize_sort_key(sort_by: Optional[str]) -> Optional[str]:
+    """
+    Map human-friendly sort keys/aliases to index field names.
+    Returns None if the key is unrecognized.
+    """
+    if not sort_by:
+        return None
+    key = sort_by.lower()
+    alias_map = {
+        "miou": "mIoU",
+        "mious": "mIoU",
+        "pa": "pixel_accuracy",
+        "pixel_accuracy": "pixel_accuracy",
+        "pixelacc": "pixel_accuracy",
+        "total_s": "total_s",
+        "total": "total_s",
+        "runtime": "total_s",
+        "created": "created_at",
+        "created_at": "created_at",
+        "time": "created_at",
+    }
+    return alias_map.get(key)
+
+
 def _print_detail(meta: dict, show_config: bool) -> None:
     table = Table(title=f"Run {meta.get('hash')}", show_header=False, box=None)
     table.add_row("Dataset", meta.get("dataset", "unknown"))
@@ -394,10 +418,16 @@ def results_command(
         )
         return
 
+    sort_key = _normalize_sort_key(sort_by)
+    if sort_by and not sort_key:
+        console.print(
+            f"[yellow]⚠️  Unknown sort key '{sort_by}'. Falling back to default ordering.[/yellow]"
+        )
+
     entries = query_index(
         dataset=dataset,
         tags=tag_list if tag_list else None,
-        sort_by=sort_by,
+        sort_by=sort_key,
         limit=top,
         base_dir=base_dir,
     )
