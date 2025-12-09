@@ -56,7 +56,7 @@ def _create_config(
         fixed_k=fixed_k,
         apply_vegetation_filter=apply_vegetation_filter,
         exg_threshold=exg_threshold,
-        no_tiling=no_tiling,
+        tiling=tiling,
         viz_two_panel=viz_two_panel,
         viz_two_panel_opaque=viz_two_panel_opaque,
         use_pyramid=use_pyramid,
@@ -292,10 +292,10 @@ def evaluate_command(
         "--exg-threshold",
         help="ExG threshold for vegetation filtering",
     ),
-    no_tiling: bool = typer.Option(
+    tiling: bool = typer.Option(
         False,
-        "--no-tiling",
-        help="Disable tile-based processing for high-res images",
+        "--tiling/--no-tiling",
+        help="Enable tile-based processing for high-res images (default: off)",
     ),
     viz_two_panel: bool = typer.Option(
         False,
