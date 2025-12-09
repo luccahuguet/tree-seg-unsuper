@@ -16,6 +16,23 @@ from tree_seg.evaluation.formatters import config_to_dict
 if TYPE_CHECKING:  # Avoid circular import at runtime
     from tree_seg.evaluation.benchmark import BenchmarkResults
 
+
+def _get_class_names(dataset_path: Path) -> Dict[str, str]:
+    """Get class names mapping for a dataset by detecting its type."""
+    from tree_seg.evaluation.datasets import (
+        FortressDataset,
+        ISPRSPotsdamDataset,
+        detect_dataset_type,
+    )
+
+    dtype = detect_dataset_type(dataset_path)
+    if dtype == "fortress":
+        return {str(k): v for k, v in FortressDataset.CLASS_NAMES.items()}
+    elif dtype == "potsdam":
+        return {str(k): v for k, v in ISPRSPotsdamDataset.CLASS_NAMES.items()}
+    return {}  # Unknown dataset, no class names available
+
+
 # Keys that affect runtime/outputs; must be present (with defaults) in hashes.
 HASH_KEYS = [
     "dataset",
@@ -320,6 +337,9 @@ def store_run(
         "user": user_tags or [],
     }
 
+    # Get class names for human-readable per_class_iou keys
+    class_names = _get_class_names(dataset_path)
+
     # Metrics and timing
     total_runtime = sum(s.runtime_seconds for s in results.samples)
     per_sample_stats = [
@@ -327,7 +347,9 @@ def store_run(
             "image_id": s.image_id,
             "miou": float(s.miou),
             "pixel_accuracy": float(s.pixel_accuracy),
-            "per_class_iou": {k: float(v) for k, v in s.per_class_iou.items()},
+            "per_class_iou": {
+                class_names.get(k, k): float(v) for k, v in s.per_class_iou.items()
+            },  # Use class names as keys
             "num_clusters": int(s.num_clusters),
             "runtime_seconds": float(s.runtime_seconds),
             "image_shape": list(s.image_shape),
