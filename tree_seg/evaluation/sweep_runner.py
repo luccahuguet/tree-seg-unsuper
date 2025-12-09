@@ -11,11 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from tree_seg.core.types import Config
-from tree_seg.evaluation.benchmark import (
-    run_benchmark,
-    BenchmarkResults,
-    BenchmarkSample,
-)
+from tree_seg.evaluation.benchmark import run_benchmark
 from tree_seg.evaluation.formatters import (
     format_comparison_table,
     save_comparison_summary,
@@ -25,9 +21,12 @@ from tree_seg.evaluation.runner import (
     _hash_and_run_dir,
     _link_run_into_sweep,
     _apply_spectral_guard,
+    _benchmark_results_from_samples,
+    _combine_samples,
+    _load_cached_samples,
+    _target_image_ids,
 )
 from tree_seg.metadata.store import store_run
-from tree_seg.metadata.load import lookup
 
 
 def generate_sweep_configs(
@@ -172,8 +171,10 @@ def run_multiplicative_sweep(
     dataset, dtype_resolved = load_dataset(
         dataset_path, dataset_type, filter_ids=filter_ids
     )
+    base_samples = list(dataset.samples)
 
     for i, config_dict in enumerate(configs_to_test):
+        dataset.samples = list(base_samples)
         label = config_dict.pop("label")
         config = Config(**config_dict)
         config = _apply_spectral_guard(config, console=console)
@@ -191,67 +192,34 @@ def run_multiplicative_sweep(
             config=config, dataset_path=dataset_path, smart_k=smart_k, grid_label=label
         )
 
-        # Check cache
+        target_ids = _target_image_ids(dataset, num_samples)
+        meta_path = run_dir / "meta.json"
+        cached_samples = _load_cached_samples(meta_path) if use_cache else {}
+        missing_ids = (
+            [iid for iid in target_ids if iid not in cached_samples]
+            if use_cache
+            else target_ids
+        )
+
         if use_cache:
-            meta_path = Path("results") / "by-hash" / hash_id / "meta.json"
-            if meta_path.exists():
-                meta = lookup(hash_id)
+            if missing_ids and len(missing_ids) < len(target_ids):
                 console.print(
-                    f"[green]♻️  Cache hit for {label} ({hash_id}); skipping.[/green]"
+                    f"[green]♻️  Cache hit for {len(target_ids) - len(missing_ids)}/{len(target_ids)} sample(s); running {len(missing_ids)} new sample(s).[/green]"
                 )
-                if meta:
-                    metrics = meta.get("metrics", {})
-                    timing = meta.get("timing", {})
-                    samples_meta = meta.get("samples", {})
-                    tags = meta.get("tags", {})
-                    auto_tags = tags.get("auto", [])
-                    user_tags = tags.get("user", [])
+            elif not missing_ids and cached_samples:
+                console.print(
+                    f"[green]♻️  Cache hit for all {len(target_ids)} sample(s); skipping compute.[/green]"
+                )
 
-                    console.print(
-                        f"[dim]   📊 mIoU={metrics.get('mean_miou', 0):.4f}, "
-                        f"PA={metrics.get('mean_pixel_accuracy', 0):.4f}, "
-                        f"samples={samples_meta.get('num_samples', 0)}, "
-                        f"time={timing.get('mean_runtime_s', 0):.1f}s[/dim]"
-                    )
-                    if auto_tags or user_tags:
-                        all_tags = ", ".join(auto_tags + user_tags)
-                        console.print(f"[dim]   🏷️  Tags: {all_tags}[/dim]")
-
-                    per_sample_stats = samples_meta.get("per_sample_stats", [])
-                    benchmark_samples = []
-                    for sample in per_sample_stats:
-                        benchmark_samples.append(
-                            BenchmarkSample(
-                                image_id=sample.get("image_id", ""),
-                                miou=sample.get("miou", 0.0),
-                                pixel_accuracy=sample.get("pixel_accuracy", 0.0),
-                                per_class_iou=sample.get("per_class_iou", {}),
-                                num_clusters=sample.get("num_clusters", 0),
-                                runtime_seconds=sample.get("runtime_seconds", 0.0),
-                                image_shape=tuple(sample.get("image_shape", [0, 0, 0])),
-                            )
-                        )
-
-                    cached_results = BenchmarkResults(
-                        dataset_name=meta.get("dataset", ""),
-                        method_name=f"{config.clustering_method}+{config.refine or 'none'}",
-                        config=config,
-                        samples=benchmark_samples,
-                        mean_miou=metrics.get("mean_miou", 0.0),
-                        mean_pixel_accuracy=metrics.get("mean_pixel_accuracy", 0.0),
-                        mean_runtime=timing.get("mean_runtime_s", 0.0),
-                        total_samples=samples_meta.get("num_samples", 0),
-                    )
-
-                    all_results.append(
-                        {
-                            "label": label,
-                            "config": config_dict,
-                            "results": cached_results,
-                        }
-                    )
-                _link_run_into_sweep(sweep_dir, label, run_dir)
-                continue
+        if use_cache and missing_ids:
+            missing_set = set(missing_ids)
+            dataset.samples = [s for s in dataset.samples if s.image_id in missing_set]
+            run_num_samples = len(missing_ids)
+        elif use_cache and not missing_ids and cached_samples:
+            dataset.samples = []
+            run_num_samples = 0
+        else:
+            run_num_samples = num_samples
 
         # Model reuse optimization
         model_key = (config.model_display_name, config.stride, config.image_size)
@@ -260,21 +228,35 @@ def run_multiplicative_sweep(
                 f"[dim]♻️  Reusing cached model: {config.model_display_name} (stride={config.stride})[/dim]"
             )
 
-        # Run benchmark
-        results = run_benchmark(
-            config=config,
-            dataset=dataset,
-            output_dir=run_dir,
-            num_samples=num_samples,
-            save_visualizations=save_viz,
-            save_labels=save_labels,
-            verbose=not quiet,
-            use_smart_k=smart_k,
-            model_cache=model_cache,
-            config_label=label,
-        )
+        results = None
+        if run_num_samples:
+            results = run_benchmark(
+                config=config,
+                dataset=dataset,
+                output_dir=run_dir,
+                num_samples=run_num_samples,
+                save_visualizations=save_viz,
+                save_labels=save_labels,
+                verbose=not quiet,
+                use_smart_k=smart_k,
+                model_cache=model_cache,
+                config_label=label,
+            )
 
-        all_results.append({"label": label, "config": config_dict, "results": results})
+        if use_cache and cached_samples:
+            combined_samples = _combine_samples(
+                target_ids, cached_samples, results.samples if results else []
+            )
+            combined_results = _benchmark_results_from_samples(
+                config=config, dataset_name=dataset_path.name, samples=combined_samples
+            )
+        else:
+            combined_results = results  # type: ignore[assignment]
+
+        if combined_results is not None:
+            all_results.append(
+                {"label": label, "config": config_dict, "results": combined_results}
+            )
 
         _link_run_into_sweep(sweep_dir, label, run_dir)
 
@@ -285,15 +267,28 @@ def run_multiplicative_sweep(
                 "labels_dir": str(run_dir / "labels"),
                 "visualizations_dir": str(run_dir / "visualizations"),
             }
-            store_run(
-                results=results,
-                config=config,
-                dataset_path=dataset_path,
-                smart_k=smart_k,
-                user_tags=[sweep_name, label],
-                grid_label=label,
-                artifacts=artifacts,
+            should_store = (
+                results is not None
+                or not use_cache
+                or not cached_samples
+                or not meta_path.exists()
             )
+            if should_store and combined_results is not None:
+                store_run(
+                    results=combined_results,
+                    config=config,
+                    dataset_path=dataset_path,
+                    smart_k=smart_k,
+                    user_tags=[sweep_name, label],
+                    grid_label=label,
+                    artifacts=artifacts,
+                )
+                if not results and cached_samples:
+                    console.print(
+                        f"[dim]   📊 mIoU={combined_results.mean_miou:.4f}, "
+                        f"PA={combined_results.mean_pixel_accuracy:.4f}, "
+                        f"samples={combined_results.total_samples}[/dim]"
+                    )
         except Exception:
             pass
 
