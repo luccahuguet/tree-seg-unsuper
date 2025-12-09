@@ -395,12 +395,23 @@ class BenchmarkRunner:
                 if est_total:
                     remaining = max(est_total - total_runtime_accum, 0)
                     progress.update(task_id, time_remaining=remaining)
+
+                # Create compact panel for each image result
+                from rich.panel import Panel
+
+                result_text = (
+                    f"[cyan]mIoU:[/cyan] {sample_result.miou:.3f}  "
+                    f"[cyan]PA:[/cyan] {sample_result.pixel_accuracy:.3f}  "
+                    f"[cyan]K:[/cyan] {sample_result.num_clusters}  "
+                    f"[dim]Time: {sample_result.runtime_seconds:.1f}s[/dim]"
+                )
                 progress.console.print(
-                    f"{sample_result.image_id}: mIoU={sample_result.miou:.3f}, "
-                    f"PA={sample_result.pixel_accuracy:.3f}, "
-                    f"K={sample_result.num_clusters}, "
-                    f"Time={sample_result.runtime_seconds:.1f}s",
-                    highlight=False,
+                    Panel(
+                        result_text,
+                        title=f"[bold]{sample_result.image_id}[/bold]",
+                        border_style="dim",
+                        padding=(0, 1),
+                    )
                 )
 
         if progress is not None:
@@ -513,6 +524,7 @@ def run_benchmark(
     model_cache: Optional[dict] = None,
     config_label: Optional[str] = None,
     save_labels: bool = False,
+    suppress_logs: bool = False,
 ) -> BenchmarkResults:
     """
     Convenience function to run benchmark.
@@ -554,6 +566,7 @@ def run_benchmark(
         use_smart_k=use_smart_k,
         model_cache=model_cache,
         config_label=config_label,
+        suppress_logs=suppress_logs,
     )
 
     results = runner.run(num_samples=num_samples, verbose=verbose)

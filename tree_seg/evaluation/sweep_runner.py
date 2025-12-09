@@ -247,6 +247,7 @@ def run_multiplicative_sweep(
                 use_smart_k=smart_k,
                 model_cache=model_cache,
                 config_label=label,
+                suppress_logs=True,  # Suppress repetitive init messages during sweeps
             )
 
         if use_cache and cached_samples:
