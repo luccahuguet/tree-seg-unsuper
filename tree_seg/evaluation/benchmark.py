@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 import numpy as np
 from PIL import Image
+from rich.console import Console
+from rich.table import Table
 
 from tree_seg.core.types import Config
 from tree_seg.evaluation.datasets import ISPRSPotsdamDataset, SegmentationDataset
@@ -437,14 +439,25 @@ class BenchmarkRunner:
         )
 
         if verbose:
-            print("\n" + "=" * 60)
-            print("BENCHMARK RESULTS")
-            print("=" * 60)
-            print(f"Mean mIoU: {mean_miou:.3f}")
-            print(f"Mean Pixel Accuracy: {mean_pixel_acc:.3f}")
-            print(f"Mean Runtime: {mean_runtime:.2f}s")
-            print(f"Total Samples: {len(sample_results)}")
-            print("=" * 60 + "\n")
+            console = Console()
+            results_table = Table(
+                show_header=False,
+                box=None,
+                padding=(0, 2),
+                title="[bold cyan]BENCHMARK RESULTS[/bold cyan]",
+                title_style="bold cyan",
+            )
+            results_table.add_column("Metric", style="cyan", justify="right")
+            results_table.add_column("Value", style="bold white")
+
+            results_table.add_row("Mean mIoU:", f"{mean_miou:.3f}")
+            results_table.add_row("Mean Pixel Accuracy:", f"{mean_pixel_acc:.3f}")
+            results_table.add_row("Mean Runtime:", f"{mean_runtime:.2f}s")
+            results_table.add_row("Total Samples:", str(len(sample_results)))
+
+            console.print()
+            console.print(results_table)
+            console.print()
 
         return results
 

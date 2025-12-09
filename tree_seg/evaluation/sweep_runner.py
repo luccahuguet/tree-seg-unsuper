@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 from tree_seg.core.types import Config
@@ -183,10 +184,15 @@ def run_multiplicative_sweep(
         config_dict["use_tiling"] = config.use_tiling
         config_dict["tile_threshold"] = config.tile_threshold
 
+        console.print()
         console.print(
-            f"\n[bold][{i + 1}/{len(configs_to_test)}] Running: {label}[/bold]"
+            Panel(
+                f"[cyan]{label}[/cyan]",
+                title=f"[bold white]Config {i + 1}/{len(configs_to_test)}[/bold white]",
+                border_style="cyan",
+                padding=(0, 1),
+            )
         )
-        console.print("-" * 60)
 
         hash_id, run_dir = _hash_and_run_dir(
             config=config, dataset_path=dataset_path, smart_k=smart_k, grid_label=label
@@ -204,11 +210,11 @@ def run_multiplicative_sweep(
         if use_cache:
             if missing_ids and len(missing_ids) < len(target_ids):
                 console.print(
-                    f"[green]♻️  Cache hit for {len(target_ids) - len(missing_ids)}/{len(target_ids)} sample(s); running {len(missing_ids)} new sample(s).[/green]"
+                    f"[dim]♻️  Cache hit for {len(target_ids) - len(missing_ids)}/{len(target_ids)} sample(s); running {len(missing_ids)} new sample(s).[/dim]"
                 )
             elif not missing_ids and cached_samples:
                 console.print(
-                    f"[green]♻️  Cache hit for all {len(target_ids)} sample(s); skipping compute.[/green]"
+                    f"[dim]♻️  Cache hit for all {len(target_ids)} sample(s); skipping compute.[/dim]"
                 )
 
         if use_cache and missing_ids:
@@ -285,7 +291,7 @@ def run_multiplicative_sweep(
                 )
                 if not results and cached_samples:
                     console.print(
-                        f"[dim]   📊 mIoU={combined_results.mean_miou:.4f}, "
+                        f"[dim]📊 mIoU={combined_results.mean_miou:.4f}, "
                         f"PA={combined_results.mean_pixel_accuracy:.4f}, "
                         f"samples={combined_results.total_samples}[/dim]"
                     )
