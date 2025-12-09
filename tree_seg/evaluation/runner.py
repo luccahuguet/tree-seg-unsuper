@@ -270,14 +270,19 @@ def _combine_samples(
     cached_samples: dict[str, BenchmarkSample],
     new_samples: list[BenchmarkSample] | None,
 ) -> list[BenchmarkSample]:
-    """Merge cached + newly computed samples preserving dataset order."""
+    """Merge cached + newly computed samples preserving dataset order.
+
+    Prioritizes new results over cached (in case of re-runs with fixes).
+    Skips images that failed to process.
+    """
     new_map = {s.image_id: s for s in (new_samples or [])}
     combined: list[BenchmarkSample] = []
     for image_id in target_ids:
-        if image_id in cached_samples:
-            combined.append(cached_samples[image_id])
-        elif image_id in new_map:
+        if image_id in new_map:  # Prioritize new results
             combined.append(new_map[image_id])
+        elif image_id in cached_samples:
+            combined.append(cached_samples[image_id])
+        # else: silently skip failed images
     return combined
 
 

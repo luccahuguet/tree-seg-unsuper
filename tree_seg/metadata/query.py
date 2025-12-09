@@ -177,10 +177,18 @@ def export_to_csv(
         "hash",
         "dataset",
         "image_id",
+        "clustering",
+        "refine",
+        "model",
+        "stride",
+        "elbow_threshold",
         "mIoU",
         "pixel_accuracy",
         "num_clusters",
         "runtime_s",
+        "image_width",
+        "image_height",
+        "per_class_iou",
         "tags",
         "type",
         "created_at",
@@ -226,6 +234,14 @@ def export_to_csv(
         tags_str = ",".join(tags_list)
         entry_type = entry.get("type", "benchmark")
 
+        # Extract config parameters
+        config = meta.get("config", {})
+        clustering = config.get("clustering_method", "")
+        refine = config.get("refine") or ""
+        model = config.get("model_name", "")
+        stride = config.get("stride", "")
+        elbow_threshold = config.get("elbow_threshold", "")
+
         # Extract per-sample stats
         samples = meta.get("samples", {})
         per_sample_stats = samples.get("per_sample_stats", [])
@@ -235,15 +251,32 @@ def export_to_csv(
             if not image_id:
                 continue
 
+            # Extract image dimensions
+            image_shape = sample.get("image_shape", [])
+            image_height = image_shape[0] if len(image_shape) > 0 else ""
+            image_width = image_shape[1] if len(image_shape) > 1 else ""
+
+            # Serialize per-class IoU as JSON
+            per_class_iou = sample.get("per_class_iou", {})
+            per_class_iou_json = json.dumps(per_class_iou) if per_class_iou else ""
+
             key = (hash_id, image_id)
             existing_rows[key] = {
                 "hash": hash_id,
                 "dataset": dataset,
                 "image_id": image_id,
+                "clustering": clustering,
+                "refine": refine,
+                "model": model,
+                "stride": stride,
+                "elbow_threshold": elbow_threshold,
                 "mIoU": sample.get("miou", ""),
                 "pixel_accuracy": sample.get("pixel_accuracy", ""),
                 "num_clusters": sample.get("num_clusters", ""),
                 "runtime_s": sample.get("runtime_seconds", ""),
+                "image_width": image_width,
+                "image_height": image_height,
+                "per_class_iou": per_class_iou_json,
                 "tags": tags_str,
                 "type": entry_type,
                 "created_at": created_at,
