@@ -22,8 +22,8 @@ def _get_class_names(dataset_path: Path) -> Dict[str, str]:
     from tree_seg.evaluation.datasets import (
         FortressDataset,
         ISPRSPotsdamDataset,
-        detect_dataset_type,
     )
+    from tree_seg.evaluation.runner import detect_dataset_type
 
     dtype = detect_dataset_type(dataset_path)
     if dtype == "fortress":

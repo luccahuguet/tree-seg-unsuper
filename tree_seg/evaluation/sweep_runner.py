@@ -289,8 +289,12 @@ def run_multiplicative_sweep(
                         f"PA={combined_results.mean_pixel_accuracy:.4f}, "
                         f"samples={combined_results.total_samples}[/dim]"
                     )
-        except Exception:
-            pass
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Failed to store metadata: {e}[/yellow]")
+            if not quiet:
+                import traceback
+
+                console.print(f"[dim]{traceback.format_exc()}[/dim]")
 
     # Summary
     if all_results:
