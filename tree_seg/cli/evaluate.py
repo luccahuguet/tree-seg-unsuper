@@ -35,7 +35,7 @@ def _create_config(
     fixed_k: Optional[int],
     apply_vegetation_filter: bool,
     exg_threshold: float,
-    no_tiling: bool,
+    tiling: bool,
     viz_two_panel: bool,
     viz_two_panel_opaque: bool,
     use_pyramid: bool,
