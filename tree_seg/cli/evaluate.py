@@ -14,7 +14,6 @@ from tree_seg.evaluation.runner import (
     detect_dataset_type,
     resolve_output_dir,
     run_single_benchmark,
-    try_cached_results,
 )
 
 # Load environment variables
@@ -90,21 +89,14 @@ def _run_single_benchmark(
         output_dir=output_dir,
     )
 
-    if use_cache and try_cached_results(
-        config=config,
-        dataset_path=dataset_path,
-        smart_k=smart_k,
-        console=console,
-        force=force,
-    ):
-        return None
-
     console.print(
         f"\n[bold cyan]🚀 Running benchmark on {dataset_type.upper()} dataset[/bold cyan]"
     )
     console.print(
         f"[dim]Config: {config.clustering_method}/{config.refine} | {config.model_display_name} | stride={config.stride}[/dim]\n"
     )
+
+    effective_use_cache = use_cache and not force
 
     results = run_single_benchmark(
         dataset_path=dataset_path,
@@ -117,7 +109,7 @@ def _run_single_benchmark(
         save_labels=save_labels,
         quiet=quiet,
         smart_k=smart_k,
-        use_cache=use_cache,
+        use_cache=effective_use_cache,
     )
 
     if results is None:
@@ -503,7 +495,9 @@ def evaluate_command(
     )
 
     # Run single benchmark
-    filter_ids = [s.strip() for s in image_ids.split(",") if s.strip()] if image_ids else None
+    filter_ids = (
+        [s.strip() for s in image_ids.split(",") if s.strip()] if image_ids else None
+    )
     _run_single_benchmark(
         dataset_path=dataset,
         dataset_type=dataset_type,

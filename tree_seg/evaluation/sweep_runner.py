@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import itertools
-import datetime
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -170,7 +169,9 @@ def run_multiplicative_sweep(
 
     all_results = []
     model_cache = {}
-    dataset, dtype_resolved = load_dataset(dataset_path, dataset_type, filter_ids=filter_ids)
+    dataset, dtype_resolved = load_dataset(
+        dataset_path, dataset_type, filter_ids=filter_ids
+    )
 
     for i, config_dict in enumerate(configs_to_test):
         label = config_dict.pop("label")

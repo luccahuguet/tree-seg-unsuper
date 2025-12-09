@@ -436,7 +436,9 @@ def sweep_command(
         )
         return
 
-    filter_ids = [s.strip() for s in image_ids.split(",") if s.strip()] if image_ids else None
+    filter_ids = (
+        [s.strip() for s in image_ids.split(",") if s.strip()] if image_ids else None
+    )
 
     # Run sweep
     run_multiplicative_sweep(

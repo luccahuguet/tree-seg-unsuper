@@ -320,7 +320,7 @@ def results_command(
             console.print("[yellow]No entries found in results index.[/yellow]")
             return
         console.print(
-            f"[bold]🖼️ Regenerating visualizations for {len(entries)} entr{'y' if len(entries)==1 else 'ies'}[/bold]"
+            f"[bold]🖼️ Regenerating visualizations for {len(entries)} entr{'y' if len(entries) == 1 else 'ies'}[/bold]"
         )
         rendered = errors = missing = 0
         for entry in entries:
