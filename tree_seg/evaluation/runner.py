@@ -218,7 +218,7 @@ def _link_run_into_sweep(sweep_dir: Path, label: str, run_dir: Path) -> None:
 
 
 def _apply_spectral_guard(config: Config, console: Optional[Console] = None) -> Config:
-    """Downsize/tile spectral runs to avoid OOM on large images."""
+    """Downsize spectral runs to avoid OOM on large images."""
     if config.clustering_method != "spectral":
         return config
 
@@ -226,13 +226,6 @@ def _apply_spectral_guard(config: Config, console: Optional[Console] = None) -> 
     if config.image_size > 768:
         config.image_size = 768
         changed.append("image_size->768")
-    if config.stride < 8:
-        config.stride = 8
-        changed.append("stride->8")
-    if not config.use_tiling:
-        config.use_tiling = True
-        config.tile_threshold = min(config.tile_threshold, config.image_size)
-        changed.append("tiling->on")
 
     if changed:
         msg = "[yellow]⚠️  Spectral guard applied: {}[/yellow]".format(", ".join(changed))
