@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import itertools
 import shutil
 from pathlib import Path
@@ -322,6 +323,16 @@ def run_multiplicative_sweep(
                 import traceback
 
                 console.print(f"[dim]{traceback.format_exc()}[/dim]")
+
+        # Free memory after each config
+        gc.collect()
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
 
     # Summary
     if all_results:

@@ -1,5 +1,6 @@
 """Benchmark runner for evaluating segmentation methods."""
 
+import gc
 import os
 import time
 from contextlib import redirect_stdout
@@ -413,6 +414,16 @@ class BenchmarkRunner:
                         padding=(0, 1),
                     )
                 )
+
+            # Free memory after each sample
+            gc.collect()
+            try:
+                import torch
+
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except ImportError:
+                pass
 
         if progress is not None:
             progress.stop()
