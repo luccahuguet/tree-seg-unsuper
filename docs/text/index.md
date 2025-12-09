@@ -136,7 +136,7 @@ Original planning document for V2 implementation (now complete).
 ```bash
 # Each flag controls a different aspect
 tree-seg eval data/datasets/fortress \
-  --clustering kmeans|gmm|spectral|hdbscan \
+  --clustering kmeans|gmm|spectral|spherical|dpmeans|potts \
   --refine none|slic|soft-em|bilateral|soft-em+slic \
   --vegetation-filter \
   --supervised

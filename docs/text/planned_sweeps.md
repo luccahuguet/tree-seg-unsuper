@@ -169,10 +169,10 @@ uv run tree-seg sweep data/datasets/fortress_processed --preset quick --smart-k 
 
 - [ ] **Auto-K Clustering Methods**
   ```bash
-  uv run tree-seg sweep data/datasets/fortress_processed -c dpmeans,hdbscan -r slic --num-samples 5 --save-viz
+  uv run tree-seg sweep data/datasets/fortress_processed -c dpmeans -r slic --num-samples 5 --save-viz
   ```
-  - Purpose: Evaluate automatic K selection algorithms
-  - Expected: May fail (HDBSCAN already did), but worth quantifying
+  - Purpose: Evaluate automatic K selection algorithm (DP-means)
+  - Note: HDBSCAN removed (found 0 clusters, always fell back to K-means)
 
 - [ ] **Potts Regularization Test**
   ```bash

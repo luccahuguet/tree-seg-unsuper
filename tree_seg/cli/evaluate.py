@@ -26,7 +26,7 @@ def evaluate_command(
         dir_okay=True,
     ),
     clustering: Literal[
-        "kmeans", "gmm", "spectral", "hdbscan", "spherical", "dpmeans", "potts"
+        "kmeans", "gmm", "spectral", "spherical", "dpmeans", "potts"
     ] = typer.Option(
         "kmeans",
         "--clustering",

@@ -44,7 +44,6 @@ def add_common_eval_arguments(
             "bilateral",
             "gmm",
             "spectral",
-            "hdbscan",
         ],
         help="Clustering/refinement method (default: slic; use slic-skimage to force skimage SLIC)",
     )

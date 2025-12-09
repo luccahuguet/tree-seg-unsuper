@@ -7,8 +7,8 @@ clustering_method = ["kmeans", "gmm"]
 refine = ["slic", "none"]
 
 [presets.clustering]
-description = "Compare all clustering algorithms with SLIC refinement (7 configs)"
-clustering_method = ["kmeans", "gmm", "spectral", "hdbscan", "spherical", "dpmeans", "potts"]
+description = "Compare all clustering algorithms with SLIC refinement (6 configs)"
+clustering_method = ["kmeans", "gmm", "spectral", "spherical", "dpmeans", "potts"]
 refine = ["slic"]
 
 [presets.refine]
@@ -40,8 +40,8 @@ clustering_method = ["kmeans", "gmm", "spectral"]
 refine = ["none", "slic", "soft-em"]
 
 [presets.full]
-description = "Comprehensive sweep: clustering × refine × tiling (28 configs)"
-clustering_method = ["kmeans", "gmm", "spectral", "hdbscan"]
+description = "Comprehensive sweep: clustering × refine × tiling (18 configs)"
+clustering_method = ["kmeans", "gmm", "spectral"]
 refine = ["none", "slic", "soft-em"]
 use_tiling = [true, false]
 

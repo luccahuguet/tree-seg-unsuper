@@ -22,7 +22,6 @@ ALL_OPTIONS = {
         "kmeans",
         "gmm",
         "spectral",
-        "hdbscan",
         "spherical",
         "dpmeans",
         "potts",
