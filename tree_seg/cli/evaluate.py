@@ -491,7 +491,7 @@ def evaluate_command(
         fixed_k=fixed_k,
         apply_vegetation_filter=apply_vegetation_filter,
         exg_threshold=exg_threshold,
-        no_tiling=no_tiling,
+        tiling=tiling,
         viz_two_panel=viz_two_panel,
         viz_two_panel_opaque=viz_two_panel_opaque,
         use_pyramid=use_pyramid,
