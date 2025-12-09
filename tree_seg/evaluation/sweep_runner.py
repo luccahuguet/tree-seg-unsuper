@@ -267,6 +267,32 @@ def run_multiplicative_sweep(
 
         _link_run_into_sweep(sweep_dir, label, run_dir)
 
+        # Show cached results summary with same format as fresh runs
+        if not results and cached_samples and combined_results is not None:
+            results_table = Table(
+                show_header=False,
+                box=None,
+                padding=(0, 2),
+                title="[bold cyan]BENCHMARK RESULTS[/bold cyan]",
+                title_style="bold cyan",
+            )
+            results_table.add_column("Metric", style="cyan", justify="right")
+            results_table.add_column("Value", style="bold white")
+
+            results_table.add_row("Mean mIoU:", f"{combined_results.mean_miou:.3f}")
+            results_table.add_row(
+                "Mean Pixel Accuracy:",
+                f"{combined_results.mean_pixel_accuracy:.3f}",
+            )
+            results_table.add_row(
+                "Mean Runtime:", f"{combined_results.mean_runtime:.2f}s"
+            )
+            results_table.add_row("Total Samples:", str(combined_results.total_samples))
+
+            console.print()
+            console.print(results_table)
+            console.print()
+
         # Store metadata
         try:
             artifacts = {
@@ -290,12 +316,6 @@ def run_multiplicative_sweep(
                     grid_label=label,
                     artifacts=artifacts,
                 )
-                if not results and cached_samples:
-                    console.print(
-                        f"[dim]📊 mIoU={combined_results.mean_miou:.4f}, "
-                        f"PA={combined_results.mean_pixel_accuracy:.4f}, "
-                        f"samples={combined_results.total_samples}[/dim]"
-                    )
         except Exception as e:
             console.print(f"[yellow]⚠️  Failed to store metadata: {e}[/yellow]")
             if not quiet:
