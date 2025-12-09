@@ -55,6 +55,7 @@ HASH_KEYS = [
     "pyramid",
     "pyramid_scales",
     "pyramid_aggregation",
+    "pca_dim",
     "grid_label",
 ]
 
@@ -72,6 +73,7 @@ HASH_DEFAULTS: Dict[str, object] = {
     "supervised": False,
     "smart_k": False,
     "use_attention_features": True,
+    "pca_dim": None,
 }
 
 # GPU tier buckets used for ETA scaling (rough buckets).
@@ -296,6 +298,7 @@ def _config_to_hash_config(
         "pyramid": config.use_pyramid,
         "pyramid_scales": config.pyramid_scales,
         "pyramid_aggregation": config.pyramid_aggregation,
+        "pca_dim": config.pca_dim,
         "grid_label": grid_label,
     }
     return hash_config
@@ -315,6 +318,9 @@ def store_run(
     """
     Persist benchmark results to the metadata bank.
 
+    Auto-update logic: If the same config exists with fewer samples, replace it.
+    If it exists with more samples, keep the existing one (don't downgrade).
+
     Returns:
         hash_id: The hash of the normalized config (used as directory name).
     """
@@ -327,7 +333,20 @@ def store_run(
     normalized = normalize_config(hash_config)
     hash_id = config_hash(normalized)
 
+    # Check if existing run has more samples - if so, skip this update
     run_dir = by_hash_dir / hash_id
+    meta_path = run_dir / "meta.json"
+    if meta_path.exists():
+        try:
+            with meta_path.open("r") as f:
+                existing_meta = json.load(f)
+            existing_samples = existing_meta.get("samples", {}).get("num_samples", 0)
+            if existing_samples > results.total_samples:
+                # Don't downgrade: existing run has more samples
+                return hash_id
+        except Exception:
+            pass  # If we can't read it, proceed with update
+
     _ensure_dir(run_dir)
 
     created_at = _now_iso()
@@ -394,7 +413,7 @@ def store_run(
     with meta_path.open("w") as f:
         json.dump(meta, f, indent=2)
 
-    # Append to index
+    # Upsert to index (update if hash exists, append if new)
     index_path = base_dir / "index.jsonl"
     index_entry = {
         "hash": hash_id,
@@ -404,12 +423,35 @@ def store_run(
         "pixel_accuracy": float(results.mean_pixel_accuracy),
         "total_s": float(total_runtime),
         "created_at": created_at,
+        "num_samples": results.total_samples,
         "config": {
             k: (list(v) if isinstance(v, tuple) else v) for k, v in normalized.items()
         },
     }
-    with index_path.open("a") as f:
-        f.write(json.dumps(index_entry) + "\n")
+
+    # Read existing entries, update matching hash or append new
+    existing_entries = []
+    updated = False
+    if index_path.exists():
+        with index_path.open("r") as f:
+            for line in f:
+                if line.strip():
+                    entry = json.loads(line)
+                    if entry.get("hash") == hash_id:
+                        # Replace with new entry
+                        existing_entries.append(index_entry)
+                        updated = True
+                    else:
+                        existing_entries.append(entry)
+
+    # Append new entry if not updated
+    if not updated:
+        existing_entries.append(index_entry)
+
+    # Write all entries back
+    with index_path.open("w") as f:
+        for entry in existing_entries:
+            f.write(json.dumps(entry) + "\n")
 
     # Append to git-tracked CSV for easy performance tracking
     _append_to_metrics_csv(

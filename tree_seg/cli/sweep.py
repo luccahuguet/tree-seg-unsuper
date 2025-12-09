@@ -26,11 +26,12 @@ ALL_OPTIONS = {
         "dpmeans",
         "potts",
     ],
-    "refine": ["none", "slic", "soft-em", "bilateral", "soft-em+slic"],
+    "refine": ["none", "slic", "slic_skimage", "bilateral", "soft-em", "soft-em+slic"],
     "model": ["small", "base", "large", "mega"],
     "stride": ["2", "4", "8"],
     "tiling": ["on", "off"],
     "elbow_threshold": ["2.5", "5.0", "10.0", "20.0", "50.0"],
+    "pca_dim": ["0", "32", "64", "128", "256"],
 }
 
 
@@ -130,6 +131,10 @@ def _normalize_sweep_param(key: str, values: List[str]) -> list:
                 normalized.append(False)
             else:
                 raise ValueError(f"Invalid tiling value: {val} (use 'on' or 'off')")
+        elif key == "pca_dim":
+            # Convert to int, with "0" mapping to None (no PCA)
+            int_val = int(val)
+            normalized.append(None if int_val == 0 else int_val)
         elif key in ("stride", "elbow_threshold"):
             # Convert to numeric
             normalized.append(float(val) if "." in str(val) else int(val))
@@ -158,7 +163,7 @@ def sweep_command(
         None,
         "--refine",
         "-r",
-        help="Refinement methods to sweep: slic,none or 'all' for all methods",
+        help="Refinement methods to sweep: none,slic,bilateral,soft-em,soft-em+slic or 'all'",
     ),
     model: Optional[str] = typer.Option(
         None,
@@ -181,6 +186,11 @@ def sweep_command(
         "--elbow-threshold",
         "-e",
         help="Elbow thresholds to sweep: 5.0,10.0 or 'all' for common thresholds",
+    ),
+    pca_dim: Optional[str] = typer.Option(
+        None,
+        "--pca-dim",
+        help="PCA dimensions to sweep: 0,64,128 or 'all' (0 = no PCA)",
     ),
     # Configuration sources
     preset: Optional[str] = typer.Option(
@@ -303,14 +313,20 @@ def sweep_command(
         # Basic sweep: 2 clustering × 2 refine = 4 configs
         tree-seg sweep data/datasets/fortress -c kmeans,gmm -r slic,none
 
-        # Use "all" for convenience: 7 clustering × 2 refine = 14 configs
+        # Use "all" for convenience: 6 clustering × 2 refine = 12 configs
         tree-seg sweep data/datasets/fortress -c all -r slic,none
 
-        # All refinement methods with K-means: 5 configs
+        # All refinement methods with K-means: 6 configs
         tree-seg sweep data/datasets/fortress -c kmeans -r all
 
         # Multi-parameter: 4 models × 3 strides = 12 configs
         tree-seg sweep data/datasets/fortress --model all --stride all
+
+        # PCA comparison: 6 clustering × 2 PCA = 12 configs
+        tree-seg sweep data/datasets/fortress -c all --pca-dim 0,64
+
+        # Clustering + refine + PCA: 6 × 2 × 2 = 24 configs
+        tree-seg sweep data/datasets/fortress -c all -r none,slic --pca-dim 0,64
 
         # Use a curated preset
         tree-seg sweep data/datasets/fortress --preset clustering
@@ -340,7 +356,7 @@ def sweep_command(
         sweep_name = name or preset
         # Normalize preset values (same as CLI flags)
         for key in list(sweep_params.keys()):
-            if key in ("refine", "stride", "tiling", "elbow_threshold"):
+            if key in ("refine", "stride", "tiling", "elbow_threshold", "pca_dim"):
                 sweep_params[key] = _normalize_sweep_param(key, sweep_params[key])
     else:
         # Build from CLI flags
@@ -365,6 +381,10 @@ def sweep_command(
         if elbow_threshold:
             sweep_params["elbow_threshold"] = _normalize_sweep_param(
                 "elbow_threshold", _parse_list_param(elbow_threshold, "elbow_threshold")
+            )
+        if pca_dim:
+            sweep_params["pca_dim"] = _normalize_sweep_param(
+                "pca_dim", _parse_list_param(pca_dim, "pca_dim")
             )
 
         sweep_name = name or "custom"
@@ -403,6 +423,8 @@ def sweep_command(
         base_config_params["use_tiling"] = False  # Disabled by default
     if "elbow_threshold" not in sweep_params:
         base_config_params["elbow_threshold"] = 5.0
+    if "pca_dim" not in sweep_params:
+        base_config_params["pca_dim"] = None  # No PCA by default
 
     # Dry run: preview configs
     if dry_run:

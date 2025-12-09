@@ -150,9 +150,16 @@ class Config:
             raise ValueError("feature_upsample_factor must be between 1 and 8")
         if self.pca_dim is not None and (self.pca_dim <= 0 or self.pca_dim > 1024):
             raise ValueError("pca_dim must be between 1 and 1024 when set")
-        if self.refine not in [None, "slic", "slic_skimage", "bilateral"]:
+        if self.refine not in [
+            None,
+            "slic",
+            "slic_skimage",
+            "bilateral",
+            "soft-em",
+            "soft-em+slic",
+        ]:
             raise ValueError(
-                "refine must be None, 'slic', 'slic_skimage', or 'bilateral'"
+                "refine must be None, 'slic', 'slic_skimage', 'bilateral', 'soft-em', or 'soft-em+slic'"
             )
 
         # Tiling validation

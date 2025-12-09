@@ -34,35 +34,76 @@ def run_spherical_kmeans(
 def run_dpmeans(
     features_flat: np.ndarray,
     n_clusters: int,
-    max_iter: int = 10,
+    max_iter: int = 20,
     verbose: bool = False,
+    max_centers: int = 150,
 ) -> np.ndarray:
+    """DP-means clustering with automatic K selection.
+
+    Note: This is a simplified implementation that may struggle with very
+    large/diverse datasets. Consider using kmeans with smart-k instead.
+    """
     if verbose:
         print(
             f"🎯 Clustering with DP-means (auto K via lambda; init k={n_clusters})..."
         )
-    sample_size = min(5000, features_flat.shape[0])
+
+    # Estimate lambda threshold from sample (memory-efficient)
+    sample_size = min(
+        2000, features_flat.shape[0]
+    )  # Larger sample for better lambda estimate
     idx = np.random.choice(features_flat.shape[0], sample_size, replace=False)
     sample = features_flat[idx]
-    pdists = np.sum((sample[:, None, :] - sample[None, :, :]) ** 2, axis=-1)
+
+    # Compute pairwise distances using matrix multiplication (more efficient)
+    # ||a - b||^2 = ||a||^2 + ||b||^2 - 2*a*b
+    norms_sq = np.sum(sample**2, axis=1)
+    pdists = norms_sq[:, None] + norms_sq[None, :] - 2 * np.dot(sample, sample.T)
+    pdists = np.maximum(pdists, 0)  # Fix numerical errors
+
     median_dist = np.median(pdists)
     lam = 0.7 * median_dist
 
-    centers = [features_flat[np.random.choice(features_flat.shape[0])]]
+    # Initialize with random center
+    centers = np.array([features_flat[np.random.choice(features_flat.shape[0])]])
     assignments = np.zeros(features_flat.shape[0], dtype=int)
-    for _ in range(max_iter):
-        dists = np.stack(
-            [np.sum((features_flat - c) ** 2, axis=1) for c in centers], axis=1
-        )
-        min_dists = dists.min(axis=1)
-        assignments = dists.argmin(axis=1)
-        new_centers = features_flat[min_dists > lam]
-        if len(new_centers):
-            centers.extend(list(new_centers))
+
+    for iteration in range(max_iter):
+        # Memory-efficient distance computation: compute min distance incrementally
+        min_dists = np.full(features_flat.shape[0], np.inf)
+        assignments = np.zeros(features_flat.shape[0], dtype=int)
+
+        for k, center in enumerate(centers):
+            # Compute distance to this center only
+            dists = np.sum((features_flat - center) ** 2, axis=1)
+            # Update assignments where this center is closer
+            closer = dists < min_dists
+            min_dists[closer] = dists[closer]
+            assignments[closer] = k
+
+        # Create at most ONE new center per iteration if any point too far
+        far_points = min_dists > lam
+        if far_points.any() and len(centers) < max_centers:
+            far_idx = np.where(far_points)[0][0]
+            centers = np.vstack([centers, features_flat[far_idx : far_idx + 1]])
+            if verbose:
+                print(
+                    f"   Iteration {iteration + 1}: Added center (total={len(centers)})"
+                )
+        elif len(centers) >= max_centers:
+            if verbose:
+                print(f"   Reached max_centers={max_centers}, stopping growth")
+            break
+
+        # Update centers as means of assignments
         for k in range(len(centers)):
             mask = assignments == k
             if mask.any():
                 centers[k] = features_flat[mask].mean(axis=0)
+
+    if verbose:
+        print(f"   Final: {len(centers)} clusters")
+
     return assignments
 
 
