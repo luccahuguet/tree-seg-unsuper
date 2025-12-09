@@ -103,6 +103,7 @@ def run_multiplicative_sweep(
     sweep_params: dict[str, list],
     sweep_name: str,
     num_samples: Optional[int],
+    filter_ids: Optional[list[str]],
     save_viz: bool,
     save_labels: bool,
     quiet: bool,
@@ -169,7 +170,7 @@ def run_multiplicative_sweep(
 
     all_results = []
     model_cache = {}
-    dataset, dtype_resolved = load_dataset(dataset_path, dataset_type)
+    dataset, dtype_resolved = load_dataset(dataset_path, dataset_type, filter_ids=filter_ids)
 
     for i, config_dict in enumerate(configs_to_test):
         label = config_dict.pop("label")

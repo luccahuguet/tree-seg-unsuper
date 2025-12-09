@@ -231,6 +231,11 @@ def sweep_command(
         "--save-labels/--no-save-labels",
         help="Save predicted labels (NPZ) for metadata/viz regeneration",
     ),
+    image_ids: Optional[str] = typer.Option(
+        None,
+        "--image-ids",
+        help="Comma-separated image IDs to evaluate (subset of dataset)",
+    ),
     apply_vegetation_filter: bool = typer.Option(
         False,
         "--vegetation-filter",
@@ -431,6 +436,8 @@ def sweep_command(
         )
         return
 
+    filter_ids = [s.strip() for s in image_ids.split(",") if s.strip()] if image_ids else None
+
     # Run sweep
     run_multiplicative_sweep(
         dataset_path=dataset,
@@ -439,6 +446,7 @@ def sweep_command(
         sweep_params=sweep_params,
         sweep_name=sweep_name,
         num_samples=num_samples,
+        filter_ids=filter_ids,
         save_viz=save_viz,
         save_labels=save_labels,
         quiet=quiet,

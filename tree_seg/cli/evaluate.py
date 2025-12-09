@@ -74,6 +74,7 @@ def _run_single_benchmark(
     config: Config,
     output_dir: Optional[Path],
     num_samples: Optional[int],
+    filter_ids: Optional[list[str]],
     save_viz: bool,
     save_labels: bool,
     quiet: bool,
@@ -111,6 +112,7 @@ def _run_single_benchmark(
         config=config,
         output_dir=out_dir,
         num_samples=num_samples,
+        filter_ids=filter_ids,
         save_viz=save_viz,
         save_labels=save_labels,
         quiet=quiet,
@@ -352,6 +354,11 @@ def evaluate_command(
         "--use-attn/--no-use-attn",
         help="Include attention tokens in features (disable for legacy v1 behavior)",
     ),
+    image_ids: Optional[str] = typer.Option(
+        None,
+        "--image-ids",
+        help="Comma-separated image IDs to evaluate (subset of dataset)",
+    ),
 ):
     """
     Evaluate segmentation methods on labeled datasets.
@@ -496,12 +503,14 @@ def evaluate_command(
     )
 
     # Run single benchmark
+    filter_ids = [s.strip() for s in image_ids.split(",") if s.strip()] if image_ids else None
     _run_single_benchmark(
         dataset_path=dataset,
         dataset_type=dataset_type,
         config=config,
         output_dir=output_dir,
         num_samples=num_samples,
+        filter_ids=filter_ids,
         save_viz=save_viz,
         save_labels=save_labels,
         quiet=quiet,

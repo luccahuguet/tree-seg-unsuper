@@ -32,15 +32,34 @@ def detect_dataset_type(dataset_path: Path) -> str:
     return "generic"
 
 
-def load_dataset(dataset_path: Path, dataset_type: Optional[str] = None):
+def _filter_dataset_samples(dataset, filter_ids: Optional[list[str]]) -> None:
+    """Filter dataset.samples in place by image_id."""
+    if not filter_ids:
+        return
+    id_set = set(filter_ids)
+    samples_before = len(dataset.samples)
+    dataset.samples = [s for s in dataset.samples if s.image_id in id_set]
+    if not dataset.samples:
+        raise ValueError(
+            f"No samples matched filter ids: {', '.join(filter_ids)} "
+            f"(available: {samples_before})"
+        )
+
+
+def load_dataset(
+    dataset_path: Path, dataset_type: Optional[str] = None, filter_ids: Optional[list[str]] = None
+):
     """Instantiate a dataset based on type or auto-detection."""
     dtype = dataset_type or detect_dataset_type(dataset_path)
     if dtype == "fortress":
-        return FortressDataset(dataset_path), dtype
-    if dtype == "isprs":
-        return ISPRSPotsdamDataset(dataset_path), dtype
-    # Fallback to ISPRS interface for now
-    return ISPRSPotsdamDataset(dataset_path), dtype
+        ds = FortressDataset(dataset_path)
+    elif dtype == "isprs":
+        ds = ISPRSPotsdamDataset(dataset_path)
+    else:
+        ds = ISPRSPotsdamDataset(dataset_path)
+
+    _filter_dataset_samples(ds, filter_ids)
+    return ds, dtype
 
 
 def create_config(
@@ -308,6 +327,7 @@ def run_single_benchmark(
     config: Config,
     output_dir: Path,
     num_samples: Optional[int],
+    filter_ids: Optional[list[str]],
     save_viz: bool,
     save_labels: bool,
     quiet: bool,
@@ -325,7 +345,7 @@ def run_single_benchmark(
     browse_dir = output_dir
     browse_dir.mkdir(parents=True, exist_ok=True)
 
-    dataset, _dtype = load_dataset(dataset_path, dataset_type)
+    dataset, _dtype = load_dataset(dataset_path, dataset_type, filter_ids=filter_ids)
 
     results = run_benchmark(
         config=config,
@@ -376,6 +396,7 @@ def run_sweep(
     configs_to_test: list[dict],
     base_config_params: dict,
     num_samples: Optional[int],
+    filter_ids: Optional[list[str]],
     save_viz: bool,
     save_labels: bool,
     quiet: bool,
@@ -393,7 +414,7 @@ def run_sweep(
 
     all_results = []
     model_cache = {}
-    dataset, dtype_resolved = load_dataset(dataset_path, dataset_type)
+    dataset, dtype_resolved = load_dataset(dataset_path, dataset_type, filter_ids=filter_ids)
 
     for i, config_override in enumerate(configs_to_test):
         config_dict = base_config_params.copy()
